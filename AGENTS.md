@@ -1,3 +1,4 @@
+- Read `.claude-students/INDEX.md` before exploring the tree: it maps each subpackage to a short context doc, so read the 1-3 docs matching your task instead. Fix any doc you find wrong in the same PR; editing a `docs/*.md` also requires regenerating its `guide/*.md` twin. Run `./.claude-students/check.sh` before pushing. See `.claude-students/README.md` and `MAINTENANCE.md`
 - Use `make help` to find available development targets
 - Run `make fmt` to format `.go` files, and run `make lint-go` to lint them
 - Run `make lint-js` to lint `.ts` files
