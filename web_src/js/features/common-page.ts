@@ -140,7 +140,7 @@ export function applyAutoFocus(container: Element) {
 /**
  * The container must wrap (not be) an input with "maxlength", and supply the counter text via data attributes.
  */
-function initInputCharCounter(container: HTMLElement) {
+export function initInputCharCounter(container: HTMLElement) {
   const input = container.querySelector<HTMLInputElement | HTMLTextAreaElement>('input[maxlength], textarea[maxlength]');
   if (!input) return;
 
