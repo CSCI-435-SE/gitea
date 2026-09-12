@@ -1,6 +1,6 @@
 ---
 scope: web_src/js/index.ts, web_src/js/features, web_src/js/modules, web_src/js/utils, web_src/js/webcomponents, web_src/js/markup, web_src/js/render
-verified-at: c0092050a4
+verified-at: 187c98fee9
 ---
 
 # web_src/js — page features and how they get wired up
@@ -48,6 +48,11 @@ for new work.
 
 - **Ordering rule:** every `registerGlobalInitFunc` must run *before* `initGlobalSelectorObserver`,
   which `index.ts` deliberately calls last. Registering after it throws.
+- **One function per element.** `callGlobalInitFunc` in `observer.ts` looks the attribute up as a
+  whole string, so `data-global-init` names exactly one function — space-separating two is an open
+  TODO there, not a feature. To add behaviour to an element that already has one (the new-issue
+  title in `templates/repo/issue/new_form.tmpl` carries `autoFocusEnd`), put the attribute on a
+  wrapper and query for the inner element.
 - Data fetching goes through the `fetch.ts` wrappers, never a raw `fetch`.
 - Show and hide with `.tw-hidden` plus `showElem` / `hideElem` / `toggleElem`. In Vue use
   `v-if`/`v-show` instead (`frontend-vue-components.md`).

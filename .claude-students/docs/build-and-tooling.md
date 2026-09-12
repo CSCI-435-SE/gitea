@@ -1,6 +1,6 @@
 ---
-scope: Makefile, package.json, vite.config.ts, .golangci.yml, eslint.config.ts, stylelint.config.ts
-verified-at: c0092050a4
+scope: Makefile, package.json, pyproject.toml, vite.config.ts, .golangci.yml, eslint.config.ts, stylelint.config.ts
+verified-at: 187c98fee9
 ---
 
 # build and tooling — targets, linters, generated files
@@ -23,13 +23,15 @@ are the ones a course task actually needs.
 | `.golangci.yml` | Go linter configuration |
 | `eslint.config.ts`, `stylelint.config.ts` | JS/TS and CSS linting |
 | `.editorconfig` | whitespace rules enforced by `make lint-editorconfig` |
+| `pyproject.toml`, `uv.lock` | the Python tools behind `make lint-templates`: `djlint`, `yamllint`, `zizmor` |
 | `tools/lint-shell.sh` | shellcheck, run over `git ls-files '*.sh'` |
 | `tools/lint-go-all.go` | `lintGoHeader` — the copyright-header check, plus the golangci-lint passes |
 
 ## Conventions & invariants
 
 - **Before committing:** `make fmt`. **Before pushing:** `make lint-go` for Go changes,
-  `make lint-js` for TypeScript (`AGENTS.md`).
+  `make lint-js` for TypeScript (`AGENTS.md`), `make lint-templates` for `.tmpl` changes.
+- `make fmt` covers Go **and** templates, and rewrites the whole repository rather than your diff.
 - **After any `go.mod` change:** `make tidy`, and justify the dependency change in the PR
   description (`docs/guidelines-backend.md`).
 - New `.go` files need a copyright header with the current year (`AGENTS.md`). `lintGoHeader` in
@@ -60,9 +62,11 @@ development.
 **The targets worth memorising.**
 
 ```sh
-make fmt            # format Go
+make fmt            # format Go and templates
 make lint-go        # Go linters
 make lint-js        # TypeScript linters
+make lint-templates # djlint over templates/ — needs uv
+make lint-editorconfig  # whitespace and final newlines, any file type
 make tidy           # after go.mod changes
 make generate-swagger  # after editing API swagger comments
 make help           # everything else
@@ -78,6 +82,10 @@ development. `make watch` covers all of them (`docs/development.md`).
 ## Gotchas
 
 - `make lint-go` is slow on a cold cache. Run it once before pushing rather than on every save.
+- `make lint-templates` builds `.venv` by running `uv sync`, so without `uv` on `PATH` it fails with
+  `make: uv: No such file or directory` — an error that never names the tool you are missing.
+- `make fmt` can reformat files you never touched. Check `git status` afterwards and revert
+  unrelated hunks, or they land in your commit.
 - A swagger comment edit that is not followed by `make generate-swagger` passes locally and fails
   CI.
 - Build artifacts (`gitea`, `data/`, `custom/`, `public/assets/*`) are gitignored — check
