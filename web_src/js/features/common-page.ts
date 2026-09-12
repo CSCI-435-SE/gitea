@@ -145,8 +145,8 @@ function initInputCharCounter(container: HTMLElement) {
   if (!input) return;
 
   const maxLength = Number(input.getAttribute('maxlength'));
-  const textForm1 = container.getAttribute('data-char-counter-text-1')!;
-  const textFormN = container.getAttribute('data-char-counter-text-n')!;
+  const textForm1 = container.getAttribute('data-locale-chars-left-1')!;
+  const textFormN = container.getAttribute('data-locale-chars-left-n')!;
 
   const counter = createElementFromAttrs<HTMLElement>('span', {class: 'input-char-counter'});
   container.append(counter);
@@ -155,7 +155,9 @@ function initInputCharCounter(container: HTMLElement) {
     // "maxlength" and JS string length both count UTF-16 code units, so they never disagree
     const remaining = maxLength - input.value.length;
     counter.textContent = trN(remaining, textForm1, textFormN);
-    counter.classList.toggle('near-limit', remaining <= 20);
+
+    counter.classList.toggle('near-limit', remaining <= 20 && remaining > 0);
+    counter.classList.toggle('at-limit', remaining <= 0);
   };
   updateCounter();
   input.addEventListener('input', updateCounter);
