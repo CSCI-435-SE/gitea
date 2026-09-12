@@ -2,11 +2,12 @@ import {GET, POST} from '../modules/fetch.ts';
 import {showGlobalErrorMessage} from '../modules/errors.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {initTabSwitcher} from '../modules/fomantic/tab.ts';
-import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
+import {addDelegatedEventListener, createElementFromAttrs, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
 import {initScopedWorkflowRequired} from './comp/ScopedWorkflows.ts';
+import {trN} from '../modules/i18n.ts';
 
 const {appUrl, appSubUrl} = window.config;
 
@@ -136,6 +137,30 @@ export function applyAutoFocus(container: Element) {
   if (el) autoFocusEnd(el);
 }
 
+/**
+ * The container must wrap (not be) an input with "maxlength", and supply the counter text via data attributes.
+ */
+function initInputCharCounter(container: HTMLElement) {
+  const input = container.querySelector<HTMLInputElement | HTMLTextAreaElement>('input[maxlength], textarea[maxlength]');
+  if (!input) return;
+
+  const maxLength = Number(input.getAttribute('maxlength'));
+  const textForm1 = container.getAttribute('data-char-counter-text-1')!;
+  const textFormN = container.getAttribute('data-char-counter-text-n')!;
+
+  const counter = createElementFromAttrs<HTMLElement>('span', {class: 'input-char-counter'});
+  container.append(counter);
+
+  const updateCounter = () => {
+    // "maxlength" and JS string length both count UTF-16 code units, so they never disagree
+    const remaining = maxLength - input.value.length;
+    counter.textContent = trN(remaining, textForm1, textFormN);
+    counter.classList.toggle('near-limit', remaining <= 20);
+  };
+  updateCounter();
+  input.addEventListener('input', updateCounter);
+}
+
 export function initGlobalInput() {
   registerGlobalSelectorFunc('input, textarea', attachInputDirAuto);
 
@@ -143,6 +168,7 @@ export function initGlobalInput() {
   // It is useful for "New Issue"/"New PR" pages when the title is pre-filled with prefix text (e.g.: from template or commit message)
   // The native "autofocus" isn't used because there is a delay between "focused (DOM rendering)" and "move cursor to end (our JS)", it causes flickers.
   registerGlobalInitFunc('autoFocusEnd', autoFocusEnd);
+  registerGlobalInitFunc('initInputCharCounter', initInputCharCounter);
 }
 
 /**
