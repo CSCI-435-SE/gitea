@@ -1,0 +1,14 @@
+# Gitea's default robots.txt. To replace it, create custom/public/robots.txt.
+# These prefixes generate an unbounded number of URLs and have no search value.
+# /src/, /issues, /pulls and /wiki/ are deliberately left crawlable.
+User-agent: *
+Disallow: /*/*/archive/
+Disallow: /*/*/blame/
+Disallow: /*/*/commit/
+Disallow: /*/*/commits/
+Disallow: /*/*/compare/
+Disallow: /*/*/graph
+Disallow: /*/*/media/
+Disallow: /*/*/raw/
+Disallow: /*/*/rss/
+Disallow: /*/*/activity/
