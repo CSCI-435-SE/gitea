@@ -22,7 +22,6 @@ Install these before you start. Versions below are the minimums this fork is pin
 | **Git** | 2.x | Required both to build **and at runtime** (Gitea shells out to git). |
 
 > 💡 **New to Go?** Gitea's backend is written in Go. [A Tour of Go](https://go.dev/tour/) is the official interactive tutorial (~2 hours) and covers everything you need for typical backend tasks. Pay attention to goroutines and interfaces — both appear frequently in this codebase.
-
 > 📖 **Developer docs:** [`docs/development.md`](docs/development.md) in this repo covers the development workflow, how to run tests, database migration conventions, and the overall package structure. Read it before picking a task.
 
 **You do NOT need a C compiler (gcc).** This version of Gitea uses a pure-Go SQLite driver
@@ -33,11 +32,13 @@ This is the main reason setup is painless on Windows.
 (if you'd rather run the official container instead of building).
 
 ### Installing the toolchain
+
 - **Windows:** `winget install GoLang.Go` and `winget install OpenJS.NodeJS`, then `corepack enable`.
 - **macOS:** `brew install go node` then `corepack enable`.
 - **Linux:** use your package manager (or the official Go tarball) for Go + Node, then `corepack enable`.
 
 Verify:
+
 ```bash
 go version      # go1.26.x
 node --version  # v22.18+ (or newer)
@@ -61,11 +62,13 @@ cd gitea
 Gitea is built in two halves: the frontend assets (with pnpm/vite) and the backend binary (with Go).
 
 ### Option A — with `make` (recommended if you have it)
+
 ```bash
 make build          # builds frontend + backend into ./gitea (or gitea.exe on Windows)
 ```
 
 ### Option B — without `make` (works everywhere)
+
 ```bash
 # 1) frontend assets -> public/assets/
 pnpm install
@@ -108,6 +111,7 @@ admin account you just created.
 > `./gitea web --port 3030` and open http://localhost:3030 instead.
 
 ### On macOS
+
 The same `./gitea web` command works — a few Mac-specific notes:
 
 - **Firewall prompt:** the first launch may ask *"Do you want the application `gitea` to accept
@@ -119,7 +123,9 @@ The same `./gitea web` command works — a few Mac-specific notes:
 - **Apple Silicon (M1–M4):** fully supported — Go produces a native arm64 binary, nothing extra to do.
 
 ### Live-reload while developing (optional)
+
 If you have `make`:
+
 ```bash
 make watch          # rebuilds frontend + backend on file changes (uses air)
 ```
@@ -152,6 +158,7 @@ make test-integration     # integration tests (defaults to SQLite via GITEA_TEST
 ```
 
 Frontend tests:
+
 ```bash
 pnpm exec vitest run
 ```
@@ -175,7 +182,7 @@ pnpm exec vitest run
 
 All team members have write access to this repository, so the team uses a **branch-based** workflow — not forks. Here is the background and the commands.
 
-**Why not forks?** Forking is the standard model for contributing to open-source projects where you _don't_ have write access: you fork to your own GitHub account, clone your fork, and open a PR from your fork back to the original. You will encounter this when contributing to the upstream project. But for your course team — where everyone has write access to the shared repo — it just adds confusion: two clones on your machine, two remotes to keep in sync, merge conflicts that are harder to reason about.
+**Why not forks?** Forking is the standard model for contributing to open-source projects where you *don't* have write access: you fork to your own GitHub account, clone your fork, and open a PR from your fork back to the original. You will encounter this when contributing to the upstream project. But for your course team — where everyone has write access to the shared repo — it just adds confusion: two clones on your machine, two remotes to keep in sync, merge conflicts that are harder to reason about.
 
 **Branch-based workflow** is what most professional teams use internally. You clone the shared repo once, create a short-lived branch for each issue, push the branch back to the same repo, and open a PR from that branch into `main`. One clone, one remote, full PR workflow.
 
@@ -209,7 +216,7 @@ After pushing, GitHub shows a **"Compare & pull request"** banner on the reposit
 **Branch naming:**
 
 | Prefix | Use for |
-|---|---|
+| --- | --- |
 | `feat/issue-<N>-short-description` | new features |
 | `fix/issue-<N>-short-description` | bug fixes |
 | `chore/short-description` | docs, config, dependency updates |
