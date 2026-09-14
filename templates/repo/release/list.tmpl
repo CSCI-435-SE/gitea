@@ -4,6 +4,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		{{template "repo/release_tag_header" .}}
+		{{if .Releases}}
 		<ul id="release-list">
 			{{range $idx, $info := .Releases}}
 				{{$release := $info.Release}}
@@ -111,6 +112,16 @@
 				</li>
 			{{end}}
 		</ul>
+		{{else}}
+			<div class="empty-placeholder">
+				{{svg "octicon-tag" 48}}
+				<h2>{{ctx.Locale.Tr "repo.release.empty"}}</h2>
+				<p>{{if .CanCreateRelease}}{{ctx.Locale.Tr "repo.release.empty_description_writer"}}{{else}}{{ctx.Locale.Tr "repo.release.empty_description"}}{{end}}</p>
+				{{if .CanCreateRelease}}
+					<a class="ui small primary button" href="{{$.RepoLink}}/releases/new">{{ctx.Locale.Tr "repo.release.new_release"}}</a>
+				{{end}}
+			</div>
+		{{end}}
 
 		{{template "base/paginate" .}}
 	</div>
