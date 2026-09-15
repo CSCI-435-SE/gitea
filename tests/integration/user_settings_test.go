@@ -4,15 +4,21 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
 	"gitea.dev/tests"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -266,6 +272,58 @@ func TestUserSettingsSecurity(t *testing.T) {
 		session := loginUser(t, "user2")
 		req := NewRequest(t, "GET", "/user/settings/security")
 		session.MakeRequest(t, req, http.StatusNotFound)
+	})
+}
+
+func TestUserSettingsWebAuthnRename(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2") // log in before adding keys, otherwise login would require the second factor
+	own, err := auth_model.CreateCredential(t.Context(), 2, "Laptop Key", &webauthn.Credential{ID: []byte("rename-1")})
+	assert.NoError(t, err)
+	_, err = auth_model.CreateCredential(t.Context(), 2, "Phone Key", &webauthn.Credential{ID: []byte("rename-2")})
+	assert.NoError(t, err)
+	other, err := auth_model.CreateCredential(t.Context(), 4, "Other User Key", &webauthn.Credential{ID: []byte("rename-3")})
+	assert.NoError(t, err)
+
+	rename := func(id int64, name string, expectedStatus int) *httptest.ResponseRecorder {
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/user/settings/security/webauthn/rename?id=%d", id), map[string]string{"name": name})
+		return session.MakeRequest(t, req, expectedStatus)
+	}
+
+	t.Run("Success", func(t *testing.T) {
+		resp := rename(own.ID, "Work Laptop", http.StatusOK)
+		assert.Equal(t, "/user/settings/security", *test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
+		cred := unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: own.ID, Name: "Work Laptop"})
+		assert.Equal(t, []byte("rename-1"), cred.CredentialID) // the credential itself is untouched
+	})
+
+	t.Run("CaseChangeOfOwnName", func(t *testing.T) {
+		rename(own.ID, "WORK LAPTOP", http.StatusOK)
+		unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: own.ID, Name: "WORK LAPTOP"})
+	})
+
+	t.Run("InvalidNames", func(t *testing.T) {
+		for _, name := range []string{"", strings.Repeat("a", 256)} {
+			resp := rename(own.ID, name, http.StatusBadRequest)
+			assert.NotEmpty(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+		}
+		unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: own.ID, Name: "WORK LAPTOP"})
+	})
+
+	t.Run("NameTaken", func(t *testing.T) {
+		resp := rename(own.ID, "phone key", http.StatusBadRequest)
+		assert.Equal(t, translation.NewLocale("en-US").TrString("settings.webauthn_nickname_taken"), test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+		unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: own.ID, Name: "WORK LAPTOP"})
+	})
+
+	t.Run("OtherUsersKey", func(t *testing.T) {
+		rename(other.ID, "Stolen", http.StatusNotFound)
+		unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: other.ID, Name: "Other User Key"})
+	})
+
+	t.Run("NonexistentKey", func(t *testing.T) {
+		rename(99999, "Missing", http.StatusNotFound)
 	})
 }
 

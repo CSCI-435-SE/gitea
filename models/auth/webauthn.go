@@ -195,6 +195,12 @@ func CreateCredential(ctx context.Context, userID int64, name string, cred *weba
 	return c, nil
 }
 
+// UpdateCredentialName will rename the WebAuthnCredential with the given id if it belongs to userID
+func UpdateCredentialName(ctx context.Context, id, userID int64, name string) error {
+	_, err := db.GetEngine(ctx).ID(id).Where("user_id = ?", userID).Cols("name", "lower_name").Update(&WebAuthnCredential{Name: name})
+	return err
+}
+
 // DeleteCredential will delete WebAuthnCredential
 func DeleteCredential(ctx context.Context, id, userID int64) (bool, error) {
 	had, err := db.GetEngine(ctx).ID(id).Where("user_id = ?", userID).Delete(&WebAuthnCredential{})

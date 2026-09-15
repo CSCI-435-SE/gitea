@@ -125,6 +125,47 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	ctx.JSON(http.StatusCreated, cred)
 }
 
+// WebauthnRename renames a security key by id
+func WebauthnRename(ctx *context.Context) {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	}
+
+	if ctx.HasError() { // form binding validation error
+		ctx.JSONError(ctx.GetErrMsg())
+		return
+	}
+
+	cred, err := auth.GetWebAuthnCredentialByID(ctx, ctx.FormInt64("id"))
+	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
+		ctx.ServerError("GetWebAuthnCredentialByID", err)
+		return
+	}
+	if cred == nil || cred.UserID != ctx.Doer.ID { // hide other users' keys as not found
+		ctx.JSONErrorNotFound()
+		return
+	}
+
+	form := web.GetForm(ctx).(*forms.WebauthnRenameForm)
+	sameName, err := auth.GetWebAuthnCredentialByName(ctx, ctx.Doer.ID, form.Name)
+	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
+		ctx.ServerError("GetWebAuthnCredentialByName", err)
+		return
+	}
+	if sameName != nil && sameName.ID != cred.ID { // renaming a key to its own name with different casing is allowed
+		ctx.JSONError(ctx.Tr("settings.webauthn_nickname_taken"))
+		return
+	}
+
+	if err := auth.UpdateCredentialName(ctx, cred.ID, ctx.Doer.ID, form.Name); err != nil {
+		ctx.ServerError("UpdateCredentialName", err)
+		return
+	}
+	ctx.Flash.Success(ctx.Tr("settings.webauthn_rename_key_success"))
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
+}
+
 // WebauthnDelete deletes an security key by id
 func WebauthnDelete(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageMFA) {
