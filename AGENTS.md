@@ -10,6 +10,7 @@
 - Ensure no trailing whitespace in edited files
 - Use Conventional Commits for commit messages and PR titles, e.g. `type(scope): subject`; `!` before the colon if breaking. Use `test` type for test-only changes.
 - Never force-push, amend, or squash unless asked. Use new commits and normal push for pull request updates
+- Only commit after a human has explicitly approved that commit; approval of one commit does not carry over to later ones
 - Preserve existing code comments, do not remove or rewrite comments that are still relevant
 - Keep comments short, prefer same-line, explain why, never narrate code
 - Prefer unit tests over integration tests when logic is testable in isolation
