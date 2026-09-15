@@ -304,11 +304,17 @@ func TestUserSettingsWebAuthnRename(t *testing.T) {
 	})
 
 	t.Run("InvalidNames", func(t *testing.T) {
-		for _, name := range []string{"", strings.Repeat("a", 256)} {
+		for _, name := range []string{"", "   ", strings.Repeat("a", 256)} {
 			resp := rename(own.ID, name, http.StatusBadRequest)
 			assert.NotEmpty(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 		}
 		unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: own.ID, Name: "WORK LAPTOP"})
+	})
+
+	t.Run("SurroundingSpacesTrimmed", func(t *testing.T) {
+		rename(own.ID, "  Spaced Key  ", http.StatusOK)
+		unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: own.ID, Name: "Spaced Key"})
+		rename(own.ID, "WORK LAPTOP", http.StatusOK) // restore the name the following subtests expect
 	})
 
 	t.Run("NameTaken", func(t *testing.T) {

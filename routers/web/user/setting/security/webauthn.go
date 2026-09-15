@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"gitea.dev/models/auth"
@@ -148,6 +149,11 @@ func WebauthnRename(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.WebauthnRenameForm)
+	form.Name = strings.TrimSpace(form.Name)
+	if form.Name == "" { // "Required" binding only rejects an exactly empty value, not whitespace
+		ctx.JSONError(ctx.Locale.TrString("settings.webauthn_nickname") + ctx.Locale.TrString("form.require_error"))
+		return
+	}
 	sameName, err := auth.GetWebAuthnCredentialByName(ctx, ctx.Doer.ID, form.Name)
 	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
 		ctx.ServerError("GetWebAuthnCredentialByName", err)
