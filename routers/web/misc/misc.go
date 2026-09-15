@@ -18,6 +18,8 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/services/context"
+
+	_ "embed"
 )
 
 func SiteManifest(w http.ResponseWriter, req *http.Request) {
@@ -62,12 +64,21 @@ func DummyOK(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// defaultRobotsTxt is served when the admin has not supplied their own robots.txt
+//
+//go:embed robots.txt
+var defaultRobotsTxt string
+
 func RobotsTxt(w http.ResponseWriter, req *http.Request) {
 	robotsTxt := util.FilePathJoinAbs(setting.CustomPath, "public/robots.txt")
 	if ok, _ := util.IsExist(robotsTxt); !ok {
 		robotsTxt = util.FilePathJoinAbs(setting.CustomPath, "robots.txt") // the legacy "robots.txt"
 	}
 	httpcache.SetCacheControlInHeader(w.Header(), httpcache.CacheControlForPublicStatic())
+	if ok, _ := util.IsExist(robotsTxt); !ok {
+		http.ServeContent(w, req, "robots.txt", setting.AppStartTime, strings.NewReader(defaultRobotsTxt))
+		return
+	}
 	http.ServeFile(w, req, robotsTxt)
 }
 
