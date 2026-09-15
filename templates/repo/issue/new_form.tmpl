@@ -5,7 +5,10 @@
 			<div class="comment">
 				<div class=" tw-mr-4 not-mobile">{{ctx.AvatarUtils.Avatar .SignedUser 40}}</div>
 				<div class="ui segment content tw-my-0 avatar-content-left-arrow">
-					<div class="field">
+					<div class="field" data-global-init="initInputCharCounter"
+									data-locale-chars-left-1="{{ctx.Locale.Tr "chars_left_1"}}"
+									data-locale-chars-left-n="{{ctx.Locale.Tr "chars_left_n"}}"
+					>
 						<input name="title" data-global-init="autoFocusEnd" id="issue_title" required maxlength="255" autocomplete="off"
 								placeholder="{{ctx.Locale.Tr "repo.milestones.title"}}"
 								value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}"

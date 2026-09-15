@@ -387,6 +387,7 @@ export function initRepoIssueTitleEdit() {
     showElem('#pull-desc-editor');
     if (!issueTitleInput.value.trim()) {
       issueTitleInput.value = oldTitle;
+      issueTitleInput.dispatchEvent(new Event('input')); // a programmatic value change doesn't fire it, the char counter listens for it
     }
     issueTitleInput.focus();
   });

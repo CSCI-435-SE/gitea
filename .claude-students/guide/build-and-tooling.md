@@ -1,7 +1,7 @@
 ---
 source: docs/build-and-tooling.md
-source-hash: 099be5e81e4a1f7c
-verified-at: c0092050a4
+source-hash: 840cbd1e5af507af
+verified-at: 187c98fee9
 ---
 
 <!-- Derived from docs/build-and-tooling.md. Do not edit by hand: fix the reference doc and
@@ -52,13 +52,17 @@ find out locally in seconds rather than from a failed build twenty minutes later
 | `.golangci.yml` | Which Go linters run, and their configuration. |
 | `eslint.config.ts`, `stylelint.config.ts` | TypeScript and CSS linting. |
 | `.editorconfig` | Whitespace rules. |
+| `pyproject.toml`, `uv.lock` | The Python tools that lint templates and workflow files. |
 | `tools/lint-shell.sh` | Shell script checking. |
 | `tools/lint-go-all.go` | The copyright-header check and the Go lint passes. |
 
 ## The rules, and why
 
-**Before committing, `make fmt`. Before pushing, `make lint-go` or `make lint-js`** depending on
-what you touched.
+**Before committing, `make fmt`. Before pushing, `make lint-go`, `make lint-js` or
+`make lint-templates`** depending on what you touched.
+
+**`make fmt` rewrites the whole repository, not just your changes.** It covers Go and templates, so
+it can reformat a file you never opened. Check `git status` after running it.
 
 **After changing dependencies, `make tidy`** — and justify the change in the pull request. A
 dependency is a long-term commitment for the whole project.
@@ -95,9 +99,11 @@ setting up on day one.
 **The commands worth memorising.**
 
 ```sh
-make fmt               # format Go — run before every commit
+make fmt               # format Go and templates — run before every commit
 make lint-go           # Go linters
 make lint-js           # TypeScript linters
+make lint-templates    # template linters — needs uv
+make lint-editorconfig # whitespace and final newlines, any file type
 make tidy              # after changing dependencies
 make generate-swagger  # after editing API swagger comments
 make help              # everything else
@@ -125,6 +131,14 @@ your machine. Capture them before you start.
 
 **`make lint-go` feels painfully slow.** It is, on a cold cache. Run it once before pushing rather
 than after every save.
+
+**`make lint-templates` fails saying `uv: No such file or directory`.** The template linters are
+Python tools installed into a local environment by `uv`, and you do not have `uv` yet. The error
+names `uv` rather than saying "install this", which is why it reads as a broken target.
+
+**A file you never opened shows up in `git status` after `make fmt`.** It formats the whole
+repository, so it can pick up drift someone else left behind. Revert those hunks — they are not
+yours, and they will confuse the review of your change.
 
 **You commit something that should not be there.** Build artefacts — the binary, the data and custom
 directories, the built assets — are ignored, but check `git status` before committing anyway.

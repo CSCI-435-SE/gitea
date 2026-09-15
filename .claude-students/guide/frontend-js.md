@@ -1,7 +1,7 @@
 ---
 source: docs/frontend-js.md
-source-hash: 2d5a7fdb8fea93a0
-verified-at: c0092050a4
+source-hash: 2d8405ac2117ea73
+verified-at: 187c98fee9
 ---
 
 <!-- Derived from docs/frontend-js.md. Do not edit by hand: fix the reference doc and regenerate
@@ -87,6 +87,13 @@ across many pages. Do not reach for it in new work.
 **Registration must happen before the observer starts.** `index.ts` deliberately starts the observer
 last, after everything has registered. Registering afterwards throws an error rather than failing
 quietly — which is the kind thing for it to do.
+
+**One element gets one function.** The attribute is looked up whole, so `data-global-init` names a
+single function; listing two separated by a space is a TODO in the code, not something that works
+today. When the element you want already has one — the new-issue title field carries the
+cursor-positioning behaviour — put your attribute on a wrapper around it and find the inner element
+from there. Writing two names does at least fail loudly: the whole string is treated as one name,
+and the lookup throws saying that function was not found.
 
 ### Everything else
 
