@@ -182,6 +182,12 @@ func TestViewReleaseListEmpty(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Equal(t, 1, htmlDoc.Find(`.empty-placeholder a[href="/user5/repo4/releases/new"]`).Length())
 	})
+	t.Run("PagePastEnd", func(t *testing.T) {
+		req := NewRequest(t, "GET", "/user2/repo1/releases?page=99") // repo1 has releases, just not on this page
+		resp := MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, 0, htmlDoc.Find(".empty-placeholder").Length())
+	})
 }
 
 func TestViewSingleRelease(t *testing.T) {

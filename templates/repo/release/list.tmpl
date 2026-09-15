@@ -4,7 +4,8 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		{{template "repo/release_tag_header" .}}
-		{{if .Releases}}
+		{{/* NumReleases covers pages past the end; .Releases covers a single tag page, which NumReleases does not count */}}
+		{{if or .Releases .NumReleases}}
 		<ul id="release-list">
 			{{range $idx, $info := .Releases}}
 				{{$release := $info.Release}}
