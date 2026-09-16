@@ -30,6 +30,10 @@ export function shouldAttachIssuePopup(link: HTMLAnchorElement, currentPath: str
   if (!target.ownerName) return false;
   // another forge's issue URL parses the same way, but /info here would answer for a different issue
   if (link.origin !== window.location.origin) return false;
+  // parseIssueHref's regex is unanchored, so a browsing path such as
+  // /owner/repo/src/branch/main/issues/12 parses as a reference to issue 12 as well
+  const canonicalPath = `${window.config.appSubUrl}/${target.ownerName}/${target.repoName}/${target.pathType}/${target.indexString}`;
+  if (link.pathname !== canonicalPath && !link.pathname.startsWith(`${canonicalPath}/`)) return false;
   if (link.classList.contains('ref-external-issue')) return false;
   if (link.closest('[data-issue-popup="off"]')) return false;
   if (getAttachedTippyInstance(link)) return false;

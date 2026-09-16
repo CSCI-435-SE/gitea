@@ -51,6 +51,20 @@ test('shouldAttachIssuePopup ignores links that are not issues', () => {
   expect(shouldAttachIssuePopup(makeLink('<a href="/explore/repos">explore</a>'), '/other/repo/issues/9')).toBe(false);
 });
 
+test('shouldAttachIssuePopup ignores repository paths that merely contain an issue segment', () => {
+  // parseIssueHref's regex is unanchored, so a browsing path under a directory named "issues"
+  // parses as a reference; without a path check these fire a doomed /info request per hover
+  expect(shouldAttachIssuePopup(makeLink('<a href="/owner/repo/src/branch/main/tests/issues/1234.go">f</a>'), '/owner/repo')).toBe(false);
+  expect(shouldAttachIssuePopup(makeLink('<a href="/owner/repo/src/branch/main/issues/12">f</a>'), '/owner/repo')).toBe(false);
+  expect(shouldAttachIssuePopup(makeLink('<a href="/owner/repo/wiki/issues/5">w</a>'), '/owner/repo')).toBe(false);
+});
+
+test('shouldAttachIssuePopup attaches to sub-paths of a real issue', () => {
+  // the diff and attachment tabs are still the issue, so they keep their preview
+  expect(shouldAttachIssuePopup(makeLink('<a href="/owner/repo/pulls/1/files">files</a>'), '/other/repo/issues/9')).toBe(true);
+  expect(shouldAttachIssuePopup(makeLink('<a href="/owner/repo/issues/3/attachments">a</a>'), '/other/repo/issues/9')).toBe(true);
+});
+
 test('shouldAttachIssuePopup ignores external issue references', () => {
   // these point at Jira/Redmine, where no /info endpoint exists
   const link = makeLink('<a class="ref-external-issue" href="/owner/repo/issues/1">#1</a>');
