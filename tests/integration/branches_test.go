@@ -14,6 +14,7 @@ import (
 	"gitea.dev/modules/translation"
 	"gitea.dev/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,6 +36,32 @@ func TestViewBranches(t *testing.T) {
 	htmlDoc = NewHTMLParser(t, resp.Body)
 	AssertHTMLElement(t, htmlDoc, "[data-testid=branches-default-branch-list]", 0)
 	AssertHTMLElement(t, htmlDoc, "[data-testid=branches-default-branch-not-exist]", 1)
+}
+
+func TestViewBranchesStaleBadge(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// repo1's "branch2" has a commit from 2020 (well past the 90-day default threshold)
+	// and is not deleted, so its row must show the badge.
+	req := NewRequest(t, "GET", "/user2/repo1/branches")
+	resp := MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	branch2Row := htmlDoc.Find(`a.branch-name[href$="/src/branch/branch2"]`).Closest(".flex-text-block")
+	assert.Equal(t, 1, branch2Row.Find("[data-testid=branch-stale-label]").Length())
+
+	// "master" is repo1's default branch. Even though its own latest commit is also old,
+	// it is rendered in the separate default-branch block and must never get the badge.
+	defaultBranchSection := htmlDoc.Find("[data-testid=branches-default-branch-list]")
+	assert.Equal(t, 0, defaultBranchSection.Find("[data-testid=branch-stale-label]").Length())
+
+	// "foo" and "bar" are deleted branches; deleted rows never get the badge either.
+	for _, name := range []string{"foo", "bar"} {
+		deletedRow := htmlDoc.Find(`span.branch-name`).FilterFunction(func(_ int, s *goquery.Selection) bool {
+			return s.Text() == name
+		}).Closest("td")
+		assert.Equal(t, 0, deletedRow.Find("[data-testid=branch-stale-label]").Length())
+	}
 }
 
 func TestUndoDeleteBranch(t *testing.T) {

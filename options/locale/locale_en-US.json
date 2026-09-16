@@ -2699,6 +2699,8 @@
   "repo.branch.rename": "Rename Branch \"%s\"",
   "repo.branch.included_desc": "This branch is part of the default branch",
   "repo.branch.included": "Included",
+  "repo.branch.stale": "Stale",
+  "repo.branch.stale_desc": "No commits in %d+ days",
   "repo.branch.create_new_branch": "Create branch from branch:",
   "repo.branch.confirm_create_branch": "Create branch",
   "repo.branch.warning_rename_default_branch": "You are renaming the default branch.",

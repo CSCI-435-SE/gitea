@@ -87,6 +87,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["DefaultBranchBranch"] = defaultBranchOptional
+	ctx.Data["StaleBranchDays"] = setting.Repository.Branch.StaleBranchDays
 	pager := context.NewPagination(branchesCount, pageSize, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager

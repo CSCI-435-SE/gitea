@@ -107,6 +107,11 @@ var (
 			MaxPinned   int
 		} `ini:"repository.issue"`
 
+		// Branch Setting
+		Branch struct {
+			StaleBranchDays int
+		} `ini:"repository.branch"`
+
 		Release struct {
 			AllowedTypes     string
 			DefaultPagingNum int
@@ -252,6 +257,13 @@ var (
 		}{
 			LockReasons: strings.Split("Too heated,Off-topic,Spam,Resolved", ","),
 			MaxPinned:   3,
+		},
+
+		// Branch settings
+		Branch: struct {
+			StaleBranchDays int
+		}{
+			StaleBranchDays: 90,
 		},
 
 		Release: struct {
