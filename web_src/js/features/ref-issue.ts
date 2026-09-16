@@ -13,6 +13,9 @@ type IssueInfo = {
 // null marks a lookup that failed, so unreadable or missing issues are not refetched on every hover
 export const issueInfoCache = new Map<string, IssueInfo | null>();
 
+// distinguishes a cached failure from a fresh one, so the caller can log the first and stay silent on repeats
+export class CachedIssueInfoError extends Error {}
+
 // builds the canonical info endpoint from a link's parts, because the link may point at a
 // sub-path such as /pulls/1/files where appending /info would 404
 export function buildIssueInfoUrl(href: string): string | null {
@@ -43,7 +46,7 @@ export function shouldAttachIssuePopup(link: HTMLAnchorElement, currentPath: str
 export async function getIssueInfo(url: string): Promise<IssueInfo> {
   if (issueInfoCache.has(url)) {
     const cached = issueInfoCache.get(url);
-    if (!cached) throw new Error('issue info previously failed to load');
+    if (!cached) throw new CachedIssueInfoError('issue info previously failed to load');
     return cached;
   }
   let resp: Response;
@@ -107,7 +110,8 @@ export function initRefIssueContextPopup() {
       try {
         await showRefIssuePopup(link);
       } catch (err) {
-        console.error('Failed to load issue info:', err);
+        // a cached failure already logged on its first occurrence; repeating it on every hover would drown out real signal
+        if (!(err instanceof CachedIssueInfoError)) console.error('Failed to load issue info:', err);
         link.removeAttribute('data-ref-issue-popup');
       }
     }, 300);

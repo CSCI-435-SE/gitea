@@ -1,4 +1,4 @@
-import {buildIssueInfoUrl, shouldAttachIssuePopup, getIssueInfo, issueInfoCache} from './ref-issue.ts';
+import {buildIssueInfoUrl, shouldAttachIssuePopup, getIssueInfo, issueInfoCache, initRefIssueContextPopup} from './ref-issue.ts';
 import {GET} from '../modules/fetch.ts';
 import type {Instance} from 'tippy.js';
 
@@ -149,5 +149,30 @@ describe('getIssueInfo caching', {concurrent: false}, () => {
     await expect(getIssueInfo('/owner/repo/issues/500/info')).rejects.toThrow();
     await expect(getIssueInfo('/owner/repo/issues/500/info')).rejects.toThrow();
     expect(vi.mocked(GET).mock.calls.length).toEqual(1);
+  });
+
+  // exercises the real hover handler (not just getIssueInfo) because the silence requirement is
+  // about what initRefIssueContextPopup's catch logs, not about the cache itself
+  test('a failed hover logs once; a repeat hover on the same link stays silent', async () => {
+    vi.mocked(GET).mockResolvedValue({ok: false, statusText: 'Not Found'} as unknown as Response);
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const link = makeLink('<a class="ref-issue" href="/owner/repo/issues/999">#999</a>');
+    document.body.append(link);
+    try {
+      initRefIssueContextPopup();
+
+      link.dispatchEvent(new MouseEvent('mouseover', {bubbles: true}));
+      await new Promise((resolve) => setTimeout(resolve, 350)); // past the 300ms hover delay
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+
+      // the link is re-hoverable once the first attempt's catch clears data-ref-issue-popup;
+      // this second lookup hits the cached failure and must not log again
+      link.dispatchEvent(new MouseEvent('mouseover', {bubbles: true}));
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      errorSpy.mockRestore();
+      link.remove();
+    }
   });
 });
