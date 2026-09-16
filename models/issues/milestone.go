@@ -57,6 +57,7 @@ type Milestone struct {
 	NumOpenIssues   int  `xorm:"-"`
 	Completeness    int  // Percentage(1-100).
 	IsOverdue       bool `xorm:"-"`
+	IsNearDue       bool `xorm:"-"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -90,11 +91,7 @@ func (m *Milestone) AfterLoad() {
 		return
 	}
 	m.DeadlineString = m.DeadlineUnix.FormatDate()
-	if m.IsClosed {
-		m.IsOverdue = m.ClosedDateUnix >= m.DeadlineUnix
-	} else {
-		m.IsOverdue = timeutil.TimeStampNow() >= m.DeadlineUnix
-	}
+	m.IsOverdue, m.IsNearDue = calcDeadlineStatus(m.DeadlineUnix, m.IsClosed, m.ClosedDateUnix)
 }
 
 // State returns string representation of milestone status.
