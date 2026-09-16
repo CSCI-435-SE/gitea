@@ -115,35 +115,39 @@ test('shouldAttachIssuePopup attaches to links with a hash or query suffix', () 
   expect(shouldAttachIssuePopup(makeLink('<a href="/owner/repo/issues/1?tab=files">#1</a>'), '/other/repo/issues/9')).toBe(true);
 });
 
-test('getIssueInfo caches successful responses', async () => {
-  issueInfoCache.clear();
-  vi.mocked(GET).mockResolvedValue({
-    ok: true,
-    json: async () => ({convertedIssue: {number: 1}, renderedLabels: ''}),
-  } as unknown as Response);
+// concurrent: false: these share the GET mock and its call counter, which vitest's default
+// concurrent scheduling (see vitest.config.ts) would let interleave across tests
+describe('getIssueInfo caching', {concurrent: false}, () => {
+  beforeEach(() => {
+    issueInfoCache.clear();
+    vi.mocked(GET).mockReset();
+  });
 
-  const first = await getIssueInfo('/owner/repo/issues/1/info');
-  const second = await getIssueInfo('/owner/repo/issues/1/info');
-  expect(first).toBe(second);
-  expect(vi.mocked(GET).mock.calls.length).toEqual(1);
-});
+  test('caches successful responses', async () => {
+    vi.mocked(GET).mockResolvedValue({
+      ok: true,
+      json: async () => ({convertedIssue: {number: 1}, renderedLabels: ''}),
+    } as unknown as Response);
 
-test('getIssueInfo caches failures so repeat hovers do not refetch', async () => {
-  issueInfoCache.clear();
-  vi.mocked(GET).mockReset();
-  vi.mocked(GET).mockResolvedValue({ok: false, statusText: 'Not Found'} as unknown as Response);
+    const first = await getIssueInfo('/owner/repo/issues/1/info');
+    const second = await getIssueInfo('/owner/repo/issues/1/info');
+    expect(first).toBe(second);
+    expect(vi.mocked(GET).mock.calls.length).toEqual(1);
+  });
 
-  await expect(getIssueInfo('/owner/repo/issues/404/info')).rejects.toThrow();
-  await expect(getIssueInfo('/owner/repo/issues/404/info')).rejects.toThrow();
-  expect(vi.mocked(GET).mock.calls.length).toEqual(1);
-});
+  test('caches failures so repeat hovers do not refetch', async () => {
+    vi.mocked(GET).mockResolvedValue({ok: false, statusText: 'Not Found'} as unknown as Response);
 
-test('getIssueInfo caches network errors', async () => {
-  issueInfoCache.clear();
-  vi.mocked(GET).mockReset();
-  vi.mocked(GET).mockRejectedValue(new Error('network down'));
+    await expect(getIssueInfo('/owner/repo/issues/404/info')).rejects.toThrow();
+    await expect(getIssueInfo('/owner/repo/issues/404/info')).rejects.toThrow();
+    expect(vi.mocked(GET).mock.calls.length).toEqual(1);
+  });
 
-  await expect(getIssueInfo('/owner/repo/issues/500/info')).rejects.toThrow();
-  await expect(getIssueInfo('/owner/repo/issues/500/info')).rejects.toThrow();
-  expect(vi.mocked(GET).mock.calls.length).toEqual(1);
+  test('caches network errors', async () => {
+    vi.mocked(GET).mockRejectedValue(new Error('network down'));
+
+    await expect(getIssueInfo('/owner/repo/issues/500/info')).rejects.toThrow();
+    await expect(getIssueInfo('/owner/repo/issues/500/info')).rejects.toThrow();
+    expect(vi.mocked(GET).mock.calls.length).toEqual(1);
+  });
 });
