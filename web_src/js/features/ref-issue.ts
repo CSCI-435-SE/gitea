@@ -20,6 +20,24 @@ export function buildIssueInfoUrl(href: string): string | null {
   return `${window.config.appSubUrl}/${ownerName}/${repoName}/${pathType}/${indexString}/info`;
 }
 
+// decides whether a link deserves a hover preview; kept pure so every surface is unit-testable
+export function shouldAttachIssuePopup(link: HTMLAnchorElement, currentPath: string): boolean {
+  const target = parseIssueHref(link.getAttribute('href')!);
+  if (!target.ownerName) return false;
+  // another forge's issue URL parses the same way, but /info here would answer for a different issue
+  if (link.origin !== window.location.origin) return false;
+  if (link.classList.contains('ref-external-issue')) return false;
+  if (link.closest('[data-issue-popup="off"]')) return false;
+  if (getAttachedTippyInstance(link)) return false;
+
+  // previewing the page you are already reading is useless; path type is ignored because a pull
+  // request is reachable at both /issues/{index} and /pulls/{index}
+  const current = parseIssueHref(currentPath);
+  return !(current.ownerName === target.ownerName &&
+    current.repoName === target.repoName &&
+    current.indexString === target.indexString);
+}
+
 async function getIssueInfo(url: string): Promise<IssueInfo> {
   if (issueInfoCache.has(url)) return issueInfoCache.get(url)!;
   const resp = await GET(url);
