@@ -14,7 +14,7 @@ type IssueInfo = {
 export const issueInfoCache = new Map<string, IssueInfo | null>();
 
 // distinguishes a cached failure from a fresh one, so the caller can log the first and stay silent on repeats
-export class CachedIssueInfoError extends Error {}
+class CachedIssueInfoError extends Error {}
 
 // builds the canonical info endpoint from a link's parts, because the link may point at a
 // sub-path such as /pulls/1/files where appending /info would 404
@@ -66,8 +66,10 @@ export async function getIssueInfo(url: string): Promise<IssueInfo> {
 }
 
 async function showRefIssuePopup(link: HTMLAnchorElement) {
+  const infoUrl = buildIssueInfoUrl(link.getAttribute('href')!);
+  if (!infoUrl) return;
   const [data, {default: ContextPopup}] = await Promise.all([
-    getIssueInfo(`${link.pathname}/info`),
+    getIssueInfo(infoUrl),
     import('../components/ContextPopup.vue'),
   ]);
   const el = document.createElement('div');
@@ -91,11 +93,9 @@ async function showRefIssuePopup(link: HTMLAnchorElement) {
 }
 
 export function initRefIssueContextPopup() {
-  const selector = 'a[href]:not([data-ref-issue-popup]):not(.ref-external-issue)';
+  const selector = 'a[href]:not([data-ref-issue-popup])';
   addDelegatedEventListener<HTMLAnchorElement, MouseEvent>(document, 'mouseover', selector, (link) => {
-    if (!parseIssueHref(link.getAttribute('href')!).ownerName) return;
-    if (!link.classList.contains('ref-issue') && !link.closest('[data-ref-issue-container]')) return;
-    if (getAttachedTippyInstance(link)) return;
+    if (!shouldAttachIssuePopup(link, window.location.pathname)) return;
     link.setAttribute('data-ref-issue-popup', '');
 
     // delay so a mouse passing over the link doesn't fire a fetch

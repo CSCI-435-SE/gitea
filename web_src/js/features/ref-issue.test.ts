@@ -152,11 +152,12 @@ describe('getIssueInfo caching', {concurrent: false}, () => {
   });
 
   // exercises the real hover handler (not just getIssueInfo) because the silence requirement is
-  // about what initRefIssueContextPopup's catch logs, not about the cache itself
+  // about what initRefIssueContextPopup's catch logs, not about the cache itself; the link has no
+  // ref-issue class or container, proving the handler now attaches via shouldAttachIssuePopup alone
   test('a failed hover logs once; a repeat hover on the same link stays silent', async () => {
     vi.mocked(GET).mockResolvedValue({ok: false, statusText: 'Not Found'} as unknown as Response);
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const link = makeLink('<a class="ref-issue" href="/owner/repo/issues/999">#999</a>');
+    const link = makeLink('<a href="/owner/repo/issues/999">#999</a>');
     document.body.append(link);
     try {
       initRefIssueContextPopup();
