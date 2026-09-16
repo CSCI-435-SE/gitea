@@ -12,6 +12,14 @@ type IssueInfo = {
 
 const issueInfoCache = new Map<string, IssueInfo>();
 
+// builds the canonical info endpoint from a link's parts, because the link may point at a
+// sub-path such as /pulls/1/files where appending /info would 404
+export function buildIssueInfoUrl(href: string): string | null {
+  const {ownerName, repoName, pathType, indexString} = parseIssueHref(href);
+  if (!ownerName) return null;
+  return `${window.config.appSubUrl}/${ownerName}/${repoName}/${pathType}/${indexString}/info`;
+}
+
 async function getIssueInfo(url: string): Promise<IssueInfo> {
   if (issueInfoCache.has(url)) return issueInfoCache.get(url)!;
   const resp = await GET(url);
