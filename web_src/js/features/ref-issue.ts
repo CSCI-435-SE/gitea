@@ -10,7 +10,8 @@ type IssueInfo = {
   renderedLabels: string,
 };
 
-const issueInfoCache = new Map<string, IssueInfo>();
+// null marks a lookup that failed, so unreadable or missing issues are not refetched on every hover
+export const issueInfoCache = new Map<string, IssueInfo | null>();
 
 // builds the canonical info endpoint from a link's parts, because the link may point at a
 // sub-path such as /pulls/1/files where appending /info would 404
@@ -39,10 +40,23 @@ export function shouldAttachIssuePopup(link: HTMLAnchorElement, currentPath: str
     current.indexString === target.indexString);
 }
 
-async function getIssueInfo(url: string): Promise<IssueInfo> {
-  if (issueInfoCache.has(url)) return issueInfoCache.get(url)!;
-  const resp = await GET(url);
-  if (!resp.ok) throw new Error(resp.statusText || 'Unknown network error');
+export async function getIssueInfo(url: string): Promise<IssueInfo> {
+  if (issueInfoCache.has(url)) {
+    const cached = issueInfoCache.get(url);
+    if (!cached) throw new Error('issue info previously failed to load');
+    return cached;
+  }
+  let resp: Response;
+  try {
+    resp = await GET(url);
+  } catch (err) {
+    issueInfoCache.set(url, null);
+    throw err;
+  }
+  if (!resp.ok) {
+    issueInfoCache.set(url, null);
+    throw new Error(resp.statusText || 'Unknown network error');
+  }
   const data = await resp.json();
   issueInfoCache.set(url, data);
   return data;

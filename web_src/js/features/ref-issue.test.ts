@@ -1,5 +1,10 @@
-import {buildIssueInfoUrl, shouldAttachIssuePopup} from './ref-issue.ts';
+import {buildIssueInfoUrl, shouldAttachIssuePopup, getIssueInfo, issueInfoCache} from './ref-issue.ts';
+import {GET} from '../modules/fetch.ts';
 import type {Instance} from 'tippy.js';
+
+vi.mock('../modules/fetch.ts', () => ({
+  GET: vi.fn(),
+}));
 
 test('buildIssueInfoUrl', () => {
   expect(buildIssueInfoUrl('/owner/repo/issues/1')).toEqual('/owner/repo/issues/1/info');
@@ -108,4 +113,37 @@ test('shouldAttachIssuePopup ignores links that already have a tippy instance at
 test('shouldAttachIssuePopup attaches to links with a hash or query suffix', () => {
   expect(shouldAttachIssuePopup(makeLink('<a href="/owner/repo/issues/1#issuecomment-5">#1</a>'), '/other/repo/issues/9')).toBe(true);
   expect(shouldAttachIssuePopup(makeLink('<a href="/owner/repo/issues/1?tab=files">#1</a>'), '/other/repo/issues/9')).toBe(true);
+});
+
+test('getIssueInfo caches successful responses', async () => {
+  issueInfoCache.clear();
+  vi.mocked(GET).mockResolvedValue({
+    ok: true,
+    json: async () => ({convertedIssue: {number: 1}, renderedLabels: ''}),
+  } as unknown as Response);
+
+  const first = await getIssueInfo('/owner/repo/issues/1/info');
+  const second = await getIssueInfo('/owner/repo/issues/1/info');
+  expect(first).toBe(second);
+  expect(vi.mocked(GET).mock.calls.length).toEqual(1);
+});
+
+test('getIssueInfo caches failures so repeat hovers do not refetch', async () => {
+  issueInfoCache.clear();
+  vi.mocked(GET).mockReset();
+  vi.mocked(GET).mockResolvedValue({ok: false, statusText: 'Not Found'} as unknown as Response);
+
+  await expect(getIssueInfo('/owner/repo/issues/404/info')).rejects.toThrow();
+  await expect(getIssueInfo('/owner/repo/issues/404/info')).rejects.toThrow();
+  expect(vi.mocked(GET).mock.calls.length).toEqual(1);
+});
+
+test('getIssueInfo caches network errors', async () => {
+  issueInfoCache.clear();
+  vi.mocked(GET).mockReset();
+  vi.mocked(GET).mockRejectedValue(new Error('network down'));
+
+  await expect(getIssueInfo('/owner/repo/issues/500/info')).rejects.toThrow();
+  await expect(getIssueInfo('/owner/repo/issues/500/info')).rejects.toThrow();
+  expect(vi.mocked(GET).mock.calls.length).toEqual(1);
 });
