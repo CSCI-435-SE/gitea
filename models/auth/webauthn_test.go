@@ -64,3 +64,14 @@ func TestCreateCredential(t *testing.T) {
 
 	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{Name: "WebAuthn Created Credential", UserID: 1})
 }
+
+func TestUpdateCredentialName(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// credential 1 belongs to user 32, so another user's update must not change it
+	assert.NoError(t, auth_model.UpdateCredentialName(t.Context(), 1, 2, "Hijacked"))
+	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: 1, Name: "WebAuthn credential"})
+
+	assert.NoError(t, auth_model.UpdateCredentialName(t.Context(), 1, 32, "Renamed Key"))
+	unittest.AssertExistsAndLoadBean(t, &auth_model.WebAuthnCredential{ID: 1, Name: "Renamed Key", LowerName: "renamed key", UserID: 32})
+}

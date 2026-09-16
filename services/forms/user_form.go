@@ -419,6 +419,17 @@ func (f *WebauthnRegistrationForm) Validate(req *http.Request, errs binding.Erro
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// WebauthnRenameForm for renaming an existing WebAuthn credential
+type WebauthnRenameForm struct {
+	Name string `binding:"Required;MaxSize(255)" locale:"settings.webauthn_nickname"` // 255 is the size of the name column
+}
+
+// Validate validates the fields
+func (f *WebauthnRenameForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // PackageSettingForm form for package settings
 type PackageSettingForm struct {
 	Action   string
