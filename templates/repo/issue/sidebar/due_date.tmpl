@@ -3,7 +3,13 @@
 <div class="ui form tw-mt-2">
 	{{if .Issue.DeadlineUnix}}
 		<div class="flex-left-right">
-			<div class="due-date {{if .Issue.IsOverdue}}tw-text-red{{end}}" {{if .Issue.IsOverdue}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
+			{{$dueClass := ""}}{{$dueTooltip := ""}}
+			{{if .Issue.IsOverdue}}
+				{{$dueClass = "tw-text-red"}}{{$dueTooltip = ctx.Locale.Tr "repo.issues.due_date_overdue"}}
+			{{else if .Issue.IsNearDue}}
+				{{$dueClass = "tw-text-warning-text"}}{{$dueTooltip = ctx.Locale.Tr "repo.issues.due_date_near"}}
+			{{end}}
+			<div class="due-date {{$dueClass}}" {{if $dueTooltip}}data-tooltip-content="{{$dueTooltip}}"{{end}}>
 				{{svg "octicon-calendar"}} {{DateUtils.AbsoluteLong .Issue.DeadlineUnix}}
 			</div>
 			<div class="flex-text-block">

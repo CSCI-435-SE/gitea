@@ -103,7 +103,13 @@
 						</span>
 					{{end}}
 					{{if ne .DeadlineUnix 0}}
-						<span class="due-date flex-text-inline {{if .IsOverdue}}tw-text-red{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
+						{{$dueClass := ""}}{{$dueTooltip := ctx.Locale.Tr "repo.issues.due_date"}}
+						{{if .IsOverdue}}
+							{{$dueClass = "tw-text-red"}}{{$dueTooltip = ctx.Locale.Tr "repo.issues.due_date_overdue"}}
+						{{else if .IsNearDue}}
+							{{$dueClass = "tw-text-warning-text"}}{{$dueTooltip = ctx.Locale.Tr "repo.issues.due_date_near"}}
+						{{end}}
+						<span class="due-date flex-text-inline {{$dueClass}}" data-tooltip-content="{{$dueTooltip}}">
 							{{svg "octicon-calendar" 14}}
 							{{DateUtils.AbsoluteShort .DeadlineUnix}}
 						</span>

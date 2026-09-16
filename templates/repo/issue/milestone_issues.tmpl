@@ -31,12 +31,18 @@
 			<div class="flex-text-block tw-gap-4">
 				<div class="flex-text-inline">
 					{{$closedDate:= DateUtils.TimeSince .Milestone.ClosedDateUnix}}
-					{{if .IsClosed}}
+					{{if .Milestone.IsClosed}}
 						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
 					{{else}}
 
 						{{if .Milestone.DeadlineString}}
-							<span{{if .IsOverdue}} class="tw-text-red"{{end}}>
+							{{$dueClass := ""}}{{$dueTooltip := ""}}
+							{{if .Milestone.IsOverdue}}
+								{{$dueClass = "tw-text-red"}}{{$dueTooltip = ctx.Locale.Tr "repo.issues.due_date_overdue"}}
+							{{else if .Milestone.IsNearDue}}
+								{{$dueClass = "tw-text-warning-text"}}{{$dueTooltip = ctx.Locale.Tr "repo.issues.due_date_near"}}
+							{{end}}
+							<span class="due-date {{$dueClass}}" {{if $dueTooltip}}data-tooltip-content="{{$dueTooltip}}"{{end}}>
 								{{svg "octicon-calendar"}}
 								{{DateUtils.AbsoluteShort (.Milestone.DeadlineString|DateUtils.ParseLegacy)}}
 							</span>

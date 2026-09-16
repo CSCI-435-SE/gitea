@@ -57,7 +57,13 @@
 									{{ctx.Locale.Tr "repo.milestones.closed" $closedDate}}
 								{{else}}
 									{{if .DeadlineString}}
-										<span class="flex-text-inline {{if .IsOverdue}}tw-text-red{{end}}">
+										{{$dueClass := ""}}{{$dueTooltip := ""}}
+										{{if .IsOverdue}}
+											{{$dueClass = "tw-text-red"}}{{$dueTooltip = ctx.Locale.Tr "repo.issues.due_date_overdue"}}
+										{{else if .IsNearDue}}
+											{{$dueClass = "tw-text-warning-text"}}{{$dueTooltip = ctx.Locale.Tr "repo.issues.due_date_near"}}
+										{{end}}
+										<span class="due-date flex-text-inline {{$dueClass}}" {{if $dueTooltip}}data-tooltip-content="{{$dueTooltip}}"{{end}}>
 											{{svg "octicon-calendar" 14}}
 											{{DateUtils.AbsoluteShort (.DeadlineString|DateUtils.ParseLegacy)}}
 										</span>
