@@ -33,8 +33,9 @@ export function shouldAttachIssuePopup(link: HTMLAnchorElement, currentPath: str
   // previewing the page you are already reading is useless; path type is ignored because a pull
   // request is reachable at both /issues/{index} and /pulls/{index}
   const current = parseIssueHref(currentPath);
-  return !(current.ownerName === target.ownerName &&
-    current.repoName === target.repoName &&
+  // owner/repo routing is case-insensitive in Gitea, but links preserve the stored case
+  return !(current.ownerName?.toLowerCase() === target.ownerName.toLowerCase() &&
+    current.repoName?.toLowerCase() === target.repoName.toLowerCase() &&
     current.indexString === target.indexString);
 }
 

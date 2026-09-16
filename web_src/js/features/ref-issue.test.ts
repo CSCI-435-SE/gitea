@@ -1,4 +1,5 @@
 import {buildIssueInfoUrl, shouldAttachIssuePopup} from './ref-issue.ts';
+import type {Instance} from 'tippy.js';
 
 test('buildIssueInfoUrl', () => {
   expect(buildIssueInfoUrl('/owner/repo/issues/1')).toEqual('/owner/repo/issues/1/info');
@@ -86,4 +87,25 @@ test('shouldAttachIssuePopup ignores links to the current page', () => {
   // the same index in a different repo is a real reference
   const otherRepoLink = makeLink('<a href="/other/repo/issues/1">#1</a>');
   expect(shouldAttachIssuePopup(otherRepoLink, '/owner/repo/issues/1')).toBe(true);
+});
+
+test('shouldAttachIssuePopup treats owner/repo self-reference case-insensitively', () => {
+  // Gitea routes owner/repo case-insensitively but links preserve stored case
+  const link = makeLink('<a href="/Owner/Repo/issues/1">#1</a>');
+  expect(shouldAttachIssuePopup(link, '/owner/repo/issues/1')).toBe(false);
+
+  // the most common real-world case: hovering an issue link from a non-issue page
+  // (repo home, commit list, ...) must not be mistaken for a self-reference
+  expect(shouldAttachIssuePopup(makeLink('<a href="/owner/repo/issues/1">#1</a>'), '/owner/repo')).toBe(true);
+});
+
+test('shouldAttachIssuePopup ignores links that already have a tippy instance attached', () => {
+  const link = makeLink('<a href="/owner/repo/issues/1">#1</a>');
+  link._tippy = {} as Instance;
+  expect(shouldAttachIssuePopup(link, '/other/repo/issues/9')).toBe(false);
+});
+
+test('shouldAttachIssuePopup attaches to links with a hash or query suffix', () => {
+  expect(shouldAttachIssuePopup(makeLink('<a href="/owner/repo/issues/1#issuecomment-5">#1</a>'), '/other/repo/issues/9')).toBe(true);
+  expect(shouldAttachIssuePopup(makeLink('<a href="/owner/repo/issues/1?tab=files">#1</a>'), '/other/repo/issues/9')).toBe(true);
 });
