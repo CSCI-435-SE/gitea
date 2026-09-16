@@ -50,13 +50,18 @@ export function shouldAttachIssuePopup(link: HTMLAnchorElement): boolean
 Returns true when `parseIssueHref` (`web_src/js/utils.ts:54`) yields an owner, repo and index,
 and none of the following hold:
 
-1. **Opt-out** — the link or an ancestor carries `data-issue-popup="off"`.
-2. **External reference** — the link carries `.ref-external-issue`. These point at Jira, Redmine
+1. **Another host** — the link's origin differs from the page's. `parseIssueHref` ignores scheme
+   and host, so `https://github.com/owner/repo/issues/1` parses as an issue reference. Without
+   this guard, hovering a link to another forge would fetch *this* instance's
+   `/owner/repo/issues/1/info` and preview an unrelated local issue. Links to other forges are
+   common in issue discussions; today they are harmless only because they lack `.ref-issue`.
+2. **Opt-out** — the link or an ancestor carries `data-issue-popup="off"`.
+3. **External reference** — the link carries `.ref-external-issue`. These point at Jira, Redmine
    or similar, where no `/info` endpoint exists. Preserves today's behaviour.
-3. **Self-reference** — the parsed owner, repo and index match the current page's. Previewing the
+4. **Self-reference** — the parsed owner, repo and index match the current page's. Previewing the
    page you are already on is useless; without this, the issue's own title and its `#N` index
    link both pop on their own page.
-4. **Already attached** — `getAttachedTippyInstance(link)` is truthy. Preserves today's behaviour.
+5. **Already attached** — `getAttachedTippyInstance(link)` is truthy. Preserves today's behaviour.
 
 The handler in `initRefIssueContextPopup` calls the predicate in place of its current two-part
 class-and-container check. Everything else in the handler — the 300ms timer, the `mouseleave`
@@ -106,7 +111,7 @@ to suppress the `.commit-summary` ancestor's native tooltip. No work; verify it 
 ### The tooltip collision
 
 Sidebar dependency links carry `data-tooltip-content="#12 The title"`, which is an existing tippy
-instance, so guard 4 skips them and the popup silently never appears. The popup shows the title,
+instance, so guard 5 skips them and the popup silently never appears. The popup shows the title,
 state, body and labels, so it strictly supersedes that tooltip: remove the attribute from both
 lines.
 
@@ -124,8 +129,9 @@ permission checks, and the Vue mount/unmount lifecycle.
 
 **Unit (vitest, preferred per AGENTS.md).** A new test file for `shouldAttachIssuePopup` covering:
 a plain issue link attaches; a plain PR link attaches; a non-issue link does not; a
-`.ref-external-issue` link does not; a link under `data-issue-popup="off"` does not; a link to the
-current page does not; a link to a different index on the current page does. Plus a test that the
+`.ref-external-issue` link does not; a link on another host does not; a link under
+`data-issue-popup="off"` does not; a link to the current page does not; a link to a different
+index on the current page does. Plus a test that the
 info URL is composed correctly for `/owner/repo/pulls/1/files` and under a non-empty `appSubUrl`.
 
 Run with `pnpm exec vitest ref-issue`.

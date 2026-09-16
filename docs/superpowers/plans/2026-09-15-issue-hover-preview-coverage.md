@@ -162,6 +162,17 @@ test('shouldAttachIssuePopup ignores external issue references', () => {
   expect(shouldAttachIssuePopup(link, '/other/repo/issues/9')).toBe(false);
 });
 
+test('shouldAttachIssuePopup ignores links to other hosts', () => {
+  // parseIssueHref ignores scheme and host, so another forge's URL parses as an issue
+  // reference; previewing it would show this instance's unrelated issue of the same path
+  const link = makeLink('<a href="https://github.com/owner/repo/issues/1">#1</a>');
+  expect(shouldAttachIssuePopup(link, '/other/repo/issues/9')).toBe(false);
+
+  // an absolute URL to this instance is still a real reference
+  const sameHost = makeLink(`<a href="${window.location.origin}/owner/repo/issues/1">#1</a>`);
+  expect(shouldAttachIssuePopup(sameHost, '/other/repo/issues/9')).toBe(true);
+});
+
 test('shouldAttachIssuePopup honours the opt-out attribute', () => {
   const onLink = makeLink('<a data-issue-popup="off" href="/owner/repo/issues/1">#1</a>');
   expect(shouldAttachIssuePopup(onLink, '/other/repo/issues/9')).toBe(false);
@@ -206,6 +217,8 @@ In `web_src/js/features/ref-issue.ts`, add this exported function directly below
 export function shouldAttachIssuePopup(link: HTMLAnchorElement, currentPath: string): boolean {
   const target = parseIssueHref(link.getAttribute('href')!);
   if (!target.ownerName) return false;
+  // another forge's issue URL parses the same way, but /info here would answer for a different issue
+  if (link.origin !== window.location.origin) return false;
   if (link.classList.contains('ref-external-issue')) return false;
   if (link.closest('[data-issue-popup="off"]')) return false;
   if (getAttachedTippyInstance(link)) return false;
