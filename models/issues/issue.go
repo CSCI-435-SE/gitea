@@ -135,10 +135,14 @@ func (issue *Issue) LoadTotalTimes(ctx context.Context) (err error) {
 
 // IsOverdue checks if the issue is overdue
 func (issue *Issue) IsOverdue() bool {
-	if issue.IsClosed {
-		return issue.ClosedUnix >= issue.DeadlineUnix
-	}
-	return timeutil.TimeStampNow() >= issue.DeadlineUnix
+	isOverdue, _ := calcDeadlineStatus(issue.DeadlineUnix, issue.IsClosed, issue.ClosedUnix)
+	return isOverdue
+}
+
+// IsNearDue checks if the issue's deadline is approaching but has not passed
+func (issue *Issue) IsNearDue() bool {
+	_, isNearDue := calcDeadlineStatus(issue.DeadlineUnix, issue.IsClosed, issue.ClosedUnix)
+	return isNearDue
 }
 
 // LoadRepo loads issue's repository

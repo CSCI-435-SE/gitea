@@ -680,6 +680,56 @@ func TestUpdateIssueDeadline(t *testing.T) {
 	assert.True(t, issueAfter.DeadlineUnix.IsZero())
 }
 
+func TestIssueDueDateHighlight(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, owner.Name)
+	deadlineURL := fmt.Sprintf("/%s/%s/issues/%d/deadline", owner.Name, repo.Name, issue.Index)
+	issueURL := fmt.Sprintf("/%s/%s/issues/%d", owner.Name, repo.Name, issue.Index)
+
+	setDeadlineAndGetDueDate := func(t *testing.T, deadline string) *goquery.Selection {
+		req := NewRequestWithValues(t, "POST", deadlineURL, map[string]string{"deadline": deadline})
+		session.MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", issueURL)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		return NewHTMLParser(t, resp.Body).Find(".due-date")
+	}
+
+	t.Run("near due", func(t *testing.T) {
+		tomorrow := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
+		dueDate := setDeadlineAndGetDueDate(t, tomorrow)
+		assert.True(t, dueDate.HasClass("tw-text-warning-text"))
+		assert.False(t, dueDate.HasClass("tw-text-red"))
+		tooltip, _ := dueDate.Attr("data-tooltip-content")
+		assert.Equal(t, "Due soon", tooltip)
+	})
+
+	t.Run("overdue", func(t *testing.T) {
+		yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+		dueDate := setDeadlineAndGetDueDate(t, yesterday)
+		assert.True(t, dueDate.HasClass("tw-text-red"))
+		assert.False(t, dueDate.HasClass("tw-text-warning-text"))
+		tooltip, _ := dueDate.Attr("data-tooltip-content")
+		assert.Equal(t, "Overdue", tooltip)
+	})
+
+	t.Run("far future", func(t *testing.T) {
+		nextMonth := time.Now().AddDate(0, 1, 0).Format("2006-01-02")
+		dueDate := setDeadlineAndGetDueDate(t, nextMonth)
+		assert.False(t, dueDate.HasClass("tw-text-red"))
+		assert.False(t, dueDate.HasClass("tw-text-warning-text"))
+	})
+
+	// leave the issue without a deadline for other tests relying on fixture state
+	req := NewRequestWithValues(t, "POST", deadlineURL, map[string]string{"deadline": ""})
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
 func TestUpdateIssueRefByPoster(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
