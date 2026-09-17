@@ -1,6 +1,6 @@
 ---
 scope: models/issues, models/pull
-verified-at: c0092050a4
+verified-at: 7075389dd1
 ---
 
 # models/issues — issues, pull requests, comments, reviews
@@ -33,6 +33,7 @@ One package for the whole issue domain, because pull requests *are* issues in th
 | `models/issues/comment.go` | `Comment` and the `CommentType` enum |
 | `models/issues/issue_label.go` | `LoadLabels` — the idempotency pattern in miniature |
 | `models/issues/issue_index.go` | `RecalculateIssueIndexForRepo` |
+| `models/issues/issue_group.go` | `IssueLabelGroup`, `IssueList.GroupByExclusiveLabelScope` — the grouped list view |
 
 ## Conventions & invariants
 
@@ -79,6 +80,11 @@ direction, `pr.Issue` after the PR's own loader.
 - `Issue.Index` and `PullRequest.Index` are both present. They agree, but write through the issue.
 - `models/pull` is not "pull requests" — those are here in `models/issues/pull.go`. `models/pull`
   is only automerge and review state.
+- `GroupByExclusiveLabelScope` and `applyGroupByLabelScope` (`models/issues/issue_search.go`, driven
+  by `IssuesOptions.GroupLabelScope`) derive the same groups twice — once in SQL to keep a page's
+  rows contiguous, once in Go to split that page. Their ordering rules must stay identical, and
+  both tie-break on `label.id`, never `label.name`: SQL collation does not match Go's string
+  comparison, so a name tie-break silently disagrees across a page boundary.
 
 ## Related
 

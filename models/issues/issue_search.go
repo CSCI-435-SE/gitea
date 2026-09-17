@@ -44,9 +44,12 @@ type IssuesOptions struct { //nolint:revive // export stutter
 	ExcludedLabelNames []string
 	IncludeMilestones  []string
 	SortType           string
-	IssueIDs           []int64
-	UpdatedAfterUnix   int64
-	UpdatedBeforeUnix  int64
+	// GroupLabelScope orders rows so that issues sharing a label in this exclusive label scope
+	// are contiguous, which is what lets a page be rendered as groups.
+	GroupLabelScope   string
+	IssueIDs          []int64
+	UpdatedAfterUnix  int64
+	UpdatedBeforeUnix int64
 	// prioritize issues from this repo
 	PriorityRepoID int64
 	IsArchived     optional.Option[bool]
@@ -126,6 +129,29 @@ func applySorts(sess db.Session, sortType string, priorityRepoID int64) {
 	default:
 		sess.Desc("issue.created_unix").Desc("issue.id")
 	}
+}
+
+// applyGroupByLabelScope orders rows so that issues sharing a label inside an exclusive label
+// scope end up next to each other. It must be called before applySorts: xorm appends ORDER BY
+// terms, so the caller's chosen sort then orders the issues within each group.
+//
+// The ordering rule is kept in step with IssueList.GroupByExclusiveLabelScope, which re-derives the
+// same groups in Go. The tie-break is label.id rather than label.name, because SQL collation does
+// not match Go's string comparison.
+func applyGroupByLabelScope(sess db.Session, scope string) {
+	if scope == "" {
+		return
+	}
+	// aliased, so this can never collide with the "scope-" sort's own join above
+	sess.Join("LEFT", "issue_label AS group_issue_label", "issue.id = group_issue_label.issue_id")
+	// the exclusive and sub-scope conditions are what make this agree with Label.ExclusiveScope
+	sess.Join("LEFT", "label AS group_label",
+		"group_label.id = group_issue_label.label_id AND group_label.exclusive = ? AND group_label.name LIKE ? AND group_label.name NOT LIKE ?",
+		true, scope+"/%", scope+"/%/%")
+	// "exclusive_order=0" means "no order is set", so it sorts last within the scope
+	sess.OrderBy("CASE WHEN group_label.id IS NULL THEN 1 ELSE 0 END ASC, " +
+		"CASE WHEN COALESCE(group_label.exclusive_order, 0) = 0 THEN 2147483647 ELSE group_label.exclusive_order END ASC, " +
+		"COALESCE(group_label.id, 0) ASC")
 }
 
 func applyLimit(sess db.Session, opts *IssuesOptions) {
@@ -481,6 +507,7 @@ func Issues(ctx context.Context, opts *IssuesOptions) (IssueList, error) {
 		Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	applyLimit(sess, opts)
 	applyConditions(sess, opts)
+	applyGroupByLabelScope(sess, opts.GroupLabelScope)
 	applySorts(sess, opts.SortType, opts.PriorityRepoID)
 
 	issues := IssueList{}
@@ -505,6 +532,7 @@ func IssueIDs(ctx context.Context, opts *IssuesOptions, otherConds ...builder.Co
 	}
 
 	applyLimit(sess, opts)
+	applyGroupByLabelScope(sess, opts.GroupLabelScope)
 	applySorts(sess, opts.SortType, opts.PriorityRepoID)
 
 	var res []int64

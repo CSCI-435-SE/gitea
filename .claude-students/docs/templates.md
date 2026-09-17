@@ -1,6 +1,6 @@
 ---
 scope: templates, modules/templates
-verified-at: c0092050a4
+verified-at: 7075389dd1
 ---
 
 # templates — the Go HTML templates and their helpers
@@ -16,7 +16,7 @@ every function templates can call.
 | Directory | Owns |
 | --- | --- |
 | `base/` | the page skeleton: `head.tmpl`, `head_script.tmpl`, `head_navbar.tmpl`, `footer.tmpl`, `paginate.tmpl`, `alert.tmpl` |
-| `shared/` | reusable partials: `issuelist.tmpl`, `combomarkdowneditor.tmpl`, `actions/`, `secrets/`, `webhook/`, `user/` |
+| `shared/` | reusable partials: `issuelist.tmpl` and its row partial `issuelist_items.tmpl`, `combomarkdowneditor.tmpl`, `actions/`, `secrets/`, `webhook/`, `user/` |
 | `repo/`, `user/`, `org/`, `admin/`, `explore/`, `projects/`, `package/` | one directory per page area |
 | `mail/` | email bodies |
 | `status/` | error pages |
@@ -51,6 +51,10 @@ every function templates can call.
   not copied between areas.
 - `dict` is lowercase for historical reasons; new template functions get uppercase names
   (`helper.go` says so at the definition).
+- `dict` treats the key `"."` specially: `dictMerge` in `modules/templates/util_dict.go` flattens
+  that argument's map into the new one. So `dict "." $ "Issues" $subset` hands a partial the whole
+  root context with one key replaced — but `"." $` **must come first**, or the merge overwrites the
+  replacement instead. `templates/repo/issue/list_grouped.tmpl` renders each group this way.
 - Mail templates use a different, smaller function set — `mailBodyFuncMap` and
   `mailSubjectTextFuncMap` in `modules/templates/mail.go`. A helper added for pages is not
   available in `templates/mail/`.

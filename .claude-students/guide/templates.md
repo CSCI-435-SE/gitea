@@ -1,7 +1,7 @@
 ---
 source: docs/templates.md
-source-hash: adbcb2a65fa0f696
-verified-at: c0092050a4
+source-hash: e31b9c8937e516f1
+verified-at: 7075389dd1
 ---
 
 <!-- Derived from docs/templates.md. Do not edit by hand: fix the reference doc and regenerate
@@ -88,6 +88,13 @@ fixed in one of them.
 
 **New template functions get uppercase names.** There is a lowercase one, `dict`, for historical
 reasons — the code says so at its definition. Do not copy the lowercase style.
+**`dict` has a trick for passing a partial "everything, but with one thing swapped".** A key of
+`"."` is not stored under that name — `dictMerge` in `modules/templates/util_dict.go` copies that
+argument's whole map into the new one. So `dict "." $ "Issues" $subset` gives the partial the entire
+page context with `Issues` replaced, which is how `templates/repo/issue/list_grouped.tmpl` renders
+each group from a slice of the page's issues. The catch is that the arguments are applied left to
+right, so `"." $` has to come **first**; put it last and the merge quietly overwrites your
+replacement, and the partial renders the full list every time.
 
 **Mail templates have a smaller function set of their own.** A helper you add for pages is **not**
 available in `templates/mail/`. They are rendered by a different function map.

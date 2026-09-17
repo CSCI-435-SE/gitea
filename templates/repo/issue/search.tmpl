@@ -9,6 +9,7 @@
 			<input type="hidden" name="assignee" value="{{$.AssigneeID}}">
 			<input type="hidden" name="poster" value="{{$.PosterUsername}}">
 			<input type="hidden" name="sort" value="{{$.SortType}}">
+			<input type="hidden" name="group" value="{{$.GroupByLabelScope}}">
 		{{end}}
 		{{template "shared/search/input" dict "Value" .Keyword}}
 		{{if .PageIsIssueList}}
