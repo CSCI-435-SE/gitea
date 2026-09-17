@@ -1,7 +1,7 @@
 ---
 source: docs/frontend-css.md
-source-hash: e184d4cbebf3fcfd
-verified-at: c0092050a4
+source-hash: eb30fe81f9572fa0
+verified-at: a50a52cbc8
 ---
 
 <!-- Derived from docs/frontend-css.md. Do not edit by hand: fix the reference doc and regenerate
@@ -49,6 +49,7 @@ is most of the skill.
 - **`!important`** — a sledgehammer that overrides specificity.
 - **theme variable** — a named colour that changes with the user's chosen theme.
 - **vendored** — a third-party library copied into the repository rather than installed.
+- **theme** — one stylesheet under `web_src/css/themes/` holding a whole set of colour values.
 
 ## What's in these files
 
@@ -109,6 +110,36 @@ already have a Gitea replacement, and that replacement is the file to change.
 **Use a colour.** Always a theme variable, never a literal colour value. A hard-coded colour looks
 right in whichever theme you were using and wrong or invisible in the others.
 
+**Add a whole new theme.** This is unusually cheap, because nothing has a list of themes to update.
+Drop a file called `theme-<name>.css` into `web_src/css/themes/`. The build config,
+`vite.config.ts`, globs that folder, so your file automatically becomes its own stylesheet; and the
+backend, `services/webtheme`, finds themes by looking for files with that name shape. There is no
+Go code, template or `app.ini` setting to change — the theme just appears in the picker.
+
+Two things the file must get right. First, it needs its own `gitea-theme-meta-info` block giving
+the name shown in the picker and whether it is a light or dark theme; the backend reads the *last*
+such block in the built file, which is why yours has to be there even though the theme you import
+already has one. Second, import the stock theme matching your scheme:
+
+```css
+@import "./theme-gitea-dark.css";
+
+gitea-theme-meta-info {
+  --theme-display-name: "Nord Dark";
+  --theme-color-scheme: "dark";
+}
+
+:root { --color-primary: #81a1c1; }
+```
+
+That import is doing real work. It supplies `--is-dark-theme` and `color-scheme`, and it supplies
+all the colours that are defined as "whatever this other colour is" rather than a fixed value —
+`--color-primary-hover` is one. Override those by hand and you break the relationship the stock
+theme set up, so leave them alone and let them follow your new `--color-primary`.
+
+`web_src/js/utils/theme-files.test.ts` checks all of this: that every theme's meta block parses,
+and that its text is no harder to read than the stock theme it is built on.
+
 ## Traps, and what they look like
 
 **Your stylesheet has no effect whatsoever.** You did not add the `@import` to `index.css`. Nothing
@@ -131,8 +162,15 @@ Gitea's *replacement* for it. The vendored original is elsewhere, under `web_src
 **Your style is overridden and you cannot see why.** Before reaching for `!important`, check whether
 you are fighting a `gt-` helper — those use it deliberately and will win.
 
+**You invent a new `--color-` name in a theme file and the build rejects it.** `tailwind.config.ts`
+and `stylelint.config.ts` learn the list of valid colour names by reading `base.css` and the two
+`theme-gitea-*` files, and nothing else. A name that appears only in your theme is unknown to both:
+`make lint-css` fails, and no `tw-` utility is generated for it. A theme may freely *change* an
+existing colour — it may not add one.
+
 ## Where to go next
 
 - `docs/frontend-css.md` (in this folder) — the reference page this was written from
 - `templates.md` — where these classes are actually written
 - `frontend-js.md` — the hide mechanism and the DOM helpers
+- `build-and-tooling.md` — the lint and build commands mentioned above
