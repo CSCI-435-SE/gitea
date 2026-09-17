@@ -1,0 +1,164 @@
+@import "./theme-gitea-light.css";
+
+gitea-theme-meta-info {
+  --theme-display-name: "Nord Light";
+  --theme-color-scheme: "light";
+}
+
+/* Nord palette - https://www.nordtheme.com/docs/colors-and-palettes (Snow Storm surfaces, Frost accents)
+   Only the palette-defining variables are set here; everything else, including the
+   var()-derived colors and the semantic, badge, ANSI and chart series hues, is
+   inherited from theme-gitea-light.css. */
+:root {
+  /* primary colors */
+  --color-primary: #5376a1;
+  --color-primary-contrast: #ffffff;
+  --color-primary-dark-1: #4b6a91;
+  --color-primary-dark-2: #425e81;
+  --color-primary-dark-3: #3a5371;
+  --color-primary-dark-4: #324761;
+  --color-primary-dark-5: #212f40;
+  --color-primary-dark-6: #111820;
+  --color-primary-dark-7: #05070a;
+  --color-primary-light-1: #6183ae;
+  --color-primary-light-2: #7391b7;
+  --color-primary-light-3: #849fc0;
+  --color-primary-light-4: #96adc9;
+  --color-primary-light-5: #b9c8db;
+  --color-primary-light-6: #dce4ed;
+  --color-primary-light-7: #f4f7fa;
+  --color-primary-alpha-10: #5376a119;
+  --color-primary-alpha-20: #5376a133;
+  --color-primary-alpha-30: #5376a14b;
+  --color-primary-alpha-40: #5376a166;
+  --color-primary-alpha-50: #5376a180;
+  --color-primary-alpha-60: #5376a199;
+  --color-primary-alpha-70: #5376a1b3;
+  --color-primary-alpha-80: #5376a1cc;
+  --color-primary-alpha-90: #5376a1e1;
+  /* secondary colors */
+  --color-secondary: #bac3d5;
+  --color-secondary-dark-1: #b4bdcf;
+  --color-secondary-dark-2: #abb4c5;
+  --color-secondary-dark-3: #969eaf;
+  --color-secondary-dark-4: #8c94a4;
+  --color-secondary-dark-5: #828a99;
+  --color-secondary-dark-6: #787f8e;
+  --color-secondary-dark-7: #6e7584;
+  --color-secondary-dark-8: #636a79;
+  --color-secondary-dark-9: #5a616e;
+  --color-secondary-dark-10: #4f5663;
+  --color-secondary-dark-11: #454c59;
+  --color-secondary-dark-12: #3b414e;
+  --color-secondary-dark-13: #313743;
+  --color-secondary-light-1: #d4dae5;
+  --color-secondary-light-2: #dfe4ed;
+  --color-secondary-light-3: #eceff5;
+  --color-secondary-light-4: #f7f9fc;
+  --color-secondary-alpha-10: #bac3d519;
+  --color-secondary-alpha-20: #bac3d533;
+  --color-secondary-alpha-30: #bac3d54b;
+  --color-secondary-alpha-40: #bac3d566;
+  --color-secondary-alpha-50: #bac3d580;
+  --color-secondary-alpha-60: #bac3d599;
+  --color-secondary-alpha-70: #bac3d5b3;
+  --color-secondary-alpha-80: #bac3d5cc;
+  --color-secondary-alpha-90: #bac3d5e1;
+  /* target-based colors */
+  --color-body: #eceff4;
+  --color-box-header: #dde2eb;
+  --color-box-body: #eceff4;
+  --color-box-body-highlight: #d1e3fa;
+  --color-text-dark: #232936;
+  --color-text: #2e3440;
+  --color-text-light: #3b4252;
+  --color-text-light-1: #434c5e;
+  --color-text-light-2: #4c566a;
+  --color-text-light-3: #616d83;
+  --color-timeline: #bec5d2;
+  --color-input-background: #eceff4;
+  --color-input-toggle-background: #bec5d2;
+  --color-light: #2e344006;
+  --color-light-border: #2e34401d;
+  --color-hover: #2e344008;
+  --color-hover-opaque: #dde2eb;
+  --color-active: #2e344014;
+  --color-menu: #e5e9f0;
+  --color-card: #e5e9f0;
+  --color-markup-table-row: #2e34400a;
+  --color-markup-code-block: #2e344010;
+  --color-markup-code-inline: #2e344012;
+  --color-button: #e5e9f0;
+  --color-code-bg: #e9ecf2;
+  --color-shadow: #2e344026;
+  --color-shadow-opaque: #b5bcc9;
+  --color-secondary-bg: #dfe4ed;
+  --color-expand-button: #b4d2f7;
+  --color-reaction-bg: #2e34400a;
+  --color-tooltip-text: #e9edf3;
+  --color-tooltip-bg: #2e3440f0;
+  --color-nav-bg: #e3e7ef;
+  --color-secondary-nav-bg: #e6eaf0;
+  --color-label-bg: #7b88a14b;
+  --color-label-hover-bg: #7b88a1a0;
+  --color-label-active-bg: #7b88a1ff;
+  --color-highlight-fg: #ebcb8b;
+  --color-highlight-bg: #f1daab;
+  --color-overlay-backdrop: #2e3440c0;
+  --color-workflow-edge-hover: #8b94a5;
+  /* diff colors */
+  --color-diff-added-fg: #5c7844;
+  --color-diff-added-linenum-bg: #d3f4b7;
+  --color-diff-added-row-bg: #e1ffc8;
+  --color-diff-added-row-border: #e1ffc8;
+  --color-diff-added-word-bg: #bcee92;
+  --color-diff-moved-row-bg: #f4e0b7;
+  --color-diff-moved-row-border: #dcb567;
+  --color-diff-removed-fg: #a0414a;
+  --color-diff-removed-linenum-bg: #ffadb5;
+  --color-diff-removed-row-bg: #ffd0d4;
+  --color-diff-removed-row-border: #eca7ae;
+  --color-diff-removed-word-bg: #fc9ba4;
+  --color-diff-inactive: #dbe1eb;
+  /* syntax highlighting */
+  --color-syntax-keyword: #4d6d95;
+  --color-syntax-bool: #895b81;
+  --color-syntax-control: #895b81;
+  --color-syntax-name: #447271;
+  --color-syntax-type: #896318;
+  --color-syntax-number: #895b81;
+  --color-syntax-operator: #4d6d95;
+  --color-syntax-regexp: #577240;
+  --color-syntax-string: #577240;
+  --color-syntax-comment: #5e6b84;
+  --color-syntax-invalid: #b24852;
+  --color-syntax-tag: #4d6d95;
+  --color-syntax-attribute: #447271;
+  --color-syntax-property: #4d6d95;
+  --color-syntax-variable: #2e3440;
+  --color-syntax-string-special: #a65137;
+  --color-syntax-escape: #a65137;
+  --color-syntax-entity: #895b81;
+  --color-syntax-preproc: #447271;
+  --color-syntax-preproc-file: #577240;
+  --color-syntax-decorator: #a65137;
+  --color-syntax-namespace: #2e3440;
+  --color-syntax-name-pseudo: #895b81;
+  --color-syntax-comment-special: #895b81;
+  --color-syntax-text: #2e3440;
+  --color-syntax-text-alt: #4c566a;
+  --color-syntax-punctuation: #4c566a;
+  --color-syntax-emph: #896318;
+  --color-syntax-strong: #a65137;
+  --color-syntax-heading: #4d6d95;
+  --color-syntax-subheading: #577240;
+  --color-syntax-output: #5e6b84;
+  --color-syntax-prompt: #577240;
+  --color-syntax-traceback: #b24852;
+  --color-syntax-whitespace: #9ea6b5;
+  --color-syntax-diff-fg: #232936;
+  --color-syntax-deleted-bg: #ffbfc5;
+  --color-syntax-inserted-bg: #dcffbf;
+  --color-syntax-matching-bracket-bg: #8fbcbb38;
+  --color-syntax-nonmatching-bracket-bg: #bf616a38;
+}

@@ -1,0 +1,164 @@
+@import "./theme-gitea-dark.css";
+
+gitea-theme-meta-info {
+  --theme-display-name: "Nord Dark";
+  --theme-color-scheme: "dark";
+}
+
+/* Nord palette - https://www.nordtheme.com/docs/colors-and-palettes (Polar Night surfaces, Frost accents)
+   Only the palette-defining variables are set here; everything else, including the
+   var()-derived colors and the semantic, badge, ANSI and chart series hues, is
+   inherited from theme-gitea-dark.css. */
+:root {
+  /* primary colors */
+  --color-primary: #81a1c1;
+  --color-primary-contrast: #1b1f26;
+  --color-primary-dark-1: #8eaac7;
+  --color-primary-dark-2: #9ab4cd;
+  --color-primary-dark-3: #a7bdd4;
+  --color-primary-dark-4: #b3c7da;
+  --color-primary-dark-5: #cdd9e6;
+  --color-primary-dark-6: #e6ecf3;
+  --color-primary-dark-7: #f7f9fb;
+  --color-primary-light-1: #6b91b6;
+  --color-primary-light-2: #5681ac;
+  --color-primary-light-3: #4a7197;
+  --color-primary-light-4: #406181;
+  --color-primary-light-5: #2a4056;
+  --color-primary-light-6: #15202b;
+  --color-primary-light-7: #060a0d;
+  --color-primary-alpha-10: #81a1c119;
+  --color-primary-alpha-20: #81a1c133;
+  --color-primary-alpha-30: #81a1c14b;
+  --color-primary-alpha-40: #81a1c166;
+  --color-primary-alpha-50: #81a1c180;
+  --color-primary-alpha-60: #81a1c199;
+  --color-primary-alpha-70: #81a1c1b3;
+  --color-primary-alpha-80: #81a1c1cc;
+  --color-primary-alpha-90: #81a1c1e1;
+  /* secondary colors */
+  --color-secondary: #4c566a;
+  --color-secondary-dark-1: #535c70;
+  --color-secondary-dark-2: #5d6679;
+  --color-secondary-dark-3: #757d8d;
+  --color-secondary-dark-4: #818898;
+  --color-secondary-dark-5: #8c93a1;
+  --color-secondary-dark-6: #989fab;
+  --color-secondary-dark-7: #a3a9b5;
+  --color-secondary-dark-8: #afb5bf;
+  --color-secondary-dark-9: #babfc9;
+  --color-secondary-dark-10: #c6cbd3;
+  --color-secondary-dark-11: #d1d5dd;
+  --color-secondary-dark-12: #dde1e7;
+  --color-secondary-dark-13: #e9ecf1;
+  --color-secondary-light-1: #3f4858;
+  --color-secondary-light-2: #3a4150;
+  --color-secondary-light-3: #333a48;
+  --color-secondary-light-4: #2e3440;
+  --color-secondary-alpha-10: #4c566a19;
+  --color-secondary-alpha-20: #4c566a33;
+  --color-secondary-alpha-30: #4c566a4b;
+  --color-secondary-alpha-40: #4c566a66;
+  --color-secondary-alpha-50: #4c566a80;
+  --color-secondary-alpha-60: #4c566a99;
+  --color-secondary-alpha-70: #4c566ab3;
+  --color-secondary-alpha-80: #4c566acc;
+  --color-secondary-alpha-90: #4c566ae1;
+  /* target-based colors */
+  --color-body: #2e3440;
+  --color-box-header: #2c323d;
+  --color-box-body: #272c37;
+  --color-box-body-highlight: #373a3d;
+  --color-text-dark: #f2f4f8;
+  --color-text: #e5e9f0;
+  --color-text-light: #d8dee9;
+  --color-text-light-1: #c4cddd;
+  --color-text-light-2: #b0bbcf;
+  --color-text-light-3: #9aa7c0;
+  --color-timeline: #464f62;
+  --color-input-background: #2a303b;
+  --color-input-toggle-background: #40495a;
+  --color-light: #1b1f2628;
+  --color-light-border: #eceff428;
+  --color-hover: #eceff419;
+  --color-hover-opaque: #333a48;
+  --color-active: #eceff424;
+  --color-menu: #2a303b;
+  --color-card: #2a303b;
+  --color-markup-table-row: #eceff40f;
+  --color-markup-code-block: #eceff412;
+  --color-markup-code-inline: #eceff428;
+  --color-button: #2a303b;
+  --color-code-bg: #272c37;
+  --color-shadow: #1b1f2658;
+  --color-shadow-opaque: #1e2129;
+  --color-secondary-bg: #3d4454;
+  --color-expand-button: #4a4e52;
+  --color-reaction-bg: #eceff412;
+  --color-tooltip-text: #f2f4f8;
+  --color-tooltip-bg: #1b1f26f0;
+  --color-nav-bg: #292f3a;
+  --color-secondary-nav-bg: #2b313d;
+  --color-label-bg: #616e884b;
+  --color-label-hover-bg: #616e88a0;
+  --color-label-active-bg: #616e88ff;
+  --color-highlight-fg: #ebcb8b;
+  --color-highlight-bg: #635538;
+  --color-overlay-backdrop: #1b1f26c0;
+  --color-workflow-edge-hover: #7a859a;
+  /* diff colors */
+  --color-diff-added-fg: #a9c293;
+  --color-diff-added-linenum-bg: #4b6039;
+  --color-diff-added-row-bg: #404f33;
+  --color-diff-added-row-border: #546744;
+  --color-diff-added-word-bg: #566f42;
+  --color-diff-moved-row-bg: #a08755;
+  --color-diff-moved-row-border: #d7c092;
+  --color-diff-removed-fg: #d28f95;
+  --color-diff-removed-linenum-bg: #693036;
+  --color-diff-removed-row-bg: #4e3033;
+  --color-diff-removed-row-border: #80565a;
+  --color-diff-removed-word-bg: #90424a;
+  --color-diff-inactive: #353c4a;
+  /* syntax highlighting */
+  --color-syntax-keyword: #81a1c1;
+  --color-syntax-bool: #b48ead;
+  --color-syntax-control: #b48ead;
+  --color-syntax-name: #8fbcbb;
+  --color-syntax-type: #ebcb8b;
+  --color-syntax-number: #b48ead;
+  --color-syntax-operator: #81a1c1;
+  --color-syntax-regexp: #a3be8c;
+  --color-syntax-string: #a3be8c;
+  --color-syntax-comment: #8793a9;
+  --color-syntax-invalid: #cb7d85;
+  --color-syntax-tag: #81a1c1;
+  --color-syntax-attribute: #8fbcbb;
+  --color-syntax-property: #81a1c1;
+  --color-syntax-variable: #d8dee9;
+  --color-syntax-string-special: #d08770;
+  --color-syntax-escape: #d08770;
+  --color-syntax-entity: #b48ead;
+  --color-syntax-preproc: #8fbcbb;
+  --color-syntax-preproc-file: #a3be8c;
+  --color-syntax-decorator: #d08770;
+  --color-syntax-namespace: #d8dee9;
+  --color-syntax-name-pseudo: #b48ead;
+  --color-syntax-comment-special: #b48ead;
+  --color-syntax-text: #d8dee9;
+  --color-syntax-text-alt: #aeb8cb;
+  --color-syntax-punctuation: #aeb8cb;
+  --color-syntax-emph: #ebcb8b;
+  --color-syntax-strong: #d08770;
+  --color-syntax-heading: #81a1c1;
+  --color-syntax-subheading: #a3be8c;
+  --color-syntax-output: #8793a9;
+  --color-syntax-prompt: #a3be8c;
+  --color-syntax-traceback: #cb7d85;
+  --color-syntax-whitespace: #667082;
+  --color-syntax-diff-fg: #f2f4f8;
+  --color-syntax-deleted-bg: #7d494e;
+  --color-syntax-inserted-bg: #5d6e4e;
+  --color-syntax-matching-bracket-bg: #8fbcbb48;
+  --color-syntax-nonmatching-bracket-bg: #bf616a48;
+}

@@ -1,0 +1,7 @@
+@import "./theme-gruvbox-light.css" (prefers-color-scheme: light);
+@import "./theme-gruvbox-dark.css" (prefers-color-scheme: dark);
+
+gitea-theme-meta-info {
+  --theme-display-name: "Gruvbox Auto";
+  --theme-color-scheme: "auto";
+}

@@ -1,0 +1,164 @@
+@import "./theme-gitea-light.css";
+
+gitea-theme-meta-info {
+  --theme-display-name: "Solarized Light";
+  --theme-color-scheme: "light";
+}
+
+/* Solarized palette - https://ethanschoonover.com/solarized/ (base3 surfaces, accent hues)
+   Only the palette-defining variables are set here; everything else, including the
+   var()-derived colors and the semantic, badge, ANSI and chart series hues, is
+   inherited from theme-gitea-light.css. */
+:root {
+  /* primary colors */
+  --color-primary: #227bbb;
+  --color-primary-contrast: #ffffff;
+  --color-primary-dark-1: #1f6fa8;
+  --color-primary-dark-2: #1b6296;
+  --color-primary-dark-3: #185683;
+  --color-primary-dark-4: #144a70;
+  --color-primary-dark-5: #0e314b;
+  --color-primary-dark-6: #071925;
+  --color-primary-dark-7: #02070b;
+  --color-primary-light-1: #268bd3;
+  --color-primary-light-2: #3b98db;
+  --color-primary-light-3: #54a5e0;
+  --color-primary-light-4: #6cb2e4;
+  --color-primary-light-5: #9dcced;
+  --color-primary-light-6: #cee5f6;
+  --color-primary-light-7: #f0f7fc;
+  --color-primary-alpha-10: #227bbb19;
+  --color-primary-alpha-20: #227bbb33;
+  --color-primary-alpha-30: #227bbb4b;
+  --color-primary-alpha-40: #227bbb66;
+  --color-primary-alpha-50: #227bbb80;
+  --color-primary-alpha-60: #227bbb99;
+  --color-primary-alpha-70: #227bbbb3;
+  --color-primary-alpha-80: #227bbbcc;
+  --color-primary-alpha-90: #227bbbe1;
+  /* secondary colors */
+  --color-secondary: #d7cfb8;
+  --color-secondary-dark-1: #cec8b3;
+  --color-secondary-dark-2: #c0bdaa;
+  --color-secondary-dark-3: #a0a597;
+  --color-secondary-dark-4: #90998d;
+  --color-secondary-dark-5: #818d84;
+  --color-secondary-dark-6: #71817a;
+  --color-secondary-dark-7: #627671;
+  --color-secondary-dark-8: #526968;
+  --color-secondary-dark-9: #435e5f;
+  --color-secondary-dark-10: #335255;
+  --color-secondary-dark-11: #24464c;
+  --color-secondary-dark-12: #143a42;
+  --color-secondary-dark-13: #042e38;
+  --color-secondary-light-1: #e7e1cf;
+  --color-secondary-light-2: #eee9d9;
+  --color-secondary-light-3: #f6f1e4;
+  --color-secondary-light-4: #fdf9ee;
+  --color-secondary-alpha-10: #d7cfb819;
+  --color-secondary-alpha-20: #d7cfb833;
+  --color-secondary-alpha-30: #d7cfb84b;
+  --color-secondary-alpha-40: #d7cfb866;
+  --color-secondary-alpha-50: #d7cfb880;
+  --color-secondary-alpha-60: #d7cfb899;
+  --color-secondary-alpha-70: #d7cfb8b3;
+  --color-secondary-alpha-80: #d7cfb8cc;
+  --color-secondary-alpha-90: #d7cfb8e1;
+  /* target-based colors */
+  --color-body: #fdf6e3;
+  --color-box-header: #f1ead7;
+  --color-box-body: #fdf6e3;
+  --color-box-body-highlight: #d1e9fa;
+  --color-text-dark: #002b36;
+  --color-text: #073642;
+  --color-text-light: #325057;
+  --color-text-light-1: #3d585f;
+  --color-text-light-2: #53676e;
+  --color-text-light-3: #5f747b;
+  --color-timeline: #cecfc2;
+  --color-input-background: #fdf6e3;
+  --color-input-toggle-background: #cecfc2;
+  --color-light: #002b3606;
+  --color-light-border: #002b361d;
+  --color-hover: #002b3608;
+  --color-hover-opaque: #f1ead7;
+  --color-active: #002b3614;
+  --color-menu: #f7f1de;
+  --color-card: #f7f1de;
+  --color-markup-table-row: #002b360a;
+  --color-markup-code-block: #002b3610;
+  --color-markup-code-inline: #002b3612;
+  --color-button: #f7f1de;
+  --color-code-bg: #faf4e1;
+  --color-shadow: #002b3626;
+  --color-shadow-opaque: #c2c6bc;
+  --color-secondary-bg: #f3ecd9;
+  --color-expand-button: #b4dbf7;
+  --color-reaction-bg: #002b360a;
+  --color-tooltip-text: #fbf4e1;
+  --color-tooltip-bg: #002b36f0;
+  --color-nav-bg: #f6efdc;
+  --color-secondary-nav-bg: #f8f1de;
+  --color-label-bg: #93a1a14b;
+  --color-label-hover-bg: #93a1a1a0;
+  --color-label-active-bg: #93a1a1ff;
+  --color-highlight-fg: #b58900;
+  --color-highlight-bg: #f1e0ab;
+  --color-overlay-backdrop: #002b36c0;
+  --color-workflow-edge-hover: #93a0a0;
+  /* diff colors */
+  --color-diff-added-fg: #407f00;
+  --color-diff-added-linenum-bg: #d6f4b7;
+  --color-diff-added-row-bg: #e4ffc8;
+  --color-diff-added-row-border: #e4ffc8;
+  --color-diff-added-word-bg: #c0ee92;
+  --color-diff-moved-row-bg: #f4e5b7;
+  --color-diff-moved-row-border: #dcc067;
+  --color-diff-removed-fg: #bb2220;
+  --color-diff-removed-linenum-bg: #ffaead;
+  --color-diff-removed-row-bg: #ffd1d0;
+  --color-diff-removed-row-border: #eca9a7;
+  --color-diff-removed-word-bg: #fc9d9b;
+  --color-diff-inactive: #f0e9d6;
+  /* syntax highlighting */
+  --color-syntax-keyword: #2075b0;
+  --color-syntax-bool: #6167c0;
+  --color-syntax-control: #6167c0;
+  --color-syntax-name: #207c75;
+  --color-syntax-type: #8d6b00;
+  --color-syntax-number: #6167c0;
+  --color-syntax-operator: #2075b0;
+  --color-syntax-regexp: #687700;
+  --color-syntax-string: #687700;
+  --color-syntax-comment: #647373;
+  --color-syntax-invalid: #d72724;
+  --color-syntax-tag: #2075b0;
+  --color-syntax-attribute: #207c75;
+  --color-syntax-property: #2075b0;
+  --color-syntax-variable: #073642;
+  --color-syntax-string-special: #c14715;
+  --color-syntax-escape: #c14715;
+  --color-syntax-entity: #6167c0;
+  --color-syntax-preproc: #207c75;
+  --color-syntax-preproc-file: #687700;
+  --color-syntax-decorator: #c14715;
+  --color-syntax-namespace: #073642;
+  --color-syntax-name-pseudo: #6167c0;
+  --color-syntax-comment-special: #6167c0;
+  --color-syntax-text: #073642;
+  --color-syntax-text-alt: #586e75;
+  --color-syntax-punctuation: #586e75;
+  --color-syntax-emph: #8d6b00;
+  --color-syntax-strong: #c14715;
+  --color-syntax-heading: #2075b0;
+  --color-syntax-subheading: #687700;
+  --color-syntax-output: #647373;
+  --color-syntax-prompt: #687700;
+  --color-syntax-traceback: #d72724;
+  --color-syntax-whitespace: #a8b1ad;
+  --color-syntax-diff-fg: #002b36;
+  --color-syntax-deleted-bg: #ffc0bf;
+  --color-syntax-inserted-bg: #f7ffbf;
+  --color-syntax-matching-bracket-bg: #2aa19838;
+  --color-syntax-nonmatching-bracket-bg: #dc322f38;
+}

@@ -1,0 +1,7 @@
+@import "./theme-nord-light.css" (prefers-color-scheme: light);
+@import "./theme-nord-dark.css" (prefers-color-scheme: dark);
+
+gitea-theme-meta-info {
+  --theme-display-name: "Nord Auto";
+  --theme-color-scheme: "auto";
+}

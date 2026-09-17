@@ -1,0 +1,7 @@
+@import "./theme-solarized-light.css" (prefers-color-scheme: light);
+@import "./theme-solarized-dark.css" (prefers-color-scheme: dark);
+
+gitea-theme-meta-info {
+  --theme-display-name: "Solarized Auto";
+  --theme-color-scheme: "auto";
+}
