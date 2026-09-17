@@ -17,6 +17,12 @@
 							<div class="title_wip_desc" data-wip-prefixes="{{JsonUtils.EncodeToString .PullRequestWorkInProgressPrefixes}}">{{ctx.Locale.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0)}}</div>
 						{{end}}
 					</div>
+					<div class="issue-similar-suggestions" hidden
+							data-global-init="initRepoIssueSimilarSuggestions"
+							data-search-url="{{.RepoLink}}/issues/similar"
+							data-is-pull="{{if .PageIsComparePull}}true{{else}}false{{end}}"
+							data-locale-heading="{{if .PageIsComparePull}}{{ctx.Locale.Tr "repo.issues.similar_pulls"}}{{else}}{{ctx.Locale.Tr "repo.issues.similar_issues"}}{{end}}"
+					></div>
 					{{if .Fields}}
 						<input type="hidden" name="template-file" value="{{.TemplateFile}}">
 						{{range .Fields}}
