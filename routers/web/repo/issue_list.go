@@ -446,17 +446,39 @@ func UpdateIssueStatus(ctx *context.Context) {
 	ctx.JSONOK()
 }
 
-func prepareIssueFilterExclusiveOrderScopes(ctx *context.Context, allLabels []*issues_model.Label) {
-	scopeSet := make(map[string]bool)
+// prepareIssueFilterLabelScopes collects the exclusive label scopes the repo has, and returns the
+// ones that can be grouped by. Sorting needs an exclusive order to mean anything, but grouping does
+// not, so the two dropdowns are offered different sets.
+func prepareIssueFilterLabelScopes(ctx *context.Context, allLabels []*issues_model.Label) []string {
+	groupableSet := make(map[string]bool)
+	orderedSet := make(map[string]bool)
 	for _, label := range allLabels {
 		scope := label.ExclusiveScope()
-		if len(scope) > 0 && label.ExclusiveOrder > 0 {
-			scopeSet[scope] = true
+		if len(scope) == 0 {
+			continue
+		}
+		groupableSet[scope] = true
+		if label.ExclusiveOrder > 0 {
+			orderedSet[scope] = true
 		}
 	}
-	scopes := slices.Collect(maps.Keys(scopeSet))
-	sort.Strings(scopes)
-	ctx.Data["ExclusiveLabelScopes"] = scopes
+	orderedScopes := slices.Collect(maps.Keys(orderedSet))
+	sort.Strings(orderedScopes)
+	groupableScopes := slices.Collect(maps.Keys(groupableSet))
+	sort.Strings(groupableScopes)
+	ctx.Data["ExclusiveLabelScopes"] = orderedScopes
+	ctx.Data["GroupableLabelScopes"] = groupableScopes
+	return groupableScopes
+}
+
+// parseIssueGroupScope reads the "group" query parameter. An unknown scope silently turns grouping
+// off rather than erroring, so a stale bookmark still renders the list.
+func parseIssueGroupScope(ctx *context.Context, groupableScopes []string) string {
+	scope := ctx.FormString("group")
+	if !slices.Contains(groupableScopes, scope) {
+		return ""
+	}
+	return scope
 }
 
 func renderMilestones(ctx *context.Context) {
@@ -519,7 +541,11 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 		return
 	}
 
-	prepareIssueFilterExclusiveOrderScopes(ctx, preparedLabelFilter.AllLabels)
+	groupableScopes := prepareIssueFilterLabelScopes(ctx, preparedLabelFilter.AllLabels)
+	groupScope := parseIssueGroupScope(ctx, groupableScopes)
+	if groupScope != "" && strings.HasPrefix(sortType, issues_model.ScopeSortPrefix) {
+		sortType = "" // grouping owns the primary ordering, a scope- sort would fight it
+	}
 
 	var keywordMatchedIssueIDs []int64
 	var issueStats *issues_model.IssueStats
@@ -613,6 +639,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 			IsPull:            isPullOption,
 			LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
 			SortType:          sortType,
+			GroupLabelScope:   groupScope,
 			IssueIDs:          keywordMatchedIssueIDs,
 		})
 		if err != nil {
@@ -661,6 +688,10 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 	}
 
 	ctx.Data["Issues"] = issues
+	ctx.Data["GroupByLabelScope"] = groupScope
+	if groupScope != "" {
+		ctx.Data["IssueGroups"] = issues.GroupByExclusiveLabelScope(groupScope)
+	}
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
 

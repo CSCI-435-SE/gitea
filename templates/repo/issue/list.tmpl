@@ -53,7 +53,11 @@
 				{{template "repo/issue/filter_actions" .}}
 			</div>
 		</div>
-		{{template "shared/issuelist" dict "." . "listType" "repo"}}
+		{{if and .GroupByLabelScope .Issues}}
+			{{template "repo/issue/list_grouped" .}}
+		{{else}}
+			{{template "shared/issuelist" dict "." . "listType" "repo"}}
+		{{end}}
 	</div>
 </div>
 {{template "base/footer" .}}

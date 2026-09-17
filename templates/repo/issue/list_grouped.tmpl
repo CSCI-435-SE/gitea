@@ -1,0 +1,21 @@
+{{/* one collapsible section per category; "." must come first in the dict so "Issues" overrides it */}}
+<div id="issue-list" class="issue-list-groups">
+	{{range $group := .IssueGroups}}
+		{{$groupLabelID := 0}}{{if $group.Label}}{{$groupLabelID = $group.Label.ID}}{{end}}
+		<details class="issue-list-group" open>
+			<summary class="issue-list-group-header">
+				{{svg "octicon-chevron-right" 16 "issue-list-group-caret"}}
+				{{if $group.Label}}
+					{{ctx.RenderUtils.RenderLabel $group.Label}}
+				{{else}}
+					<span class="issue-list-group-uncategorized">{{ctx.Locale.Tr "repo.issues.group_by.uncategorized"}}</span>
+				{{end}}
+				<span class="issue-list-group-count" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.group_by.count_on_page"}}">{{len $group.Issues}}</span>
+			</summary>
+			<div class="flex-divided-list items-with-main">
+				{{template "shared/issuelist_items" dict "." $ "listType" "repo" "Issues" $group.Issues "GroupLabelID" $groupLabelID}}
+			</div>
+		</details>
+	{{end}}
+</div>
+{{template "base/paginate" .}}
