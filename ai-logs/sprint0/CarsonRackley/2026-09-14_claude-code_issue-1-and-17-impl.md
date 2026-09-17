@@ -8214,9 +8214,1375 @@ sync the ai logs again
 
 ---
 
-_**Agent (claude-opus-5 2026-09-15 15:43:53Z)**_
+_**Agent (claude-opus-5 2026-09-15 16:01:11Z)**_
 
 <tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
 <summary>Tool use: **PowerShell**</summary>
 Resync SpecStory and refresh filed session log
+
+```text
+✅ Claude Code sync complete! 📊 4 sessions processed
+  ⏭️ 3 sessions up to date (skipped)
+  ♻️ 1 session updated
+  ✨ 0 new sessions created
+## feat/issue-1-empty-releases-message...origin/feat/issue-1-empty-releases-message
+warning: in the working copy of 'ai-logs/sprint0/CarsonRackley/2026-09-14_claude-code_issue-1-and-17-impl.md', CRLF will be replaced by LF the next time Git touches it
+ .../2026-09-14_claude-code_issue-1-and-17-impl.md  | 857 ++++++++++++++++++++-
+ 1 file changed, 856 insertions(+), 1 deletion(-)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-15 16:01:16Z)**_
+
+<tool-use data-tool-type="search" data-tool-name="Grep"><details>
+<summary>Tool use: **Grep**</summary>
+ path `./ai-logs/sprint0/CarsonRackley/2026-09-14_claude-code_issue-1-and-17-impl.md` pattern `gho_[A-Za-z0-9]{10,}|ghp_[A-Za-z0-9]{10,}|github_pat_|BEGIN (RSA|OPENSSH) PRIVATE`
+
+```text
+ai-logs\sprint0\CarsonRackley\2026-09-14_claude-code_issue-1-and-17-impl.md:1
+
+Found 1 total occurrence across 1 file.
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-15 16:01:21Z)**_
+
+<tool-use data-tool-type="search" data-tool-name="Grep"><details>
+<summary>Tool use: **Grep**</summary>
+ path `./ai-logs/sprint0/CarsonRackley/2026-09-14_claude-code_issue-1-and-17-impl.md` pattern `gho_[A-Za-z0-9]{10,}|ghp_[A-Za-z0-9]{10,}|github_pat_|BEGIN (RSA|OPENSSH) PRIVATE`
+
+```text
+7390:github_pat_
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-15 16:01:29Z)**_
+
+The one match is harmless: it's the text of my own security search (the pattern `github_pat_`) that got recorded in the log, not an actual token.
+
+The AI log is synced. `ai-logs/sprint0/CarsonRackley/2026-09-14_claude-code_issue-1-and-17-impl.md` now covers the session up to your request to sync, including the PR #16 review fix. That added 856 lines.
+
+- **Security check:** no tokens, keys or passwords in the log.
+- **The other three sessions were already current.**
+- **Not committed or pushed yet.** The link in both PR descriptions still opens the older copy on PR #16's branch.
+
+Should I commit and push the updated log to PR #16 (`chore(ai-logs): update session log for issues #1 and #17`), so the linked file includes the review fix? Anything after the sync, including this reply, will need one more sync at the end of the session.
+
+---
+
+_**User (2026-09-15 16:01:54Z)**_
+
+yep
+
+---
+
+_**Agent (claude-opus-5 2026-09-15 16:02:04Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Commit and push updated AI log to PR 16
+
+```text
+warning: in the working copy of 'ai-logs/sprint0/CarsonRackley/2026-09-14_claude-code_issue-1-and-17-impl.md', CRLF will be replaced by LF the next time Git touches it
+[feat/issue-1-empty-releases-message f8132b5345] chore(ai-logs): update session log for issues #1 and #17
+ 1 file changed, 856 insertions(+), 1 deletion(-)
+To https://github.com/CSCI-435-SE/gitea.git
+   cece51ec27..f8132b5345  feat/issue-1-empty-releases-message -> feat/issue-1-empty-releases-message
+## feat/issue-1-empty-releases-message...origin/feat/issue-1-empty-releases-message
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-15 16:02:07Z)**_
+
+The updated AI log is pushed to PR #16 as `f8132b5345` (`chore(ai-logs): update session log for issues #1 and #17`). The "AI log:" links in both PR descriptions now open the new version, which includes the review fix.
+
+Your local branch matches GitHub. The log still stops at your sync request, so this part of the conversation will need one more sync at the end of the session.
+
+---
+
+_**User (2026-09-15 17:44:47Z)**_
+
+I want to add a line to AGENTS.md so that AI can commit but only after human approval.
+
+---
+
+_**Agent (claude-opus-5 2026-09-15 17:45:05Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Update main and check PR 8 AGENTS.md status
+
+```text
+Your branch is up to date with 'origin/main'.
+Switched to branch 'main'
+Already up to date.
+e0d3eaa2b5 Merge pull request #8 from CSCI-435-SE/chore/claude-students-docs
+MERGED
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-15 17:45:05Z)**_
+
+<tool-use data-tool-type="read" data-tool-name="Read"><details>
+<summary>Tool use: **Read**</summary>
+ `./AGENTS.md`
+
+```text
+1	- Read `.claude-students/INDEX.md` before exploring the tree: it maps each subpackage to a short context doc, so read the 1-3 docs matching your task instead. Fix any doc you find wrong in the same PR; editing a `docs/*.md` also requires regenerating its `guide/*.md` twin. Run `./.claude-students/check.sh` before pushing. See `.claude-students/README.md` and `MAINTENANCE.md`
+2	- Use `make help` to find available development targets
+3	- Run `make fmt` to format `.go` files, and run `make lint-go` to lint them
+4	- Run `make lint-js` to lint `.ts` files
+5	- Run `make tidy` after any `go.mod` changes
+6	- Run single go tests with `go test -run '^TestName$' ./modulepath/`
+7	- Run single js test files with `pnpm exec vitest <path-filter>`
+8	- Run single playwright e2e test files with `GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e`
+9	- Add the current year into the copyright header of new `.go` files
+10	- Ensure no trailing whitespace in edited files
+11	- Use Conventional Commits for commit messages and PR titles, e.g. `type(scope): subject`; `!` before the colon if breaking. Use `test` type for test-only changes.
+12	- Never force-push, amend, or squash unless asked. Use new commits and normal push for pull request updates
+13	- Preserve existing code comments, do not remove or rewrite comments that are still relevant
+14	- Keep comments short, prefer same-line, explain why, never narrate code
+15	- Prefer unit tests over integration tests when logic is testable in isolation
+16	- Aim for sub-2s local runtime for integration and e2e tests
+17	- In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to always exist
+18	- For CSS layout, prefer `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins; fall back to `tw-*` utilities when specificity requires `!important`
+19	- Include authorship attribution in issue and pull request comments
+20	- Always add `Assisted-By` trailers to commit messages in format `Assisted-by: AGENT_NAME:MODEL_VERSION`
+21	- Never add `Co-Authored-By` `Signed-off-by` trailer to commit messages. Sign off must be done by a human.
+22
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-15 17:45:14Z)**_
+
+<think><details><summary>Thought Process</summary>
+Since PR #8 merged and `main` already has the `.claude-students` line in AGENTS.md, I'll create a separate `chore/` branch for this repo-wide rule change, keeping it distinct from your two feature PRs.
+
+</details></think>
+
+_**Agent (claude-opus-5 2026-09-15 17:45:18Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Create branch for AGENTS.md change
+
+```text
+Switched to a new branch 'chore/agents-commit-approval'
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-15 17:45:18Z)**_
+
+<tool-use data-tool-type="write" data-tool-name="Edit"><details>
+<summary>Tool use: **Edit**</summary>
+
+```text
+The file C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\Gitea\AGENTS.md has been updated successfully. (file state is current in your context — no need to Read it back)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-15 17:45:23Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Show AGENTS.md change
+
+```text
+diff --git a/AGENTS.md b/AGENTS.md
+index fba78373b1..613d35b635 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -10,6 +10,7 @@
+ - Ensure no trailing whitespace in edited files
+ - Use Conventional Commits for commit messages and PR titles, e.g. `type(scope): subject`; `!` before the colon if breaking. Use `test` type for test-only changes.
+ - Never force-push, amend, or squash unless asked. Use new commits and normal push for pull request updates
++- Only commit after a human has explicitly approved that commit; approval of one commit does not carry over to later ones
+ - Preserve existing code comments, do not remove or rewrite comments that are still relevant
+ - Keep comments short, prefer same-line, explain why, never narrate code
+ - Prefer unit tests over integration tests when logic is testable in isolation
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-15 17:45:31Z)**_
+
+I added the line to AGENTS.md on a new branch, `chore/agents-commit-approval` (from an up-to-date `main`). **Following the rule itself, it isn't committed yet.**
+
+```diff
+  - Never force-push, amend, or squash unless asked. Use new commits and normal push for pull request updates
++ - Only commit after a human has explicitly approved that commit; approval of one commit does not carry over to later ones
+```
+
+**Why it's worded this way:**
+- **Placement:** it sits right after the other git rule (force-push/amend/squash), so the git rules stay together.
+- **"explicitly approved that commit":** the AI has to ask, and hear yes, for that specific commit. Staying quiet or approving the code doesn't count.
+- **"does not carry over":** without this, one "yes, commit" early in a session could be read as permission for every later commit.
+- **Style:** it matches the other bullets, starting with an instruction on one line, and has no trailing whitespace.
+
+**One thing to decide:** the rule covers **commits only**, as you asked. Pushing is the step that actually changes GitHub, so you may want `Only commit or push after ...` instead. Also, CLAUDE.md imports AGENTS.md (`@AGENTS.md`), so every Claude session in this repo, your teammates' included, will follow the new line.
+
+Once you're happy with the wording, say so and I'll:
+1. Commit it as `chore(agents): require human approval before AI commits`, with the `Assisted-by` trailer.
+2. Push the branch and open a PR. `main` is protected, so this change needs a teammate's review like any other.
+
+---
+
+_**User (2026-09-15 17:49:09Z)**_
+
+yep I like it, commit and create a PR for this, put the description as "Included a line in AGENTS.md to talk about AI commits after human review and approval"
+
+---
+
+_**Agent (claude-opus-5 2026-09-15 17:49:21Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Commit AGENTS.md change, push, open PR
+
+```text
+[chore/agents-commit-approval 6b5d175cee] chore(agents): require human approval before AI commits
+ 1 file changed, 1 insertion(+)
+remote: 
+remote: Create a pull request for 'chore/agents-commit-approval' on GitHub by visiting:        
+remote:      https://github.com/CSCI-435-SE/gitea/pull/new/chore/agents-commit-approval        
+remote: 
+branch 'chore/agents-commit-approval' set up to track 'origin/chore/agents-commit-approval'.
+To https://github.com/CSCI-435-SE/gitea.git
+ * [new branch]            chore/agents-commit-approval -> chore/agents-commit-approval
+https://github.com/CSCI-435-SE/gitea/pull/30
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-15 17:49:28Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Verify PR 30 title, body and files
+
+```text
+chore(agents): require human approval before AI commits | draft=false | files=AGENTS.md`nbody: Included a line in AGENTS.md to talk about AI commits after human review and approval
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-15 17:49:33Z)**_
+
+I committed the AGENTS.md line, pushed it, and opened **PR #30**: https://github.com/CSCI-435-SE/gitea/pull/30
+
+- **Title:** `chore(agents): require human approval before AI commits`
+- **Description:** exactly your sentence: "Included a line in AGENTS.md to talk about AI commits after human review and approval".
+- **Files:** only `AGENTS.md`, one line added.
+- **Commit:** `6b5d175cee`, with only the `Assisted-by` trailer.
+- **Status:** ready for review, not a draft.
+
+**What happens next:**
+- **It needs a teammate's approval** to merge, since `main` is protected.
+- **Once merged,** every Claude session in this repo, your teammates' included, reads the new rule through `CLAUDE.md` → `@AGENTS.md`.
+- **Until then,** it only applies when someone works on this branch.
+
+---
+
+_**User (2026-09-16 20:13:19Z)**_
+
+lets work on a review for PR 32, pull it down and run tests also show me how to replicate it.
+
+---
+
+_**Agent (claude-opus-5 2026-09-16 20:13:33Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Fetch PR 32 metadata and description
+
+```text
+#32 feat(ui): show issue and PR hover previews on all issue links`nauthor=vvchopra head=feature/hoverissue base=main state=OPEN draft=false +1096/-13`ncommits:`n  d1bbd035f0 docs(spec): broaden issue/PR hover preview coverage`n  06664bee7c docs(plan): implementation plan for issue hover preview coverage`n  19f2e95cbe feat(ui): build issue info URL from parsed href parts`n  43a7db67fd docs: add same-origin guard to hover preview predicate`n  4cb0b91524 feat(ui): extract issue popup attachment predicate`n  e062b844a3 fix(ui): compare owner/repo case-insensitively in self-reference check`n  7f20bd372e fix(ui): cache failed issue info lookups`n  794debf8b4 test(ui): make getIssueInfo cache tests deterministic under concurrency`n  a4cba8d910 fix(ui): stay silent on repeat hovers of a failed issue lookup`n  15a56cc58a feat(ui): show issue hover previews on all issue links`n  fc94a222f9 fix(ui): let hover previews attach to dependency links`n  47ae6ecffe test(e2e): cover issue hover preview on the issue list`n  72bc52a36a fix(ui): only preview links whose path is the issue itself`nfiles:`n  docs/superpowers/plans/2026-09-15-issue-hover-preview-coverage.md +650/-0`n  docs/superpowers/specs/2026-09-15-issue-hover-preview-coverage-design.md +165/-0`n  templates/repo/issue/sidebar/issue_dependencies.tmpl +2/-2`n  tests/e2e/issue-popup.test.ts +26/-0`n  web_src/js/features/ref-issue.test.ts +193/-0`n  web_src/js/features/ref-issue.ts +60/-11`n---BODY---`nCloses #22 (partially — see Scope below).
+
+## Problem
+
+Links to issues and pull requests render as a bare `#123`, giving no indication of
+the item's title or state. Following a lengthy discussion means opening each link.
+
+Gitea already had the popup, but it attached only to links carrying a `.ref-issue`
+class (markdown cross-references) or sitting inside a `[data-ref-issue-container]`
+element — and only two templates in the whole repo set that container. Issue and PR
+list titles, project board cards and sidebar dependency links got nothing.
+
+## What changed
+
+Gate the delegated hover handler on a new pure predicate, `shouldAttachIssuePopup`,
+instead of the class/container check. Any issue-shaped link now qualifies unless it
+opts out, points at another host, already has a tooltip attached, or refers to the
+page you are already reading.
+
+Two supporting fixes that only matter once attachment is broad:
+
+- **Compose the info URL from parsed href parts.** The old code requested
+  `${link.pathname}/info`, which worked only because `.ref-issue` links are always
+  canonical. A link to `/pulls/1/files` would have requested `/files/info`.
+- **Cache failed lookups.** An unreadable or deleted issue used to refetch on every
+  hover. It is now remembered, and only the first failure logs.
+
+Sidebar dependency links carried `data-tooltip-content`, which attaches a tippy
+instance eagerly and made the predicate skip them; that attribute is removed, since
+the preview supersedes the tooltip.
+
+## Scope
+
+In scope: broadening coverage of the existing popup. No popup pixels change —
+`ContextPopup.vue` is untouched.
+
+Deferred to follow-ups on the same issue: user hovercards for `@mentions`, and
+richer popup content (state pill, assignee note, comment count).
+
+## Testing
+
+- 17 unit tests for the predicate, URL composition and caching
+- 1 e2e test hovering an issue-list title, which only passes once the handler
+  attaches to classless links
+- Verified manually: previews appear on issue and PR lists; hovering a link to the
+  current page correctly shows nothing; markdown cross-references and the activity
+  feed still work
+
+## Known limitations
+
+- The origin guard is slightly stricter than needed on instances where the browsing
+  origin differs from `ROOT_URL`
+- `data-issue-popup="off"` is a deliberate escape hatch with no producer yet
+- Sidebar dependency links lose their truncation tooltip when a preview cannot load
+  (e.g. target repo has Issues disabled)
+
+Created with the help of Claude Code, decisions and plans approved.
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-16 20:13:47Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Check out PR 32 branch locally for review
+
+```text
+branch 'review/pr32' set up to track 'origin/feature/hoverissue'.
+Switched to a new branch 'review/pr32'
+72bc52a36a fix(ui): only preview links whose path is the issue itself
+## review/pr32...origin/feature/hoverissue
+13
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-16 20:13:52Z)**_
+
+Checked out as local branch `review/pr32` (13 commits ahead of main). Running the unit tests for the changed frontend file in WSL.
+
+_**Agent (claude-opus-5 2026-09-16 20:14:00Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Run ref-issue unit tests
+
+`wsync pnpm exec vitest run web_src/js/features/ref-issue.test.ts 2>&1 | tail -30`
+
+```text
+WSL ~/gitea now at review/pr32: 72bc52a36a fix(ui): only preview links whose path is the issue itself
++ pnpm exec vitest run web_src/js/features/ref-issue.test.ts
+
+** RUN ** v4.1.9 /home/carsonrackley/gitea
+
+ ✓ web_src/js/features/ref-issue.test.ts (**17 tests**)** 730ms**
+     ✓** a failed hover logs once; a repeat hover on the same link stays silent  707ms**
+
+ Test Files ** **1 passed** (1)
+      Tests ** **17 passed** (17)
+   Start at ** 16:13:58
+   Duration ** 1.86s (transform 617ms, setup 66ms, import 239ms, tests 730ms, environment 592ms)**
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-16 20:14:04Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Lint TypeScript for PR 32
+
+`wsync make lint-js 2>&1 | tail -15`
+
+```text
+Command running in background with ID: bpzefsrzt. Output is being written to: C:\Users\carso\AppData\Local\Temp\claude\C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea\fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1\tasks\bpzefsrzt.output. You will be notified when it completes. To check interim output, use Read on that file path.
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-16 20:14:06Z)**_
+
+All 17 unit tests pass. Lint is running in the background; meanwhile I'm reading the actual code change so I can tell you what to poke at.
+
+_**Agent (claude-opus-5 2026-09-16 20:14:07Z)**_
+
+<tool-use data-tool-type="read" data-tool-name="Read"><details>
+<summary>Tool use: **Read**</summary>
+ `./web_src/js/features/ref-issue.ts`
+
+```text
+1	import {parseIssueHref} from '../utils.ts';
+2	import {GET} from '../modules/fetch.ts';
+3	import {createApp} from 'vue';
+4	import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
+5	import {addDelegatedEventListener} from '../utils/dom.ts';
+6	import type {Issue} from '../types.ts';
+7	
+8	type IssueInfo = {
+9	  convertedIssue: Issue,
+10	  renderedLabels: string,
+11	};
+12	
+13	// null marks a lookup that failed, so unreadable or missing issues are not refetched on every hover
+14	export const issueInfoCache = new Map<string, IssueInfo | null>();
+15	
+16	// distinguishes a cached failure from a fresh one, so the caller can log the first and stay silent on repeats
+17	class CachedIssueInfoError extends Error {}
+18	
+19	// builds the canonical info endpoint from a link's parts, because the link may point at a
+20	// sub-path such as /pulls/1/files where appending /info would 404
+21	export function buildIssueInfoUrl(href: string): string | null {
+22	  const {ownerName, repoName, pathType, indexString} = parseIssueHref(href);
+23	  if (!ownerName) return null;
+24	  return `${window.config.appSubUrl}/${ownerName}/${repoName}/${pathType}/${indexString}/info`;
+25	}
+26	
+27	// decides whether a link deserves a hover preview; kept pure so every surface is unit-testable
+28	export function shouldAttachIssuePopup(link: HTMLAnchorElement, currentPath: string): boolean {
+29	  const target = parseIssueHref(link.getAttribute('href')!);
+30	  if (!target.ownerName) return false;
+31	  // another forge's issue URL parses the same way, but /info here would answer for a different issue
+32	  if (link.origin !== window.location.origin) return false;
+33	  // parseIssueHref's regex is unanchored, so a browsing path such as
+34	  // /owner/repo/src/branch/main/issues/12 parses as a reference to issue 12 as well
+35	  const canonicalPath = `${window.config.appSubUrl}/${target.ownerName}/${target.repoName}/${target.pathType}/${target.indexString}`;
+36	  if (link.pathname !== canonicalPath && !link.pathname.startsWith(`${canonicalPath}/`)) return false;
+37	  if (link.classList.contains('ref-external-issue')) return false;
+38	  if (link.closest('[data-issue-popup="off"]')) return false;
+39	  if (getAttachedTippyInstance(link)) return false;
+40	
+41	  // previewing the page you are already reading is useless; path type is ignored because a pull
+42	  // request is reachable at both /issues/{index} and /pulls/{index}
+43	  const current = parseIssueHref(currentPath);
+44	  // owner/repo routing is case-insensitive in Gitea, but links preserve the stored case
+45	  return !(current.ownerName?.toLowerCase() === target.ownerName.toLowerCase() &&
+46	    current.repoName?.toLowerCase() === target.repoName.toLowerCase() &&
+47	    current.indexString === target.indexString);
+48	}
+49	
+50	export async function getIssueInfo(url: string): Promise<IssueInfo> {
+51	  if (issueInfoCache.has(url)) {
+52	    const cached = issueInfoCache.get(url);
+53	    if (!cached) throw new CachedIssueInfoError('issue info previously failed to load');
+54	    return cached;
+55	  }
+56	  let resp: Response;
+57	  try {
+58	    resp = await GET(url);
+59	  } catch (err) {
+60	    issueInfoCache.set(url, null);
+61	    throw err;
+62	  }
+63	  if (!resp.ok) {
+64	    issueInfoCache.set(url, null);
+65	    throw new Error(resp.statusText || 'Unknown network error');
+66	  }
+67	  const data = await resp.json();
+68	  issueInfoCache.set(url, data);
+69	  return data;
+70	}
+71	
+72	async function showRefIssuePopup(link: HTMLAnchorElement) {
+73	  const infoUrl = buildIssueInfoUrl(link.getAttribute('href')!);
+74	  if (!infoUrl) return;
+75	  const [data, {default: ContextPopup}] = await Promise.all([
+76	    getIssueInfo(infoUrl),
+77	    import('../components/ContextPopup.vue'),
+78	  ]);
+79	  const el = document.createElement('div');
+80	  const app = createApp(ContextPopup, {
+81	    issue: data.convertedIssue,
+82	    renderedLabels: data.renderedLabels,
+83	  });
+84	  app.mount(el);
+85	  // suppress ancestor title like from .commit-summary to prevent double tooltip
+86	  link.title = '';
+87	  createTippy(link, {
+88	    theme: 'default',
+89	    content: el,
+90	    trigger: 'mouseenter focus',
+91	    placement: 'top-start',
+92	    interactive: true,
+93	    role: 'dialog',
+94	    interactiveBorder: 5,
+95	    onDestroy: () => app.unmount(),
+96	  }).show();
+97	}
+98	
+99	export function initRefIssueContextPopup() {
+100	  const selector = 'a[href]:not([data-ref-issue-popup])';
+101	  addDelegatedEventListener<HTMLAnchorElement, MouseEvent>(document, 'mouseover', selector, (link) => {
+102	    if (!shouldAttachIssuePopup(link, window.location.pathname)) return;
+103	    link.setAttribute('data-ref-issue-popup', '');
+104	
+105	    // delay so a mouse passing over the link doesn't fire a fetch
+106	    let timer: ReturnType<typeof setTimeout>;
+107	    const cancel = () => {
+108	      clearTimeout(timer);
+109	      link.removeAttribute('data-ref-issue-popup');
+110	      link.removeEventListener('mouseleave', cancel);
+111	    };
+112	    timer = setTimeout(async () => {
+113	      link.removeEventListener('mouseleave', cancel);
+114	      try {
+115	        await showRefIssuePopup(link);
+116	      } catch (err) {
+117	        // a cached failure already logged on its first occurrence; repeating it on every hover would drown out real signal
+118	        if (!(err instanceof CachedIssueInfoError)) console.error('Failed to load issue info:', err);
+119	        link.removeAttribute('data-ref-issue-popup');
+120	      }
+121	    }, 300);
+122	    link.addEventListener('mouseleave', cancel);
+123	  });
+124	}
+125
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-16 20:14:13Z)**_
+
+<tool-use data-tool-type="read" data-tool-name="Read"><details>
+<summary>Tool use: **Read**</summary>
+ `C:\Users\carso\AppData\Local\Temp\claude\C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea\fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1\tasks\bpzefsrzt.output`
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-16 20:14:15Z)**_
+
+I'll wait for lint to finish before building, since both run in the same WSL checkout.
+
+_**Agent (claude-opus-5 2026-09-16 20:14:16Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="ToolSearch"><details>
+<summary>Tool use: **ToolSearch**</summary>
+
+**Input:**
+
+- max_results: `1`
+- query: `select:Monitor`
+
+**Result:**
+
+```
+
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-16 20:14:23Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Wait for lint job to finish
+
+`until [ -s "C:/Users/carso/AppData/Local/Temp/claude/C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea/fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1/tasks/bpzefsrzt.output" ] && ! wsl -d Debian --exec bash -c 'pgrep -f "eslint|stylelint|vue-tsc" >/dev/null'; do sleep 5; done; echo "lint finished"`
+
+```text
+Command running in background with ID: b9gdh3tsn. Output is being written to: C:\Users\carso\AppData\Local\Temp\claude\C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea\fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1\tasks\b9gdh3tsn.output. You will be notified when it completes. To check interim output, use Read on that file path.
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-16 20:14:40Z)**_
+
+While lint runs, here's what I have so far on **PR #32** by `vvchopra` (`feature/hoverissue`, 13 commits, +1096/−13).
+
+## What it does
+Gitea already had the hover preview popup for issue links, but it only attached to links with the `.ref-issue` class or inside a `[data-ref-issue-container]`. This PR replaces that check with a new function, `shouldAttachIssuePopup` (`web_src/js/features/ref-issue.ts:28`), so **any** issue-shaped link gets a preview unless it opts out, points at another site, already has a tooltip, or points at the page you're already on.
+
+## Results so far
+| Check | Result |
+| --- | --- |
+| `pnpm exec vitest run web_src/js/features/ref-issue.test.ts` | **17/17 pass** (1.9s) |
+| `make lint-js` | running |
+| e2e (`tests/e2e/issue-popup.test.ts`) | not run yet; it needs a full build and Playwright browsers |
+
+I checked the branch out locally as `review/pr32`.
+
+## Files changed
+| File | Change |
+| --- | --- |
+| `web_src/js/features/ref-issue.ts` | +60/−11, the real change |
+| `web_src/js/features/ref-issue.test.ts` | +193, new unit tests |
+| `tests/e2e/issue-popup.test.ts` | +26, e2e test |
+| `templates/repo/issue/sidebar/issue_dependencies.tmpl` | +2/−2, removes `data-tooltip-content` |
+| `docs/superpowers/plans/…md`, `docs/superpowers/specs/…md` | +815, planning documents |
+
+**Worth raising in your review:** those two `docs/superpowers/` files are 815 of the 1096 added lines, and they're AI planning and spec documents rather than project documentation. Ask whether the team wants those in the repo, since the course docs live in `.claude-students/`.
+
+## To replicate it yourself
+Once lint finishes I'll build this branch and restart your local server. Then:
+1. **Create the data:** in `carso/test`, open two issues, e.g. "First issue" and "Second issue".
+2. **Before this PR (the gap):** go to the issue **list** at `/carso/test/issues` and hover an issue title. Nothing happens on `main`.
+3. **With this PR:** hover the same title. After about 300ms, a preview appears with the issue's title and body.
+4. **Still works:** in issue #1's comment box write `#2`, post it, then hover the `#2` link. This is the case that already worked, via `.ref-issue`.
+5. **Self-reference:** on issue #2's own page, hover a link pointing to issue #2 (for example from the list in another tab, or a `#2` reference inside issue #2). No preview, by design.
+6. **Failure caching:** hover a reference to an issue that doesn't exist, such as `#999`. Open the Console: the failure is logged **once**, and hovering again stays silent and sends no new request (check the Network tab).
+
+I'll confirm the build and give you exact URLs when it's done.
+
+---
+
+_**User (2026-09-16 20:14:44Z)**_
+
+<task-notification>
+<task-id>bpzefsrzt</task-id>
+<tool-use-id>toolu_01TnmQCjGEVZcvwfuJh3sLx8</tool-use-id>
+<output-file>C:\Users\carso\AppData\Local\Temp\claude\C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea\fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1\tasks\bpzefsrzt.output</output-file>
+<status>completed</status>
+<summary>Background command "Lint TypeScript for PR 32" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+_**Agent (claude-opus-5 2026-09-16 20:14:46Z)**_
+
+<tool-use data-tool-type="read" data-tool-name="Read"><details>
+<summary>Tool use: **Read**</summary>
+ `C:\Users\carso\AppData\Local\Temp\claude\C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea\fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1\tasks\bpzefsrzt.output`
+
+```text
+1	WSL ~/gitea now at review/pr32: 72bc52a36a fix(ui): only preview links whose path is the issue itself
+2	+ make lint-js
+3	pnpm exec eslint --color --max-warnings=0 --concurrency 2 web_src/js tools *.ts tests/e2e
+4	pnpm exec vue-tsc
+5	
+6	[exited with code 0]
+7
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-16 20:14:48Z)**_
+
+Lint passes (eslint and vue-tsc, exit 0). Building this branch and restarting your server so you can try it.
+
+_**Agent (claude-opus-5 2026-09-16 20:15:17Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Build PR 32 branch and restart Gitea
+
+`wsync make build 2>&1 | tail -3 && wsl -d Debian --exec bash -c 'cd ~/gitea && pkill -f "^./gitea web"; for i in $(seq 20); do pgrep -f "^./gitea web" >/dev/null || break; sleep 0.5; done; nohup setsid ./gitea web >> ~/gitea-web.log 2>&1 < /dev/null & disown; for i in $(seq 90); do curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/ | grep -q 200 && break; sleep 1; done; curl -s http://localhost:3001/api/v1/version'`
+
+```text
+Running go generate...
+CGO_ENABLED="0" CGO_CFLAGS="-O2 -g -DSQLITE_MAX_VARIABLE_NUMBER=32766" go build -v  -tags '' -ldflags '-s -w   -X "main.Version=72bc52a36a" -X "main.Tags="' -o gitea
+gitea.dev
+{"version":"72bc52a36a"}
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-16 20:15:23Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+List existing issues on local test repo
+
+`curl -s "http://localhost:3001/api/v1/repos/carso/test/issues?state=all&limit=10" | grep -o '"number":[0-9]*,"title":"[^"]*"' | head; echo "---"; curl -s -o /dev/null -w "issues page: %{http_code}\n" http://localhost:3001/carso/test/issues`
+
+```text
+---
+issues page: 200
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-16 20:15:43Z)**_
+
+Lint passes, the build succeeded, and your server is running PR #32 (version `72bc52a36a`).
+
+## Review results so far
+| Check | Result |
+| --- | --- |
+| `vitest run web_src/js/features/ref-issue.test.ts` | **17/17 pass** |
+| `make lint-js` (eslint + vue-tsc) | **pass**, exit 0 |
+| `make build` | **pass** |
+| e2e `tests/e2e/issue-popup.test.ts` | not run yet; needs Playwright browsers |
+
+`carso/test` has no issues yet, so step 1 below creates the data.
+
+## Replicating it on http://localhost:3001
+
+**Setup**
+1. Go to http://localhost:3001/carso/test/issues and click **New Issue**.
+2. Create **"First issue"** with body: `Reference to #2 and a broken one #999`.
+3. Create **"Second issue"** with any body. (Create this one second so the `#2` link above resolves.)
+
+**A. The gap this PR fills (issue list)**
+4. Go to http://localhost:3001/carso/test/issues and hover **"Second issue"**'s title for about a second.
+5. **Expected:** a popup with the issue's title, body and labels. On `main` nothing appears, because the title link has no `.ref-issue` class. That's the whole point of the PR.
+
+**B. What already worked (markdown reference)**
+6. Open **First issue** and hover the `#2` link in its body. The popup appears as before, so the PR didn't break the old path.
+
+**C. Self-reference is skipped**
+7. Still on First issue, add a comment containing `#1`, a link to the page you're on, and post it.
+8. Hover it. **No popup**, by design (`shouldAttachIssuePopup` compares owner, repo and number against the current page).
+
+**D. Failure caching**
+9. Press **F12** → **Network** tab, and also open **Console**.
+10. Hover the `#999` link in First issue's body.
+11. **Expected:** one request to `/carso/test/issues/999/info` that fails, and **one** `Failed to load issue info:` line in the Console.
+12. Move away, then hover `#999` again. **Expected:** no new network request and no new Console line. Before this PR it refetched every time.
+
+**E. Pull request links**
+13. Create a branch and a PR in `carso/test`, then go to http://localhost:3001/carso/test/pulls and hover the PR title. The preview should appear there too.
+
+**F. Sidebar dependency links (the template change)**
+14. On First issue, in the right sidebar, add **Second issue** as a dependency.
+15. Hover the dependency link. **Expected:** the issue preview, not the plain text tooltip. The PR removed `data-tooltip-content` there, since an attached tooltip makes the predicate skip the link. This is also the PR's own listed limitation: if the preview can't load, that link now has no tooltip at all.
+
+**G. Sub-path links, the bug fix behind "build info URL from parts"**
+16. Open your PR in `carso/test` and copy a link ending in `/files`, e.g. `/carso/test/pulls/1/files`. Paste it as a comment, post it, then hover it.
+17. **Expected:** the preview loads. The old code would have requested `/files/info` and failed.
+
+## Points for your review comment
+- **The two `docs/superpowers/` files are 815 of 1096 added lines** and are AI planning/spec documents. Ask whether the team wants them in the repo, given course docs live in `.claude-students/`.
+- **The origin check** (`ref-issue.ts:32`) compares against `window.location.origin`. The author lists this as a limitation when the browsing origin differs from `ROOT_URL`.
+- **`data-issue-popup="off"`** is an escape hatch that nothing currently sets. Worth asking whether an unused option should ship now.
+- **Ask about the e2e test:** whether CI runs it, since it's the test that actually proves the new coverage.
+
+Want me to run the e2e test as well? It needs a Playwright browser download in WSL, which takes a few minutes.
+
+---
+
+_**User (2026-09-16 20:19:50Z)**_
+
+yep all of these work ill reply with an approval
+
+---
+
+_**Agent (claude-opus-5 2026-09-16 20:20:00Z)**_
+
+Good to hear. Since you're writing the approval yourself, that keeps within the rule about not using AI to answer on PRs.
+
+**Two things worth mentioning in it,** if you agree: the `docs/superpowers/` plan and spec files are 815 of the 1096 added lines, and `data-issue-popup="off"` has no producer yet. Neither blocks approval; they're questions for the author.
+
+**Your local setup is still on their branch:**
+- Local branch `review/pr32` tracks `origin/feature/hoverissue`.
+- http://localhost:3001 is running their build (`72bc52a36a`), and `carso/test` now has the issues you created for testing.
+
+Want me to switch back to one of your branches and rebuild? Otherwise I'll leave it as is so you can keep clicking around while you write the review.
+
+**Your own work still open:**
+- **PR #16:** reply to ab-wm about the page-past-end fix, and update the "Limits" bullet in the description.
+- **PR #24** and **PR #30:** waiting on teammate review.
+- **AI Assistance comments** on issues #1 and #17, and a final `specstory sync` at the end of the session.
+
+---
+
+_**User (2026-09-17 14:30:48Z)**_
+
+<task-notification>
+<task-id>b9gdh3tsn</task-id>
+<tool-use-id>toolu_01FkHrNXaPVSdgHZwbpzEYWg</tool-use-id>
+<output-file>C:\Users\carso\AppData\Local\Temp\claude\C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea\fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1\tasks\b9gdh3tsn.output</output-file>
+<status>killed</status>
+<summary>Background command "Wait for lint job to finish" was stopped because the system is running low on memory</summary>
+</task-notification>
+
+---
+
+_**Agent (claude-opus-5 2026-09-17 14:30:58Z)**_
+
+No action needed there: that was just my "wait for lint" helper loop being cleaned up. Lint had already finished successfully, and the results I gave you stand.
+
+One time-sensitive note while you're here: **today is Sep 17, the Sprint 0 due date (11:59 PM).** Still outstanding on your side:
+- AI Assistance comments on issues #1 and #17
+- A final `specstory sync` so the log covers this review session, including PR #32
+- Your reply on PR #16 and the "Limits" wording in its description
+
+Say the word and I'll do the log sync, or switch your local server back off the PR #32 build.
+
+---
+
+_**User (2026-09-17 14:41:56Z)**_
+
+can you look in the software engineering folder and convert the sprint0 document into a .md file. put it a new folder in software engineering called finished docs.
+
+---
+
+_**Agent (claude-opus-5 2026-09-17 14:42:41Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+List the Software Engineering folder
+
+```text
+Mode   Length LastWriteTime         Name          
+----   ------ -------------         ----          
+d-----        9/3/2026 1:03:49 PM   .specstory    
+d-----        9/15/2026 1:45:18 PM  Gitea         
+d-----        9/1/2026 3:33:01 PM   Lectures      
+d-----        9/17/2026 10:35:07 AM sprint 0 files
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:43:09Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+List sprint 0 files folder contents
+
+```text
+Length LastWriteTime         FullName                                                                                                            
+------ -------------         --------                                                                                                            
+488573 9/17/2026 10:32:48 AM C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\sprint 0 files\Report_ Sprint 0.docx               
+ 12101 9/17/2026 10:32:38 AM C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\sprint 0 files\Standards & Guidelines Document.docx
+ 16490 9/15/2026 3:51:02 PM  C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\sprint 0 files\test-backend.md                     
+153397 9/15/2026 3:51:05 PM  C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\sprint 0 files\test-integration.md                 
+ 10681 9/15/2026 3:51:05 PM  C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\sprint 0 files\vitest.md
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:43:15Z)**_
+
+Two `.docx` files are in there. I'll take "the sprint0 document" as `Report_ Sprint 0.docx`. First, checking what's available to convert it.
+
+_**Agent (claude-opus-5 2026-09-17 14:43:22Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Check for pandoc or python docx tools
+
+`command -v pandoc; command -v python3 python; wsl -d Debian --exec bash -c 'command -v pandoc; python3 -c "import docx; print(\"python-docx ok\")" 2>/dev/null; python3 --version'`
+
+```text
+Exit code 127
+/c/Users/carso/AppData/Local/Microsoft/WindowsApps/python3
+/c/Users/carso/AppData/Local/Programs/Python/Python313/python
+bash: line 1: python3: command not found
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:43:28Z)**_
+
+No pandoc, but Python 3.13 is on Windows. A `.docx` is a zip of XML, so I'll write a small converter that reads it directly, with no extra packages to install.
+
+_**Agent (claude-opus-5 2026-09-17 14:43:51Z)**_
+
+<tool-use data-tool-type="write" data-tool-name="Write"><details>
+<summary>Tool use: **Write**</summary>
+
+```python
+"""Minimal .docx -> Markdown converter (stdlib only).
+
+Handles headings, bold/italic, hyperlinks, bullet/numbered lists and tables.
+Usage: python docx2md.py <input.docx> <output.md>
+"""
+import re
+import sys
+import zipfile
+import xml.etree.ElementTree as ET
+
+W = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
+R = '{http://schemas.openxmlformats.org/officeDocument/2006/relationships}'
+
+
+def rels(z):
+    out = {}
+    try:
+        root = ET.fromstring(z.read('word/_rels/document.xml.rels'))
+    except KeyError:
+        return out
+    for rel in root:
+        out[rel.get('Id')] = rel.get('Target')
+    return out
+
+
+def numbering_kinds(z):
+    """Map numId -> 'ol' or 'ul' using the first level's format."""
+    kinds = {}
+    try:
+        root = ET.fromstring(z.read('word/numbering.xml'))
+    except KeyError:
+        return kinds
+    abstract = {}
+    for an in root.findall(f'{W}abstractNum'):
+        fmt = None
+        for lvl in an.findall(f'{W}lvl'):
+            if lvl.get(f'{W}ilvl') == '0':
+                el = lvl.find(f'{W}numFmt')
+                fmt = el.get(f'{W}val') if el is not None else None
+                break
+        abstract[an.get(f'{W}abstractNumId')] = fmt
+    for num in root.findall(f'{W}num'):
+        ref = num.find(f'{W}abstractNumId')
+        fmt = abstract.get(ref.get(f'{W}val')) if ref is not None else None
+        kinds[num.get(f'{W}numId')] = 'ul' if fmt in (None, 'bullet') else 'ol'
+    return kinds
+
+
+def esc(text):
+    return re.sub(r'([\\`*_\[\]<>])', r'\\\1', text)
+
+
+def run_text(run):
+    parts = []
+    for node in run:
+        if node.tag == f'{W}t':
+            parts.append(node.text or '')
+        elif node.tag in (f'{W}tab',):
+            parts.append(' ')
+        elif node.tag in (f'{W}br', f'{W}cr'):
+            parts.append('\n')
+    text = ''.join(parts)
+    if not text.strip():
+        return text
+    props = run.find(f'{W}rPr')
+    bold = props is not None and props.find(f'{W}b') is not None
+    italic = props is not None and props.find(f'{W}i') is not None
+    out = esc(text)
+    lead = len(out) - len(out.lstrip())
+    trail = len(out) - len(out.rstrip())
+    core = out.strip()
+    if bold:
+        core = f'**{core}**'
+    if italic:
+        core = f'*{core}*'
+    return out[:lead] + core + out[len(out) - trail:] if trail else out[:lead] + core
+
+
+def para_text(para, links):
+    chunks = []
+    for child in para:
+        if child.tag == f'{W}r':
+            chunks.append(run_text(child))
+        elif child.tag == f'{W}hyperlink':
+            inner = ''.join(run_text(r) for r in child.findall(f'{W}r'))
+            target = links.get(child.get(f'{R}id'), '')
+            chunks.append(f'[{inner.strip()}]({target})' if target else inner)
+    return ''.join(chunks).strip()
+
+
+def para_md(para, links, kinds, counters):
+    text = para_text(para, links)
+    props = para.find(f'{W}pPr')
+    style = ''
+    if props is not None:
+        el = props.find(f'{W}pStyle')
+        style = (el.get(f'{W}val') if el is not None else '') or ''
+    if not text:
+        return ''
+
+    heading = re.match(r'(?:Heading|heading)(\d)', style)
+    if heading:
+        return '#' * min(int(heading.group(1)), 6) + ' ' + text
+    if style.lower() in ('title',):
+        return '# ' + text
+    if style.lower() in ('subtitle',):
+        return '## ' + text
+
+    numpr = props.find(f'{W}numPr') if props is not None else None
+    if numpr is not None:
+        ilvl = numpr.find(f'{W}ilvl')
+        numid = numpr.find(f'{W}numId')
+        level = int(ilvl.get(f'{W}val')) if ilvl is not None else 0
+        nid = numid.get(f'{W}val') if numid is not None else ''
+        indent = '  ' * level
+        if kinds.get(nid) == 'ol':
+            key = (nid, level)
+            counters[key] = counters.get(key, 0) + 1
+            return f'{indent}{counters[key]}. {text}'
+        return f'{indent}- {text}'
+    return text
+
+
+def table_md(tbl, links):
+    rows = []
+    for tr in tbl.findall(f'{W}tr'):
+        cells = []
+        for tc in tr.findall(f'{W}tc'):
+            cell = ' '.join(p for p in (para_text(p, links) for p in tc.findall(f'{W}p')) if p)
+            cells.append(cell.replace('|', '\\|') or ' ')
+        rows.append(cells)
+    if not rows:
+        return ''
+    width = max(len(r) for r in rows)
+    rows = [r + [' '] * (width - len(r)) for r in rows]
+    out = ['| ' + ' | '.join(rows[0]) + ' |', '| ' + ' | '.join(['---'] * width) + ' |']
+    out += ['| ' + ' | '.join(r) + ' |' for r in rows[1:]]
+    return '\n'.join(out)
+
+
+def convert(src, dst):
+    with zipfile.ZipFile(src) as z:
+        links = rels(z)
+        kinds = numbering_kinds(z)
+        body = ET.fromstring(z.read('word/document.xml')).find(f'{W}body')
+
+    lines, counters = [], {}
+    for child in body:
+        if child.tag == f'{W}p':
+            md = para_md(child, links, kinds, counters)
+            if md:
+                lines.append(md)
+            elif lines and lines[-1] != '':
+                lines.append('')
+        elif child.tag == f'{W}tbl':
+            counters.clear()
+            if lines and lines[-1] != '':
+                lines.append('')
+            lines.append(table_md(child, links))
+            lines.append('')
+
+    text = '\n'.join(lines)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    # a heading or list item needs a blank line before it in Markdown
+    text = re.sub(r'(?<!\n)\n(#{1,6} )', r'\n\n\1', text)
+    with open(dst, 'w', encoding='utf-8', newline='\n') as fh:
+        fh.write(text.strip() + '\n')
+    return text
+
+
+if __name__ == '__main__':
+    convert(sys.argv[1], sys.argv[2])
+    print(f'wrote {sys.argv[2]}')
+
+```
+
+```text
+File created successfully at: C:\Users\carso\AppData\Local\Temp\claude\C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea\fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1\scratchpad\docx2md.py (file state is current in your context — no need to Read it back)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:45:00Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Create finished docs folder and convert sprint 0 report
+
+```text
+wrote C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\finished docs\Report_Sprint_0.md
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:45:06Z)**_
+
+<tool-use data-tool-type="read" data-tool-name="Read"><details>
+<summary>Tool use: **Read**</summary>
+ `C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\finished docs\Report_Sprint_0.md`
+
+```text
+C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\finished docs\Report_Sprint_0.md is outside C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\Gitea; the permissions.blockReadsOutsideWorkingDirectories setting blocks reads outside the working directories. Ask the user to add the directory with /add-dir, or to remove that setting.
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:45:16Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Show converted markdown preview
+
+```text
+lines: 179  bytes: 16005
+--- first 45 lines ---
+Report: Sprint 0
+**Team Name:** GiCoffee (idk)
+
+**Team member names:** Vishav Chopra (vvchopra), Carson Rackley(CarsonRackley), Arjun Bhat (arjunsb26), Aman Bhoot (ab-wm), Jack Donohue (Jack-Donohue), Ethan Turner (controlled-opposition)
+**Project Name:** Gitea
+**Project Link:**[](https://github.com/CSCI-435-SE/gitea)[https://github.com/CSCI-435-SE/gitea](https://github.com/CSCI-435-SE/gitea)
+
+â€‹â€‹
+â€‹
+â€‹
+â€‹
+â€‹
+â€‹
+â€‹
+â€‹
+â€‹â€‹
+
+# Project Overview
+
+### Setup Evidence
+
+#### App running locally:
+
+#### Front End Test Suite passing:
+
+In order for all tests to pass, the tests were run in WSL (Debian) rather than native Windows, as \`STUDENTS.md\` recommends, because native Windows runs produce platform-only failures (specifically symlinks and temporary files).
+
+### What does the system do? Who are its users? What are its main features?
+The core purpose of the project is to provide â€œthe easiest, fastest, and most painless way of setting up a self-hosted Git service,â€ in their own words. Thus, the users are software development teams that would prefer to self-host their own â€œGitHub,â€ so to speak, instead of relying on a third party for that software. That is also where the features lie, where Gitea aims to be a fully featured and self-hosted git service with modern development tools like CI/CD (essentially GitHub Actions).
+Main features:
+- Git hosting over HTTP and SSH, with a web code browser, blame, diffs, and releases
+- Issues, pull requests, code review, labels, milestones, and project (Kanban) boards
+- Wikis, package registries, and Gitea Actions (CI compatible with GitHub Actions workflows)
+- Users, organizations, and teams with fine-grained permissions; 2FA, WebAuthn passkeys, OAuth2 and OpenID
+
+### **What are the main components and how do they interact?**
+The front end and the backend have their own set of concerns and architecture decisions.
+
+#### Front End:
+- The pages are rendered with Go HTML templates with the help of Vue3 and Fomantic-UI (although it is slowly being removed for accessibility reasons). The relevant directories for that purpose are:
+  - css for css files
+  - js for the Javascript and Typescript code
+  - Components for Vue components
+  - Features for all the various implemented functionality.
+  - template for all the Go templates
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:45:33Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Check file encoding and stray characters
+
+```text
+utf8-ok True
+zero-width count 11
+curly quotes 2
+'core purpose of the project is to provide “the easiest, fastest, and most painless way of '
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:45:41Z)**_
+
+The file itself is proper UTF-8; the odd characters were just PowerShell's console display. Three real artifacts to clean up though: 11 invisible zero-width characters, an empty link `[](url)` before the project link, and the title not being a heading.
+
+_**Agent (claude-opus-5 2026-09-17 14:45:46Z)**_
+
+<tool-use data-tool-type="write" data-tool-name="Edit"><details>
+<summary>Tool use: **Edit**</summary>
+
+```text
+The file C:\Users\carso\AppData\Local\Temp\claude\C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea\fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1\scratchpad\docx2md.py has been updated successfully. (file state is current in your context — no need to Read it back)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:45:49Z)**_
+
+<tool-use data-tool-type="write" data-tool-name="Edit"><details>
+<summary>Tool use: **Edit**</summary>
+
+```text
+The file C:\Users\carso\AppData\Local\Temp\claude\C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea\fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1\scratchpad\docx2md.py has been updated successfully. (file state is current in your context — no need to Read it back)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:48:25Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Reconvert and verify cleanup
+
+```text
+wrote C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\finished docs\Report_Sprint_0.md
+zero-width: 0
+empty links: 0
+headings: 26
+tables: 11
+lines: 221
+
+# Report: Sprint 0
+**Team Name:** GiCoffee (idk)
+
+**Team member names:** Vishav Chopra (vvchopra), Carson Rackley(CarsonRackley), Arjun Bhat (arjunsb26), Aman Bhoot (ab-wm), Jack Donohue (Jack-Donohue), Ethan Turner (controlled-opposition)
+**Project Name:** Gitea
+**Project Link:**[https://github.com/CSCI-435-SE/gitea](https://github.com/CSCI-435-SE/gitea)
+
+# Project Overview
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:48:36Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Count images embedded in the docx
+
+```text
+4 images
+  word/media/image2.png 75521
+  word/media/image3.png 111103
+  word/media/image1.png 241989
+  word/media/image4.png 96837
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:48:41Z)**_
+
+The report has 4 embedded screenshots (your setup evidence), which the Markdown currently drops. Adding image support so they're saved alongside and referenced in the file.
+
+_**Agent (claude-opus-5 2026-09-17 14:48:46Z)**_
+
+<tool-use data-tool-type="write" data-tool-name="Edit"><details>
+<summary>Tool use: **Edit**</summary>
+
+```text
+The file C:\Users\carso\AppData\Local\Temp\claude\C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea\fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1\scratchpad\docx2md.py has been updated successfully. (file state is current in your context — no need to Read it back)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:48:52Z)**_
+
+<tool-use data-tool-type="write" data-tool-name="Edit"><details>
+<summary>Tool use: **Edit**</summary>
+
+```text
+The file C:\Users\carso\AppData\Local\Temp\claude\C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea\fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1\scratchpad\docx2md.py has been updated successfully. (file state is current in your context — no need to Read it back)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:48:54Z)**_
+
+<tool-use data-tool-type="write" data-tool-name="Edit"><details>
+<summary>Tool use: **Edit**</summary>
+
+```text
+The file C:\Users\carso\AppData\Local\Temp\claude\C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea\fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1\scratchpad\docx2md.py has been updated successfully. (file state is current in your context — no need to Read it back)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:49:01Z)**_
+
+<tool-use data-tool-type="read" data-tool-name="Read"><details>
+<summary>Tool use: **Read**</summary>
+ `C:\Users\carso\AppData\Local\Temp\claude\C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea\fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1\scratchpad\docx2md.py`
+
+```text
+168	            for name in media:
+169	                with open(os.path.join(dst_dir, media_dir_name, name.rsplit('/', 1)[-1]), 'wb') as fh:
+170	                    fh.write(z.read(name))
+171	
+172	    lines, counters = [], {}
+173	    for child in body:
+174	        if child.tag == f'{W}p':
+175	            md = para_md(child, links, kinds, counters)
+176	            images = para_images(child, links, media_dir_name)
+177	            if md:
+178	                lines.append(md)
+179	            if images:
+180	                lines.extend(['', *images, ''])
+181	            if md or images:
+182	                pass
+183	            elif lines and lines[-1] != '':
+184	                lines.append('')
+185	        elif child.tag == f'{W}tbl':
+186	            counters.clear()
+187	            if lines and lines[-1] != '':
+188	                lines.append('')
+189	            lines.append(table_md(child, links))
+190	            lines.append('')
+191	
+192	    # the document title often carries direct formatting rather than a Title style
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:49:04Z)**_
+
+<tool-use data-tool-type="write" data-tool-name="Edit"><details>
+<summary>Tool use: **Edit**</summary>
+
+```text
+The file C:\Users\carso\AppData\Local\Temp\claude\C--Users-carso-Desktop-Classes-Year-4-SEM-1-Software-Engineering-Gitea\fb2f4eab-ae52-4cd4-90a3-f72cd9d965e1\scratchpad\docx2md.py has been updated successfully. (file state is current in your context — no need to Read it back)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:50:18Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Reconvert with images and list output folder
+
+```text
+wrote C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\finished docs\Report_Sprint_0.md
+images referenced: 4
+headings: 26
+tables: 11
+lines: 229
+
+Length FullName                                                                                                        
+------ --------                                                                                                        
+       C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\finished docs\Report_Sprint_0_images           
+16124  C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\finished docs\Report_Sprint_0.md               
+241989 C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\finished docs\Report_Sprint_0_images\image1.png
+75521  C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\finished docs\Report_Sprint_0_images\image2.png
+111103 C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\finished docs\Report_Sprint_0_images\image3.png
+96837  C:\Users\carso\Desktop\Classes\Year 4\SEM 1\Software Engineering\finished docs\Report_Sprint_0_images\image4.png
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:51:54Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Verify no content lost in conversion
+
+```text
+docx chars: 12130  md chars: 12447  ratio: 1.026
+first divergence at 228
+docx: 'https://github.com/CSCI435SE/gitea\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200bProjectOverviewSetupEvide'
+md  : '[https://github.com/CSCI435SE/gitea](https://github.com/CSCI435SE/gite'
+
+--- md tail ---
+
+- Windows development environments: native Windows produced false test failures and extremely slow linting, and Go had to be pinned to 1.26.4 because Go 1.27 reformats existing files. Several members spent significant time setting up WSL.
+- Shared CI failures: a lint error in \`STUDENTS.md\` on \`main\` failed CI for every open PR until #15 was merged, which showed how one broken file on \`main\` blocks the whole team.
+- Codebase size: Gitea has about 40 service packages, 85 module packages, and more than 300 migrations,  so concept location takes much longer than expected. Furthermore, changes are more difficult to make as there are far too many interactions between different components of the project.
+- Overlapping PRs: PRs #8, #9, and #15 contained the same files, which inflated diffs and forced a specific merge order.
+- Review bottleneck: one required approval with only a few active reviewers slowed merging
+
+# Sprint 1 Ideas
+Brief ideas on the features the team intends to tackle; any setup still needed
+
+We plan to address the issue x and x first, split between 2-3 members between each. This will not be a strict split, though it should help complete issues faster, akin to pair programming under the extreme programming paradigm.
+Fortunately, there are no major problems we faced by the end of the sprint that should impede our progress towards the completion of these issues. If we complete these issues quicker than the end of the sprint, we will attempt to implement more medium term issues to the extent possible.
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5 2026-09-17 14:52:04Z)**_
+
+Done. The report is converted, with nothing lost: the Markdown holds every character of the document's text (the 2.6% extra is Markdown link syntax, where a URL appears twice).
+
+**Created** `Software Engineering\finished docs\`:
+
+| File | Size |
+| --- | --- |
+| `Report_Sprint_0.md` | 16 KB, 229 lines |
+| `Report_Sprint_0_images\image1-4.png` | the 4 screenshots from the report |
+
+**What the conversion preserved:**
+- **26 headings**, from the document's heading styles, with the title as `# Report: Sprint 0`.
+- **11 tables**, as Markdown tables.
+- **Bold and italic**, bullet and numbered lists (nested ones indented).
+- **Links**, as `[text](url)`.
+- **The 4 screenshots**, saved next to the file and referenced with `![image1.png](Report_Sprint_0_images/image1.png)`, so they show up in any Markdown viewer.
+- **UTF-8**, so the curly quotes are intact. If PowerShell displays them oddly, that's the console, not the file.
+
+**How:** no pandoc is installed, so I wrote a small converter using only Python's standard library (a `.docx` is a zip of XML). It's at `docx2md.py` in this session's scratchpad if you want it again.
+
+**I cleaned up three Word artifacts:** 11 invisible zero-width characters, an empty `[](url)` link shell before the project link, and the title, which used direct formatting instead of a heading style.
+
+**Worth checking yourself:** the page-break spacing in a few places, and that the screenshots sit under the right headings ("App running locally", "Front End Test Suite passing"). Word anchors images loosely, so their position is approximate.
+
+**The other file:** `sprint 0 files\` also has `Standards & Guidelines Document.docx`. Want that converted into the same folder?
+
+---
+
+_**User (2026-09-17 15:01:35Z)**_
+
+commit my new AI logs to github
+
+---
+
+_**User (2026-09-17 15:01:49Z)**_
+
+commit my new AI logs to github for the gitea folder
+
+---
+
+_**Agent (claude-opus-5 2026-09-17 15:02:01Z)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="PowerShell"><details>
+<summary>Tool use: **PowerShell**</summary>
+Sync logs and list untracked log files
 </details></tool-use>
