@@ -64,3 +64,37 @@ ORG_MAX_CREATION_LIMIT = -1
 		assert.Equal(t, -1, Repository.OrgMaxCreationLimit)
 	})
 }
+
+func TestLoadRepositoryBranchSettings(t *testing.T) {
+	defer test.MockVariableValue(&Repository.Branch.StaleBranchDays)()
+
+	t.Run("DefaultPreservedWhenSectionAbsent", func(t *testing.T) {
+		Repository.Branch.StaleBranchDays = 90
+		cfg, err := NewConfigProviderFromData(`
+[repository]
+`)
+		assert.NoError(t, err)
+		loadRepositoryFrom(cfg)
+		assert.Equal(t, 90, Repository.Branch.StaleBranchDays)
+	})
+
+	t.Run("SetViaConfig", func(t *testing.T) {
+		cfg, err := NewConfigProviderFromData(`
+[repository.branch]
+STALE_BRANCH_DAYS = 30
+`)
+		assert.NoError(t, err)
+		loadRepositoryFrom(cfg)
+		assert.Equal(t, 30, Repository.Branch.StaleBranchDays)
+	})
+
+	t.Run("ZeroDisablesStaleBadge", func(t *testing.T) {
+		cfg, err := NewConfigProviderFromData(`
+[repository.branch]
+STALE_BRANCH_DAYS = 0
+`)
+		assert.NoError(t, err)
+		loadRepositoryFrom(cfg)
+		assert.Equal(t, 0, Repository.Branch.StaleBranchDays)
+	})
+}

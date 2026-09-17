@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -149,6 +150,16 @@ func (b *Branch) LoadRepo(ctx context.Context) (err error) {
 	}
 	b.Repo, err = repo_model.GetRepositoryByID(ctx, b.RepoID)
 	return err
+}
+
+// IsStale reports whether the branch has seen no commit within the configured window.
+// A threshold of 0 or less turns the check off.
+func (b *Branch) IsStale() bool {
+	days := setting.Repository.Branch.StaleBranchDays
+	if days <= 0 || b.IsDeleted || b.CommitTime.IsZero() {
+		return false
+	}
+	return b.CommitTime < timeutil.TimeStampNow().AddDuration(-time.Duration(days)*24*time.Hour)
 }
 
 func init() {

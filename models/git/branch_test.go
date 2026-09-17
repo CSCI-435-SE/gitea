@@ -16,6 +16,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -93,6 +95,37 @@ func TestFindRecentlyPushedNewBranchesUsesPushTime(t *testing.T) {
 	if assert.Len(t, branches, 1) {
 		assert.Equal(t, branch.Name, branches[0].BranchName)
 		assert.Equal(t, timeutil.TimeStamp(pushUnix), branches[0].PushedTime)
+	}
+}
+
+func TestBranchIsStale(t *testing.T) {
+	defer test.MockVariableValue(&setting.Repository.Branch.StaleBranchDays, 90)()
+
+	now := timeutil.TimeStampNow()
+	daysAgo := func(days int) timeutil.TimeStamp {
+		return now.AddDuration(-time.Duration(days) * 24 * time.Hour)
+	}
+
+	tests := []struct {
+		name      string
+		commit    timeutil.TimeStamp
+		isDeleted bool
+		days      int
+		want      bool
+	}{
+		{name: "stale", commit: daysAgo(120), days: 90, want: true},
+		{name: "not stale", commit: daysAgo(10), days: 90, want: false},
+		{name: "boundary", commit: daysAgo(89), days: 90, want: false},
+		{name: "disabled", commit: daysAgo(120), days: 0, want: false},
+		{name: "deleted", commit: daysAgo(120), isDeleted: true, days: 90, want: false},
+		{name: "zero commit time", commit: 0, days: 90, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setting.Repository.Branch.StaleBranchDays = tt.days
+			branch := &git_model.Branch{CommitTime: tt.commit, IsDeleted: tt.isDeleted}
+			assert.Equal(t, tt.want, branch.IsStale())
+		})
 	}
 }
 
