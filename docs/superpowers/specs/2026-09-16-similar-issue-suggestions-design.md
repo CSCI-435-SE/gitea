@@ -102,9 +102,21 @@ filter already removes them. No new dependency and no configuration knob. The sc
 coefficient over the resulting token sets, `2*|A and B| / (|A| + |B|)`. Ties break on
 `updated_unix` descending.
 
-No score threshold is applied. The indexer has already decided these documents match; a
-candidate that matched on body text with an unrelated title simply scores 0, sorts last, and
-surfaces only when fewer than 5 title matches exist.
+Candidates scoring below a floor of 0.3 are dropped, so the panel can show fewer than 5 rows,
+or stay hidden entirely.
+
+This reverses an earlier decision in this spec, and the reason is worth recording. The original
+design kept every candidate the indexer returned, arguing that a body-text match with an
+unrelated title would simply sort last and surface only when there were fewer than 5 title
+matches. Running the finished algorithm over 5,223 real Gitea issue titles showed that reasoning
+was wrong: there are almost never 5 genuine title matches, so near-zero scorers surfaced
+constantly. Typing "Crash when opening large repository" returned five rows all scoring 0.222 —
+a Dice of 0.222 means exactly one word in common. The indexer also matches body and comment text
+(`bleve.go:173-177`), while ranking scores the title only, so many candidates matched on prose
+the reader never sees.
+
+A permanent box under the title field has to earn its space. Showing five unrelated issues under
+a heading that promises similar ones is worse than showing nothing.
 
 ### Route
 

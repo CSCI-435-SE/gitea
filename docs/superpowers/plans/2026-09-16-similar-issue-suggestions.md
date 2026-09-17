@@ -671,6 +671,10 @@ func FindSimilarIssues(ctx context.Context, repo *repo_model.Repository, isPull 
 	if err != nil {
 		return nil, err
 	}
+	// HTMLURL dereferences issue.Repo, which neither GetIssuesByIDs nor LoadPullRequests loads.
+	if _, err := candidates.LoadRepositories(ctx); err != nil {
+		return nil, err
+	}
 	if err := candidates.LoadPullRequests(ctx); err != nil {
 		return nil, err
 	}
@@ -684,7 +688,7 @@ func FindSimilarIssues(ctx context.Context, repo *repo_model.Repository, isPull 
 			Index:   issue.Index,
 			Title:   issue.Title,
 			State:   issue.State(),
-			HTMLURL: issue.HTMLURL(),
+			HTMLURL: issue.HTMLURL(ctx),
 		}
 		if issue.IsPull && issue.PullRequest != nil {
 			result.PullRequest = &structs.PullRequestMeta{
@@ -699,10 +703,11 @@ func FindSimilarIssues(ctx context.Context, repo *repo_model.Repository, isPull 
 ```
 
 This mirrors the projection in `services/issue/suggestion.go:53-68`; read that file alongside
-this one. `issue.HTMLURL()` needs the issue's repo loaded — `GetIssuesByIDs` returns an
-`IssueList`, and `LoadPullRequests` loads what pull requests need, so if `HTMLURL()` panics or
-returns an empty string at runtime, add `candidates.LoadRepositories(ctx)` before the
-projection loop and note it here.
+this one. Two details verified against source rather than assumed: `Issue.HTMLURL` takes a
+`context.Context` (`models/issues/issue.go:392`), and it dereferences `issue.Repo`, which
+neither `GetIssuesByIDs` nor `LoadPullRequests` populates — only `IssueList.LoadRepositories`
+does (`models/issues/issue_list.go:36`, which assigns `issue.Repo` and returns
+`(RepositoryList, error)`). Without that call this nil-panics on the first request.
 
 - [ ] **Step 2: Verify it compiles**
 
@@ -1230,7 +1235,7 @@ pnpm exec vite build
 ```
 
 ```bash
-go generate -tags bindata ./modules/public/... ./modules/options/... ./modules/templates/...
+go generate -tags bindata ./modules/public/... ./modules/options/... ./modules/templates/... ./modules/migration/...
 ```
 
 ```bash
@@ -1348,3 +1353,79 @@ Be upfront about these; a reviewer will find them anyway.
 3. **Up to 3 indexer queries per typing pause.** Bounded and debounced, but it is not free on
    instances backed by elasticsearch.
 4. **Newly created issues take a moment to appear**, because indexing runs off a queue.
+
+
+---
+
+## Corrections found during implementation
+
+Every task below was implemented and reviewed twice (spec compliance, then code quality). These
+are the places where this plan was WRONG and the shipped code deviates from it. The code is the
+truth; this list exists so the deviations are not mistaken for drift.
+
+**Task 1 — `normalizeTitle` renamed to `tokenizeTitle`.** The name promised a normalized title but
+the function returns a token slice. Also switched the length filter from `len()` (bytes) to
+`utf8.RuneCountInString`, so a two-rune word in a non-Latin script is treated like a two-letter
+English one, and trimmed ten stopwords that the length filter already made unreachable.
+
+**Task 2 — the plan's tie-break test fixture was arithmetically impossible.** It expected
+`{"beta", "alpha"}` from longest-first ordering over words of length 4, 5 and 5. Replaced with
+three same-length words so the case actually tests the tie-break. The implementer caught this and
+correctly refused to bend the algorithm to fit it. The `max` parameter was also renamed to `limit`
+(it shadowed the Go builtin), and a reviewer showed the wrapper struct's `order` field was
+re-implementing a guarantee `sort.SliceStable` already provides.
+
+**Task 5 — the plan's projection would have nil-panicked in production.** `Issue.HTMLURL` takes a
+`context.Context` (the plan called it with no arguments) and dereferences `issue.Repo`, which
+neither `GetIssuesByIDs` nor `LoadPullRequests` populates. `IssueList.LoadRepositories(ctx)` is
+required before the projection loop. Nothing would have caught this before a human clicked a link,
+because this function has no unit test. Separately, a failed per-token indexer query now logs and
+continues instead of failing the whole lookup: this is a self-hiding assist, so one flaky query
+should narrow the candidate pool, not return a 500.
+
+**Task 6 — two idiom fixes.** `Permission.CanReadIssuesOrPulls(isPull)` already exists and is used
+at 25+ call sites; the plan hand-rolled it. And `ctx.ServerError` renders the full HTML 500 template
+into what is exclusively an XHR JSON endpoint — replaced with `log.Error` plus
+`ctx.JSON(http.StatusInternalServerError, nil)`, the pattern already used elsewhere in the same
+package.
+
+**Task 7 — the plan invented CSS classes that do not exist.** `text`, `green`, `purple` and
+`light-3` are not classes in this codebase. The real convention, from
+`templates/shared/issueicon.tmpl`, is `tw-text-green` for open and `tw-text-red` for closed —
+`tw-text-purple` is reserved for MERGED pull requests, not closed issues — and
+`tw-text-text-light-3` for the `#number`. The plan also said to insert the locale keys in
+alphabetical position; the file is not alphabetized, it is grouped by feature, so they went in the
+`repo.issues.*` cluster instead.
+
+Two review findings were fixed after the fact: the `aria-live` region was being destroyed and
+recreated on every render, which means assistive tech would almost certainly never have announced
+anything (it now persists across renders and only its children are replaced), and a bare `catch {}`
+was swallowing genuine bugs alongside expected aborts.
+
+**Task 8 — the plan's e2e test could not pass as written.** `locator.fill()` dispatches ONE input
+event, so the frontend issues exactly one debounced fetch, which loses the race against the
+asynchronous issue-indexer queue. Playwright's `toBeVisible` polling re-reads the DOM but never
+re-triggers a search, so no timeout rescues it. The test now polls the `/issues/similar` endpoint
+directly until the indexer has caught up, then drives the UI. The build step was also missing
+`./modules/migration/...`, without which the bindata build fails.
+
+**Final review — a similarity floor, an icon helper, and a query cap.** A whole-feature review ran
+the finished algorithm against 5,223 real Gitea titles and found the panel showed five rows scoring
+0.222 (one word in common) for a generic title, because nothing was ever filtered out. A 0.3 Dice
+floor was added so the panel stays hidden when nothing is genuinely similar; the spec records the
+reversal and why. The same review found the frontend hand-rolled an issue icon that two files say
+must stay in sync with `getIssueIcon`/`getIssueColorClass`, so merged and draft pull requests
+rendered as issue circles on the compare page even though the backend was already sending
+`pull_request.merged` and `.draft` — it now uses the shared helpers and the shared `Issue` type. The
+`q` parameter is now truncated to 255 runes, matching the form's own `maxlength`, and a pre-filled
+title (from a `?title=` deep link or an issue template) now triggers the panel at init instead of
+waiting for a keystroke.
+
+## Known gaps, deliberately accepted
+
+- **No unit test for the abort-on-newer-keystroke race.** A reviewer argued for one using
+  `vi.useFakeTimers` and a mock fetch. Declined: it would require exporting an internal and
+  substantial mock scaffolding, and the regression it guards against is a brief flash of stale
+  suggestions. Recorded here rather than silently skipped.
+- **`FindSimilarIssues` has no unit test at all**, by design — see fact 3 at the top of this plan.
+  The e2e test is its only coverage.
