@@ -1,0 +1,18 @@
+{{if .Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
+	<div id="repo-issues-chart"
+		data-locale-loading-title="{{ctx.Locale.Tr "graphs.component_loading" (ctx.Locale.Tr "graphs.issues.what")}}"
+		data-locale-loading-title-failed="{{ctx.Locale.Tr "graphs.component_loading_failed" (ctx.Locale.Tr "graphs.issues.what")}}"
+		data-locale-loading-info="{{ctx.Locale.Tr "graphs.component_loading_info"}}"
+		data-locale-component-failed-to-load="{{ctx.Locale.Tr "graphs.component_failed_to_load"}}"
+		data-locale-title="{{ctx.Locale.Tr "graphs.issues.title"}}"
+		data-locale-open="{{ctx.Locale.Tr "graphs.issues.open"}}"
+		data-locale-opened="{{ctx.Locale.Tr "graphs.issues.opened"}}"
+		data-locale-closed="{{ctx.Locale.Tr "graphs.issues.closed"}}"
+		data-locale-empty="{{ctx.Locale.Tr "graphs.issues.empty"}}"
+		data-locale-range-month="{{ctx.Locale.Tr "graphs.issues.range.month"}}"
+		data-locale-range-quarter="{{ctx.Locale.Tr "graphs.issues.range.quarter"}}"
+		data-locale-range-year="{{ctx.Locale.Tr "graphs.issues.range.year"}}"
+		data-locale-range-all="{{ctx.Locale.Tr "graphs.issues.range.all"}}"
+	>
+	</div>
+{{end}}
