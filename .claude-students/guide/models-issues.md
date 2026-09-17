@@ -1,7 +1,7 @@
 ---
 source: docs/models-issues.md
-source-hash: d7da7f01064e5b06
-verified-at: c0092050a4
+source-hash: fa4fa56b2837aa21
+verified-at: 7075389dd1
 ---
 
 <!-- Derived from docs/models-issues.md. Do not edit by hand: fix the reference doc and regenerate
@@ -63,6 +63,7 @@ nobody loaded and getting an empty value rather than an error.**
 | `models/issues/comment.go` | Comments, and the enum of comment kinds. |
 | `models/issues/issue_label.go` | Labels on issues — and the clearest small example of the loader pattern. |
 | `models/issues/issue_index.go` | Recalculating per-repository numbering. |
+| `models/issues/issue_group.go` | Splitting a list of issues into category groups, for the grouped ("folder") list view. |
 
 The rest divide by area: `review.go` and `review_list.go`, `label.go`, `milestone.go`,
 `assignees.go`, `stopwatch.go` and `tracked_time.go`, and the relationship files `dependency.go`,
@@ -134,6 +135,13 @@ Match repository plus index.
 **A test you did not touch fails on a consistency check.** The repository row stores counts —
 `NumIssues`, `NumClosedIssues`, `NumPulls` and friends — alongside the real issues. Changing issue
 state, or adding a fixture row, means keeping those in step.
+
+**You grouped the list by category and a group appears twice, or in a different place, on page 2.**
+The grouping is worked out in two places that must agree: `applyGroupByLabelScope` in
+`models/issues/issue_search.go` sorts the rows in SQL so that one page's issues of the same category
+sit together, and `GroupByExclusiveLabelScope` in `models/issues/issue_group.go` then cuts that page
+into groups in Go. If you change the order in one, change it in the other. In particular both settle
+ties on the label's `id`, not its name, because the database and Go do not sort text the same way.
 
 **You go looking for pull requests in `models/pull` and it is nearly empty.** Pull requests are in
 `models/issues/pull.go`. `models/pull` only holds automerge and review state. Both `Issue` and
