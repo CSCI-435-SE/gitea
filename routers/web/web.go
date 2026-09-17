@@ -1621,6 +1621,11 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Get("/data", repo.CodeFrequencyData) // "recent-commits" also uses the same data as "code-frequency"
 			})
 		}, reqUnitCodeReader)
+
+		m.Group("/issues", func() {
+			m.Get("", repo.IssuesChart)
+			m.Get("/data", repo.IssuesChartData)
+		}, reqUnitIssuesReader)
 	},
 		optSignIn, context.RepoAssignment, repo.MustBeNotEmpty,
 		context.RequireUnitReader(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases),

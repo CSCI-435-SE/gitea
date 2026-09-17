@@ -1,4 +1,5 @@
 {{$canReadCode := $.Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
+{{$canReadIssues := $.Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
 
 <div class="ui fluid vertical menu">
 	{{/* the default activity page "pulse" could work with any permission: code, issue, pr, release*/}}
@@ -14,6 +15,11 @@
 		</a>
 		<a class="{{if .PageIsRecentCommits}}active{{end}} item" href="{{.RepoLink}}/activity/recent-commits">
 			{{ctx.Locale.Tr "repo.activity.navbar.recent_commits"}}
+		</a>
+	{{end}}
+	{{if $canReadIssues}}
+		<a class="{{if .PageIsIssuesChart}}active{{end}} item" href="{{.RepoLink}}/activity/issues">
+			{{ctx.Locale.Tr "repo.activity.navbar.issues"}}
 		</a>
 	{{end}}
 </div>
