@@ -1,6 +1,6 @@
 ---
 scope: web_src/css, tailwind.config.ts
-verified-at: c0092050a4
+verified-at: a50a52cbc8
 ---
 
 # web_src/css — styling conventions
@@ -66,6 +66,29 @@ already replaced there, and the replacement is the file to change.
 **Add a theme-aware colour.** Use the variables from `themes/`, never a literal colour, or the
 other themes break.
 
+**Add a colour theme.** Drop a `web_src/css/themes/theme-<name>.css`. The glob in
+`vite.config.ts` makes every file there its own build entry and `services/webtheme` discovers it by
+filename, so there is nothing else to register — no Go, template or `app.ini` change. The file must
+carry its own `gitea-theme-meta-info` block, because the backend parses the *last* one in the built
+output; the cheapest shape imports the matching stock theme and overrides only what the palette
+changes:
+
+```css
+@import "./theme-gitea-dark.css";
+
+gitea-theme-meta-info {
+  --theme-display-name: "Nord Dark";
+  --theme-color-scheme: "dark";
+}
+
+:root { --color-primary: #81a1c1; }
+```
+
+Import the theme matching your scheme: it supplies `--is-dark-theme`, `color-scheme` and the
+`var()`-derived colours, which is why `--color-primary-hover` and friends must be left alone.
+`web_src/js/utils/theme-files.test.ts` then checks every theme's meta block and its contrast
+against the stock theme it extends.
+
 ## Gotchas
 
 - Forgetting the `@import` in `index.css` means your file compiles to nothing, with no error.
@@ -75,8 +98,12 @@ other themes break.
   there on purpose.
 - `web_src/css/modules/` is Gitea's *replacement* for Fomantic, not Fomantic itself — the vendored
   original is under `web_src/fomantic/`.
+- A theme file must not introduce a *new* `--color-*` name. `tailwind.config.ts` and
+  `stylelint.config.ts` read only `base.css` and the two `theme-gitea-*` files, so an unknown name
+  fails `make lint-css` and never gets a `tw-` utility.
 
 ## Related
 
 - `templates.md` — where these classes are written
 - `frontend-js.md` — `tw-hidden` and the DOM helpers
+- `build-and-tooling.md` — `make lint-css` and the vite build

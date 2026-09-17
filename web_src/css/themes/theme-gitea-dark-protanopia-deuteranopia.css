@@ -1,7 +1,7 @@
 @import "./theme-gitea-dark.css";
 
 gitea-theme-meta-info {
-  --theme-display-name: "Dark";
+  --theme-display-name: "Gitea Dark";
   --theme-colorblind-type: "red-green";
   --theme-color-scheme: "dark";
 }

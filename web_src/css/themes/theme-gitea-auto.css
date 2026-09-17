@@ -2,6 +2,6 @@
 @import "./theme-gitea-dark.css" (prefers-color-scheme: dark);
 
 gitea-theme-meta-info {
-  --theme-display-name: "Auto";
+  --theme-display-name: "Gitea Auto";
   --theme-color-scheme: "auto";
 }

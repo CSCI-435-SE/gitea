@@ -1,0 +1,7 @@
+@import "./theme-catppuccin-light.css" (prefers-color-scheme: light);
+@import "./theme-catppuccin-dark.css" (prefers-color-scheme: dark);
+
+gitea-theme-meta-info {
+  --theme-display-name: "Catppuccin Auto";
+  --theme-color-scheme: "auto";
+}

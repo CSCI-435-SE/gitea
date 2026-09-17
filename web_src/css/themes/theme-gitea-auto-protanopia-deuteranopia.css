@@ -2,7 +2,7 @@
 @import "./theme-gitea-dark-protanopia-deuteranopia.css" (prefers-color-scheme: dark);
 
 gitea-theme-meta-info {
-  --theme-display-name: "Auto";
+  --theme-display-name: "Gitea Auto";
   --theme-colorblind-type: "red-green";
   --theme-color-scheme: "auto";
 }
