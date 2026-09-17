@@ -158,6 +158,33 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		}
 	}
 
+	return createAndEnqueueHookTask(ctx, w, event, p)
+}
+
+// PrepareWebhookPing queues a ping delivery for a single webhook.
+//
+// Unlike [PrepareWebhook] it ignores the webhook's event subscription and branch
+// filter: a ping is an explicit test requested by a repository admin, not an event
+// a receiver opts in to. Delivery, signing and history are the shared ones.
+func PrepareWebhookPing(ctx context.Context, w *webhook_model.Webhook, p *api.PingPayload) error {
+	if setting.DisableWebhooks {
+		return nil
+	}
+	if !SupportsPing(w.Type) {
+		return fmt.Errorf("webhook type %q does not support ping", w.Type)
+	}
+	return createAndEnqueueHookTask(ctx, w, webhook_module.HookEventPing, p)
+}
+
+// SupportsPing reports whether a webhook type can receive a ping event. A type with
+// a registered requester rewrites the payload into a platform-specific message and
+// has no ping representation, so only the pass-through types (gitea, gogs) qualify.
+func SupportsPing(hookType webhook_module.HookType) bool {
+	_, rewritten := webhookRequesters[hookType]
+	return !rewritten && IsValidHookTaskType(hookType)
+}
+
+func createAndEnqueueHookTask(ctx context.Context, w *webhook_model.Webhook, event webhook_module.HookEventType, p api.Payloader) error {
 	payload, err := p.JSONPayload()
 	if err != nil {
 		return fmt.Errorf("JSONPayload for %s: %w", event, err)

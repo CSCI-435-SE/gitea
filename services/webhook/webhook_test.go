@@ -26,6 +26,8 @@ func TestWebhookService(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	t.Run("GetSlackHook", testWebhookGetSlackHook)
 	t.Run("PrepareWebhooks", testWebhookPrepare)
+	t.Run("PrepareWebhookPing", testWebhookPreparePing)
+	t.Run("SupportsPing", testWebhookSupportsPing)
 	t.Run("PrepareBranchFilterMatch", testWebhookPrepareBranchFilterMatch)
 	t.Run("PrepareBranchFilterNoMatch", testWebhookPrepareBranchFilterNoMatch)
 	t.Run("WebhookUserMail", testWebhookUserMail)
@@ -60,6 +62,53 @@ func testWebhookPrepare(t *testing.T) {
 	err := PrepareWebhooks(t.Context(), EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Commits: []*api.PayloadCommit{{}}})
 	require.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, hookTask)
+}
+
+func testWebhookPreparePing(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	// subscribed to pushes only: a ping must still go out, because it is an explicit test
+	hook := &webhook_model.Webhook{
+		RepoID:      repo.ID,
+		URL:         "http://localhost/gitea-webhook-test-prepare_ping",
+		ContentType: webhook_model.ContentTypeJSON,
+		Events:      `{"push_only":true}`,
+		IsActive:    true,
+		Type:        webhook_module.GITEA,
+	}
+	require.NoError(t, db.Insert(t.Context(), hook))
+
+	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventPing}
+	unittest.AssertNotExistsBean(t, hookTask)
+	require.NoError(t, PrepareWebhookPing(t.Context(), hook, &api.PingPayload{Zen: api.PingZen, HookID: hook.ID}))
+	task := unittest.AssertExistsAndLoadBean(t, hookTask)
+	assert.Equal(t, 2, task.PayloadVersion)
+	assert.Contains(t, task.PayloadContent, api.PingZen)
+
+	// a converting webhook type has no ping representation, so the task must never be created
+	slackHook := &webhook_model.Webhook{
+		RepoID:      repo.ID,
+		URL:         "http://localhost/gitea-webhook-test-prepare_ping_slack",
+		ContentType: webhook_model.ContentTypeJSON,
+		Events:      `{"push_only":true}`,
+		IsActive:    true,
+		Type:        webhook_module.SLACK,
+	}
+	require.NoError(t, db.Insert(t.Context(), slackHook))
+	require.Error(t, PrepareWebhookPing(t.Context(), slackHook, &api.PingPayload{Zen: api.PingZen, HookID: slackHook.ID}))
+	unittest.AssertNotExistsBean(t, &webhook_model.HookTask{HookID: slackHook.ID, EventType: webhook_module.HookEventPing})
+}
+
+func testWebhookSupportsPing(t *testing.T) {
+	assert.True(t, SupportsPing(webhook_module.GITEA))
+	assert.True(t, SupportsPing(webhook_module.GOGS))
+	for _, hookType := range []webhook_module.HookType{
+		webhook_module.SLACK, webhook_module.DISCORD, webhook_module.DINGTALK, webhook_module.TELEGRAM,
+		webhook_module.MSTEAMS, webhook_module.FEISHU, webhook_module.MATRIX, webhook_module.WECHATWORK,
+		webhook_module.PACKAGIST,
+	} {
+		assert.False(t, SupportsPing(hookType), "%s must not advertise ping support", hookType)
+	}
+	assert.False(t, SupportsPing("not-a-webhook-type"))
 }
 
 func testWebhookPrepareBranchFilterMatch(t *testing.T) {

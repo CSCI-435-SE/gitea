@@ -140,6 +140,77 @@ func (m *mockWebhookProvider) Close() {
 	}
 }
 
+func Test_WebhookPing(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		type delivery struct {
+			event   string
+			payload api.PingPayload
+			raw     string
+		}
+		received := make(chan delivery, 1)
+		provider := newMockWebhookProvider(func(r *http.Request) {
+			content, _ := io.ReadAll(r.Body)
+			var payload api.PingPayload
+			assert.NoError(t, json.Unmarshal(content, &payload))
+			received <- delivery{event: r.Header.Get("X-Gitea-Event"), payload: payload, raw: string(content)}
+		}, http.StatusOK)
+		defer provider.Close()
+
+		session := loginUser(t, "user2")
+		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push")
+		hook := unittest.AssertExistsAndLoadBean(t, &webhook.Webhook{RepoID: 1, URL: provider.URL()})
+		pingLink := fmt.Sprintf("/user2/repo1/settings/hooks/%d/ping", hook.ID)
+
+		// the ping button is offered next to the push test on the webhook settings page
+		resp := session.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/settings/hooks/%d", hook.ID), http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, path.Join(setting.AppSubURL, pingLink), htmlDoc.doc.Find("#ping-delivery").AttrOr("data-link", ""))
+		assert.Positive(t, htmlDoc.doc.Find("#test-delivery").Length(), "the push test must remain available")
+		// both buttons are wired by this class in web_src/js/features/comp/WebHookEditor.ts; renaming
+		// it in only one of the two places would silently stop either test from doing anything
+		assert.Equal(t, 2, htmlDoc.doc.Find(".webhook-test-delivery").Length())
+
+		// a user without repo admin access cannot trigger a delivery
+		session4 := loginUser(t, "user4")
+		session4.MakeRequest(t, NewRequest(t, "POST", pingLink), http.StatusNotFound)
+
+		session.MakeRequest(t, NewRequest(t, "POST", pingLink), http.StatusOK)
+
+		var got delivery
+		select {
+		case got = <-received:
+		case <-time.After(30 * time.Second):
+			t.Fatal("waited too long for the ping delivery")
+		}
+		assert.Equal(t, string(webhook_module.HookEventPing), got.event)
+		assert.Equal(t, api.PingZen, got.payload.Zen)
+		assert.Equal(t, hook.ID, got.payload.HookID)
+		assert.Equal(t, "user2/repo1", got.payload.Repo.FullName)
+		assert.Equal(t, "user2", got.payload.Sender.UserName)
+		// the point of the ping: no fabricated commits for a push-triggered receiver to act on
+		assert.NotContains(t, got.raw, `"commits"`)
+		assert.NotContains(t, got.raw, `"head_commit"`)
+		assert.NotContains(t, got.raw, `"total_commits"`)
+
+		// the delivery is recorded in the history like any other
+		resp = session.MakeRequest(t, NewRequestf(t, "GET", "/user2/repo1/settings/hooks/%d", hook.ID), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "X-Gitea-Event:</strong> ping")
+
+		// a webhook type that rewrites the payload into a service-specific message has no ping
+		slackHook := &webhook.Webhook{
+			RepoID:      1,
+			URL:         provider.URL(),
+			ContentType: webhook.ContentTypeJSON,
+			Type:        webhook_module.SLACK,
+			Meta:        `{"channel":"foo"}`,
+			Events:      `{"push_only":true}`,
+			IsActive:    true,
+		}
+		require.NoError(t, db_model.Insert(t.Context(), slackHook))
+		session.MakeRequest(t, NewRequestf(t, "POST", "/user2/repo1/settings/hooks/%d/ping", slackHook.ID), http.StatusBadRequest)
+	})
+}
+
 func Test_WebhookCreate(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		var payloads []api.CreatePayload

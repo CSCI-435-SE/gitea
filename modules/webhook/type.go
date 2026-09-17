@@ -40,6 +40,11 @@ const (
 	HookEventSchedule    HookEventType = "schedule"
 	HookEventWorkflowRun HookEventType = "workflow_run"
 	HookEventWorkflowJob HookEventType = "workflow_job"
+
+	// HookEventPing is sent only by an explicit test delivery from the webhook settings
+	// page, so it is deliberately absent from AllEvents(): a receiver never subscribes
+	// to it and PrepareWebhookPing bypasses the subscription check to send it.
+	HookEventPing HookEventType = "ping"
 )
 
 func AllEvents() []HookEventType {

@@ -156,7 +156,34 @@ var (
 	_ Payloader = &RepositoryPayload{}
 	_ Payloader = &ReleasePayload{}
 	_ Payloader = &PackagePayload{}
+	_ Payloader = &PingPayload{}
 )
+
+// PingZen is the constant message carried by every ping payload. Receivers that
+// follow the GitHub convention detect a ping by the presence of this field.
+const PingZen = "Gitea sent this ping to check that the webhook is reachable."
+
+// PingPayload represents a payload information of ping event.
+//
+// A ping reports no repository activity. It is sent only when someone tests a
+// webhook, so a receiver that acts on pushes can tell it apart from real work.
+type PingPayload struct {
+	// Human-readable message identifying the delivery as a test, always [PingZen]
+	Zen string `json:"zen"`
+	// The ID of the webhook being tested
+	HookID int64 `json:"hook_id"`
+	// The configuration of the webhook being tested
+	Hook *Hook `json:"hook"`
+	// The repository the webhook belongs to
+	Repo *Repository `json:"repository"`
+	// The user who triggered the test delivery
+	Sender *User `json:"sender"`
+}
+
+// JSONPayload implements Payloader
+func (p *PingPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
 
 // CreatePayload represents a payload information of create event.
 type CreatePayload struct {

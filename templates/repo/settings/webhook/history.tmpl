@@ -5,8 +5,15 @@
 		{{if .Permission.IsAdmin}}
 			<div class="ui right">
 				<!-- the button is wrapped with a span because the tooltip doesn't show on hover if we put data-tooltip-content directly on the button -->
+				{{if .SupportsPing}}
+					<span data-tooltip-content="{{if or $isNew .Webhook.IsActive}}{{ctx.Locale.Tr "repo.settings.webhook.test_ping_desc"}}{{else}}{{ctx.Locale.Tr "repo.settings.webhook.test_ping_desc_disabled"}}{{end}}">
+						<button class="ui tiny button webhook-test-delivery{{if not (or $isNew .Webhook.IsActive)}} disabled{{end}}" id="ping-delivery" data-link="{{.Link}}/ping">
+							<span class="text">{{ctx.Locale.Tr "repo.settings.webhook.test_ping"}}</span>
+						</button>
+					</span>
+				{{end}}
 				<span data-tooltip-content="{{if or $isNew .Webhook.IsActive}}{{ctx.Locale.Tr "repo.settings.webhook.test_delivery_desc"}}{{else}}{{ctx.Locale.Tr "repo.settings.webhook.test_delivery_desc_disabled"}}{{end}}">
-					<button class="ui tiny button{{if not (or $isNew .Webhook.IsActive)}} disabled{{end}}" id="test-delivery" data-link="{{.Link}}/test">
+					<button class="ui tiny button webhook-test-delivery{{if not (or $isNew .Webhook.IsActive)}} disabled{{end}}" id="test-delivery" data-link="{{.Link}}/test">
 						<span class="text">{{ctx.Locale.Tr "repo.settings.webhook.test_delivery"}}</span>
 					</button>
 			</span>

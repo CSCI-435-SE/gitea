@@ -1,7 +1,7 @@
 ---
 source: docs/services-notify-mailer-webhook.md
-source-hash: 9e154b5aac8205a7
-verified-at: c0092050a4
+source-hash: e485337ab0106641
+verified-at: a50a52cbc8
 ---
 
 <!-- Derived from docs/services-notify-mailer-webhook.md. Do not edit by hand: fix the reference doc
@@ -124,6 +124,12 @@ Move the work to a queue.
 
 **You reach for the wrong package for background work.** Recurring work is `services/cron`; one-off
 jobs are `services/task`. The names are close and the purposes are not.
+
+**You trace a delivery back to a notifier and find none.** The test buttons on the webhook settings
+page skip the announcement hub entirely: `routers/web/repo/setting/webhook.go` calls
+`PrepareWebhook` and `PrepareWebhookPing` in `services/webhook/webhook.go` itself. The ping one also
+skips the subscription and branch-filter checks on purpose, because a person asked for that single
+delivery — so "this webhook is not subscribed to ping" is not a reason for it not to arrive.
 
 ## Where to go next
 
