@@ -1,12 +1,12 @@
 ---
 scope: routers/web, routers/common, modules/web
-verified-at: c0092050a4
+verified-at: 69d66d604f
 ---
 
 # routers/web — the HTML route table and page handlers
 
 **Read when:** adding or changing a page, a form POST, or a guard on a web route.
-**Not here:** the `ctx` value itself -> `services-context.md`; form structs -> `services-forms-and-convert.md`; JSON endpoints -> `routers-api-v1.md`.
+**Not here:** the `ctx` value itself -> `services-context.md`; form structs -> `services-forms-and-convert.md`; `/api/v1` JSON endpoints -> `routers-api-v1.md`.
 
 ## Responsibilities
 
@@ -37,6 +37,9 @@ verified-at: c0092050a4
 
 - A handler is `func Foo(ctx *context.Context)` from `gitea.dev/services/context`. It puts data in
   `ctx.Data`, then calls `ctx.HTML(http.StatusOK, tplFoo)`.
+- Not every handler renders a template: one backing a JS-driven widget on an otherwise-HTML page
+  calls `ctx.JSON` instead, e.g. `routers/web/repo/issue_suggestions.go`. That stays in
+  `routers/web`, distinct from the `/api/v1` JSON layer (`routers-api-v1.md`).
 - `tplFoo` is a package-level `templates.TplName` constant whose value is a path under `templates/`
   without the extension — `tplIssues templates.TplName = "repo/issue/list"`.
 - `ctx.Data` is the only channel from handler to template. A template cannot reach anything the

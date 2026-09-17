@@ -1,7 +1,7 @@
 ---
 source: docs/routers-web.md
-source-hash: 47b2d53e182e7eb0
-verified-at: c0092050a4
+source-hash: eff7c884d160466a
+verified-at: 69d66d604f
 ---
 
 <!-- Derived from docs/routers-web.md. Do not edit by hand: fix the reference doc and regenerate
@@ -74,6 +74,12 @@ The subfolders of `routers/web/` are worth knowing: `repo`, `user`, `org`, `admi
 
 **A handler always looks the same.** It takes `ctx`, puts values in `ctx.Data`, and finishes with
 `ctx.HTML(http.StatusOK, tplFoo)`. If yours does something else, check it against a neighbour.
+
+**Except when the page itself is JavaScript-driven.** A handler backing a widget that fetches its
+own data — an autocomplete list, a live search panel — skips the template and calls `ctx.JSON`
+instead, the same way an API handler would. `routers/web/repo/issue_suggestions.go` is one.
+This is still `routers/web`, not the `/api/v1` layer: the difference is who calls it (this page's
+own JavaScript, not an external API client), not where the code lives.
 
 **Template names are constants, not strings.** `tplIssues templates.TplName = "repo/issue/list"`
 names the file at that path under `templates/`, with `.tmpl` added. Declaring it as a constant

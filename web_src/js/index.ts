@@ -46,6 +46,7 @@ import {initRepositoryActions} from './features/repo-actions.ts';
 import {initGlobalTooltips} from './modules/tippy.ts';
 import {initGiteaFomantic} from './modules/fomantic.ts';
 import {initRepoIssueList} from './features/repo-issue-list.ts';
+import {initRepoIssueSimilar} from './features/repo-issue-similar.ts';
 import {initCommonIssueListQuickGoto} from './features/common-issue-list.ts';
 import {initRepoContributors} from './features/contributors.ts';
 import {initRepoCodeFrequency} from './features/code-frequency.ts';
@@ -128,6 +129,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoGraphGit,
   initRepoIssueContentHistory,
   initRepoIssueList,
+  initRepoIssueSimilar,
   initRepoIssueFilterItemLabel,
   initRepoMigration,
   initRepoMigrationStatusChecker,
