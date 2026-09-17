@@ -68,7 +68,9 @@ func TestNewWebHookLink(t *testing.T) {
 	}
 }
 
-func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, userName, repoName, url, event string, branchFilter ...string) {
+// testAPICreateWebhookForRepo returns the created hook, whose ID is the only safe way to
+// find it again: the url column is TEXT, which MSSQL refuses to compare in a WHERE clause.
+func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, userName, repoName, url, event string, branchFilter ...string) *api.Hook {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 	var branchFilterString string
 	if len(branchFilter) > 0 {
@@ -84,7 +86,8 @@ func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, userName, r
 		Active:       true,
 		BranchFilter: branchFilterString,
 	}).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
+	return DecodeJSON(t, resp, &api.Hook{})
 }
 
 func testCreateWebhookForRepo(t *testing.T, session *TestSession, webhookType, userName, repoName, url, eventKind string) {
@@ -157,8 +160,7 @@ func Test_WebhookPing(t *testing.T) {
 		defer provider.Close()
 
 		session := loginUser(t, "user2")
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push")
-		hook := unittest.AssertExistsAndLoadBean(t, &webhook.Webhook{RepoID: 1, URL: provider.URL()})
+		hook := testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push")
 		pingLink := fmt.Sprintf("/user2/repo1/settings/hooks/%d/ping", hook.ID)
 
 		// the ping button is offered next to the push test on the webhook settings page
