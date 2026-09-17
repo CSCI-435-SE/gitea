@@ -632,6 +632,8 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 		ctx.Data["PackagistHook"] = webhook_service.GetPackagistHook(w)
 	}
 
+	ctx.Data["SupportsPing"] = webhook_service.SupportsPing(w.Type)
+
 	ctx.Data["History"], err = w.History(ctx, 1)
 	if err != nil {
 		ctx.ServerError("History", err)
@@ -715,6 +717,47 @@ func TestWebhook(ctx *context.Context) {
 		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.delivery.success"))
 		ctx.Status(http.StatusOK)
 	}
+}
+
+// PingWebhook sends a ping event to test a webhook without fabricating repository
+// activity, so a receiver that builds or deploys on every push is not triggered.
+func PingWebhook(ctx *context.Context) {
+	hookID := ctx.PathParamInt64("id")
+	w, err := webhook.GetWebhookByRepoID(ctx, ctx.Repo.Repository.ID, hookID)
+	if err != nil {
+		ctx.Flash.Error("GetWebhookByRepoID: " + err.Error())
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	if !webhook_service.SupportsPing(w.Type) {
+		ctx.Flash.Error(ctx.Tr("repo.settings.webhook.ping_unsupported"))
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+
+	apiHook, err := webhook_service.ToHook(ctx.Repo.RepoLink, w)
+	if err != nil {
+		ctx.Flash.Error("ToHook: " + err.Error())
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	p := &api.PingPayload{
+		Zen:    api.PingZen,
+		HookID: w.ID,
+		Hook:   apiHook,
+		Repo:   convert.ToRepo(ctx, ctx.Repo.Repository, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Sender: convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone),
+	}
+
+	if err := webhook_service.PrepareWebhookPing(ctx, w, p); err != nil {
+		ctx.Flash.Error("PrepareWebhookPing: " + err.Error())
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+	ctx.Flash.Info(ctx.Tr("repo.settings.webhook.delivery.success"))
+	ctx.Status(http.StatusOK)
 }
 
 // ReplayWebhook replays a webhook

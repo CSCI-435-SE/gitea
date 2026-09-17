@@ -4,6 +4,9 @@
 package webhook
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,6 +19,7 @@ import (
 	webhook_model "gitea.dev/models/webhook"
 	"gitea.dev/modules/hostmatcher"
 	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 
@@ -270,6 +274,76 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 
 		assert.True(t, hookTask.IsSucceed)
 	})
+}
+
+func TestWebhookDeliverPingEvent(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const secret = "s3cr3t"
+
+	done := make(chan struct{}, 1)
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		assert.NoError(t, err)
+
+		assert.Equal(t, "ping", r.Header.Get("X-Gitea-Event"))
+		assert.Equal(t, "ping", r.Header.Get("X-Gitea-Event-Type"))
+		assert.Equal(t, "ping", r.Header.Get("X-Gogs-Event"))
+		assert.Equal(t, "ping", r.Header.Get("X-GitHub-Event"))
+
+		mac := hmac.New(sha256.New, []byte(secret))
+		_, err = mac.Write(body)
+		assert.NoError(t, err)
+		signature := hex.EncodeToString(mac.Sum(nil))
+		assert.Equal(t, signature, r.Header.Get("X-Gitea-Signature"))
+		assert.Equal(t, "sha256="+signature, r.Header.Get("X-Hub-Signature-256"))
+
+		// the whole point of a ping: no fabricated commits for the receiver to act on
+		assert.NotContains(t, string(body), `"commits"`)
+		assert.Contains(t, string(body), api.PingZen)
+
+		w.WriteHeader(http.StatusOK)
+		done <- struct{}{}
+	}))
+	t.Cleanup(s.Close)
+
+	hook := &webhook_model.Webhook{
+		RepoID:      3,
+		URL:         s.URL + "/webhook",
+		ContentType: webhook_model.ContentTypeJSON,
+		IsActive:    true,
+		Type:        webhook_module.GITEA,
+		Secret:      secret,
+	}
+	assert.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
+
+	payload, err := (&api.PingPayload{Zen: api.PingZen, HookID: hook.ID}).JSONPayload()
+	assert.NoError(t, err)
+
+	hookTask, err := webhook_model.CreateHookTask(t.Context(), &webhook_model.HookTask{
+		HookID:         hook.ID,
+		EventType:      webhook_module.HookEventPing,
+		PayloadContent: string(payload),
+		PayloadVersion: 2,
+	})
+	assert.NoError(t, err)
+
+	assert.NoError(t, Deliver(t.Context(), hookTask))
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("waited to long for request to happen")
+	}
+
+	assert.True(t, hookTask.IsSucceed)
+
+	// the delivery must be recorded in the history shown on the webhook settings page
+	history, err := hook.History(t.Context(), 1)
+	assert.NoError(t, err)
+	require.Len(t, history, 1)
+	assert.Equal(t, webhook_module.HookEventPing, history[0].EventType)
+	assert.Equal(t, http.StatusOK, history[0].ResponseInfo.Status)
+	assert.Equal(t, "ping", history[0].RequestInfo.Headers["X-Gitea-Event"])
 }
 
 func TestWebhookDeliverSpecificTypes(t *testing.T) {

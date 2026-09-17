@@ -33,10 +33,12 @@ export function initCompWebHookEditor() {
     httpMethodInput.addEventListener('change', updateContentType);
   }
 
-  // Test delivery
-  document.querySelector<HTMLButtonElement>('#test-delivery')?.addEventListener('click', async function () {
-    this.classList.add('is-loading', 'disabled');
-    await POST(this.getAttribute('data-link')!);
-    setTimeout(() => window.location.reload(), 5000);
-  });
+  // Test delivery, either a fake push or a ping
+  for (const button of document.querySelectorAll<HTMLButtonElement>('.webhook-test-delivery')) {
+    button.addEventListener('click', async () => {
+      button.classList.add('is-loading', 'disabled');
+      await POST(button.getAttribute('data-link')!);
+      setTimeout(() => window.location.reload(), 5000);
+    });
+  }
 }

@@ -1,6 +1,6 @@
 ---
 scope: services/notify, services/webhook, services/mailer, services/uinotification, services/feed, services/cron, services/task
-verified-at: c0092050a4
+verified-at: a50a52cbc8
 ---
 
 # services/notify and its consumers — the event fan-out
@@ -71,6 +71,10 @@ schedule; make the handler safe to run concurrently with itself.
 - Adding a `Notifier` method is a compile break across every notifier — expect to touch all of
   them in one commit.
 - `services/task` (one-off background work) and `services/cron` (recurring) are easy to confuse.
+- Not every delivery starts at a notifier. The test buttons on the webhook settings page reach
+  `services/webhook/webhook.go` -> `PrepareWebhook` and `PrepareWebhookPing` directly from
+  `routers/web/repo/setting/webhook.go`. `PrepareWebhookPing` deliberately skips the subscription
+  and branch-filter checks, so a webhook receives a ping without having subscribed to anything.
 
 ## Related
 

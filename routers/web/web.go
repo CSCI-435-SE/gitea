@@ -1213,6 +1213,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("/{id}", func() {
 				m.Get("", repo_setting.WebHooksEdit)
 				m.Post("/test", repo_setting.TestWebhook)
+				m.Post("/ping", repo_setting.PingWebhook)
 				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 			})
 			addWebhookEditRoutes()
