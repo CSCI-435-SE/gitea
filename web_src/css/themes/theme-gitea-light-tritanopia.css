@@ -1,7 +1,7 @@
 @import "./theme-gitea-light.css";
 
 gitea-theme-meta-info {
-  --theme-display-name: "Light";
+  --theme-display-name: "Gitea Light";
   --theme-colorblind-type: "blue-yellow";
   --theme-color-scheme: "light";
 }

@@ -2,7 +2,7 @@
 @import "./theme-gitea-dark-tritanopia.css" (prefers-color-scheme: dark);
 
 gitea-theme-meta-info {
-  --theme-display-name: "Auto";
+  --theme-display-name: "Gitea Auto";
   --theme-colorblind-type: "blue-yellow";
   --theme-color-scheme: "auto";
 }
