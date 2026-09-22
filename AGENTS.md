@@ -8,7 +8,7 @@
 - Run single playwright e2e test files with `GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e`
 - Add the current year into the copyright header of new `.go` files
 - Ensure no trailing whitespace in edited files
-- Use Conventional Commits for commit messages and PR titles, e.g. `type(scope): subject`; `!` before the colon if breaking. Use `test` type for test-only changes.
+- Use Conventional Commits for commit messages and PR titles, e.g. `type(scope): subject`, ending commit subjects with the issue number, e.g. `(#17)`; `!` before the colon if breaking. Use `test` type for test-only changes.
 - Never force-push, amend, or squash unless asked. Use new commits and normal push for pull request updates
 - Only commit after a human has explicitly approved that commit; approval of one commit does not carry over to later ones
 - Preserve existing code comments, do not remove or rewrite comments that are still relevant
@@ -18,6 +18,7 @@
 - In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to always exist
 - For CSS layout, prefer `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins; fall back to `tw-*` utilities when specificity requires `!important`
 - Include authorship attribution in issue and pull request comments
-- Every issue and pull request description you draft needs an AI assistance section in the required format, filled in from the actual session and never with placeholders. See `.claude-students/AI-ASSISTANCE.md`
+- Every pull request description you draft needs an AI assistance section, and every issue you work needs an AI Assistance issue comment drafted for the human to post, filled in from the actual session and never with placeholders. AI log links go in the issue comment only, never in PRs. See `.claude-students/AI-ASSISTANCE.md`
+- Draft issues, pull requests and code reviews in the course formats in `.claude-students/COURSE-WORKFLOW.md` (user story / bug report with a Design Decision section, PR sections, review rubric); it also lists the current sprint's deliverables and deadline
 - Always add `Assisted-By` trailers to commit messages in format `Assisted-by: AGENT_NAME:MODEL_VERSION`
 - Never add `Co-Authored-By` `Signed-off-by` trailer to commit messages. Sign off must be done by a human.
