@@ -8,6 +8,7 @@ Before exploring the tree, read the 1-3 docs below that match your task. Paths a
 
 | Working on | Read |
 | --- | --- |
+| Drafting an issue, PR, code review or sprint deliverable (course formats, deadlines) | `COURSE-WORKFLOW.md`, `AI-ASSISTANCE.md` |
 | Which layer does this belong in? What may import what? | `docs/architecture.md` |
 | Writing or running any test; needs a DB, context or fixture | `docs/testing.md` |
 | An HTML page, a form POST, a web route or guard | `docs/routers-web.md` |

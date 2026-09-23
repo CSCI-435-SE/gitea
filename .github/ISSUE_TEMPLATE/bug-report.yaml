@@ -1,28 +1,60 @@
 name: Bug Report
-description: Something isn't working as expected.
-labels: ["type/bug"]
+description: Something in the CSCI 435 fork isn't working as expected. Format in .claude-students/COURSE-WORKFLOW.md.
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        - **Security issue?** Email security@gitea.io instead of opening a public issue.
-        - **Need help** with setup or configuration? Ask on [Discord](https://discord.gg/Gitea) or the [forum](https://forum.gitea.com).
-        - Search [existing issues](https://github.com/go-gitea/gitea/issues?q=is%3Aissue) first.
-  - type: input
-    id: gitea-ver
+        One owner per issue. Add the `scope:` label and the sprint milestone. A teammate must review the report
+        (comment `Spec reviewed — <notes>`) before the fix starts.
+  - type: textarea
+    id: observed
     attributes:
-      label: Gitea Version
+      label: Observed Behavior
     validations:
       required: true
   - type: textarea
-    id: description
+    id: expected
     attributes:
-      label: What happened?
-      description: What you did, what you expected to happen, and what happened instead. Include logs if relevant.
+      label: Expected Behavior
     validations:
       required: true
   - type: textarea
-    id: environment
+    id: steps
     attributes:
-      label: How are you running Gitea?
-      description: Install method (binary, Docker, package), operating system, and database.
+      label: Steps to Reproduce
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Version or commit, browser and OS, logs, screenshots.
+    validations:
+      required: true
+  - type: textarea
+    id: design
+    attributes:
+      label: Design Decision
+      description: At least one non-trivial decision about the fix. Fill it in once an approach is chosen, before the PR.
+      value: |
+        **Decision:**
+        **Alternatives Considered:**
+        **Rationale:**
+        **Consequences:**
+    validations:
+      required: false
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - small
+        - medium
+        - large
+    validations:
+      required: true
