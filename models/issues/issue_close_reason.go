@@ -24,6 +24,9 @@ const (
 	CloseReasonOther                         // 4
 )
 
+// CloseReasonUnknown is never stored: it stands for an unrecognised reason name, so that Validate rejects it.
+const CloseReasonUnknown CloseReason = -1
+
 // CloseReasonTextMaxLength matches the VARCHAR(255) close_reason_text column, counted in characters.
 const CloseReasonTextMaxLength = 255
 
