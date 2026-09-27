@@ -1,6 +1,6 @@
 ---
 scope: models/migrations
-verified-at: bcda5126ec
+verified-at: 9773b1b903
 ---
 
 # models/migrations — versioned schema changes
@@ -79,6 +79,9 @@ changes some drivers cannot express.
   package and assert the row count, as `models/migrations/v1_27/v343_test.go` does.
 - `make test-migration` is a separate target from `make test-backend`; a migration can be broken
   while the backend suite is green.
+- `go test ./models/...` runs the migration packages in parallel, but they share one repository
+  directory (`models/migrations/migrationtest/tests.go` → `PrepareTestEnv`), so old tests fail at
+  random with missing-directory errors. `make migrations.individual.test` runs them with `-p 1`.
 
 ## Related
 

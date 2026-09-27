@@ -1,7 +1,7 @@
 ---
 source: docs/models-migrations.md
-source-hash: 7c15a26d2e32bc1c
-verified-at: bcda5126ec
+source-hash: e537237243dc7c02
+verified-at: 9773b1b903
 ---
 
 <!-- Derived from docs/models-migrations.md. Do not edit by hand: fix the reference doc and
@@ -142,6 +142,11 @@ so a skipped fixture fails the test instead of letting it pass by checking nothi
 
 **`make test-backend` is green but the migration is broken.** Migrations have their own target,
 `make test-migration`, and their own harness. Passing the backend suite says nothing about them.
+
+**Old migration tests you never touched fail with "no such file or directory".** You ran
+`go test ./models/...`, which tests packages in parallel. The migration packages all share one
+repository directory, set up by `models/migrations/migrationtest/tests.go`, so they trip over each
+other. Run them one package at a time with `make migrations.individual.test`.
 
 **You spot a bug in a migration that has already shipped and fix it in place.** Do not. Installations
 that ran it will not run it again. Write a new migration that corrects the result.
