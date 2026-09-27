@@ -1,7 +1,7 @@
 ---
 source: docs/models-migrations.md
-source-hash: a548a35f110d76b7
-verified-at: c0092050a4
+source-hash: 7c15a26d2e32bc1c
+verified-at: bcda5126ec
 ---
 
 <!-- Derived from docs/models-migrations.md. Do not edit by hand: fix the reference doc and
@@ -42,6 +42,10 @@ identical code. If a shipped migration is wrong, the fix is another migration.
 - **database version** — how far an installation has got.
 - **column tag** — the backtick annotation on a struct field describing its column.
 - **`NOT NULL DEFAULT`** — "this column always has a value, and here is the one existing rows get".
+- **nullable / NULL** — a column allowed to hold NULL, meaning "no value at all". NULL is not 0 and
+  not an empty string.
+- **registered model** — a struct handed to `db.RegisterModel`, which is how Gitea's tools know its
+  table exists.
 - **index** — an extra structure making lookups fast.
 - **constraint** — a rule the database enforces, like uniqueness.
 
@@ -50,7 +54,7 @@ identical code. If a shipped migration is wrong, the fix is another migration.
 | Where | What it is for |
 | --- | --- |
 | `models/migrations/migrations.go` | The list itself, and the functions that run it. |
-| `models/migrations/v1_27/v342.go` | The newest migration — the shape to copy. |
+| `models/migrations/v1_27/v343.go` | The smallest complete migration that adds columns — the shape to copy. |
 | `models/migrations/base/db.go` | Helpers for awkward changes: modifying a column, dropping columns, recreating a table. |
 | `models/migrations/migrationtest/tests.go` | The test harness for migrations, separate from the normal one. |
 | `models/migrations/fixtures/Test_<FuncName>/` | Fixtures for one migration test, in a directory named after the test function. |
@@ -89,9 +93,15 @@ A migration is a photograph of one moment, not a window onto the present.
 struct — and since your local struct only lists the columns you care about, it would helpfully
 delete the indexes and constraints you left out.
 
-**New columns need `NOT NULL DEFAULT <value>`.** Existing rows already exist. If the new column has
-no default, there is no legal value to give them and the migration fails on any non-empty database —
-which is every real one.
+**A column added to an existing table takes `NOT NULL DEFAULT <zero value>`.** Existing rows already
+exist, and they need *some* value in the new column. The default gives them one, in the same step
+that adds the column — `models/migrations/v1_27/v343.go` does this for three columns at once.
+
+Leave the default off and one of two things happens. With `NOT NULL` still there, the old rows have
+no legal value, and the migration fails on any database with data in it — which is every real one.
+Without `NOT NULL`, the column is nullable and the old rows get NULL
+(`models/migrations/v1_27/v332.go` adds a column like that). NULL is not zero, so a query asking for
+`col = 0` silently skips every one of those old rows.
 
 **New `.go` files need a copyright header with the current year.**
 
@@ -120,11 +130,15 @@ fresh; theirs did not. This is the single most common way a database change goes
 cannot catch it by testing locally — your database already has the column.
 
 **The migration fails on a database with data in it, but passes on an empty one.** Your new column
-has no `NOT NULL DEFAULT`, so existing rows have nothing to put in it.
+is `NOT NULL` with no `DEFAULT`, so existing rows have nothing legal to put in it.
 
-**Your migration test finds no fixtures.** The fixture directory name must exactly match the test
-function name. A mismatch loads nothing, silently, and the test fails for a reason that looks
-unrelated.
+**Your migration test finds no fixtures.** There are two silent causes. The fixture directory name
+must exactly match the test function name. And the migration harness loads fixtures through
+`models/unittest/fixtures_loader.go`, which only fills tables whose model is registered and skips
+every other file without a word. A migration test package imports very few models, so yours may not
+be registered. Blank-import the package that owns the table, and check how many rows you read back,
+so a skipped fixture fails the test instead of letting it pass by checking nothing.
+`models/migrations/v1_27/v343_test.go` does both.
 
 **`make test-backend` is green but the migration is broken.** Migrations have their own target,
 `make test-migration`, and their own harness. Passing the backend suite says nothing about them.

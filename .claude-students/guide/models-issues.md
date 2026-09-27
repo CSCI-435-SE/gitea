@@ -1,7 +1,7 @@
 ---
 source: docs/models-issues.md
-source-hash: fa4fa56b2837aa21
-verified-at: 7075389dd1
+source-hash: f75915954aabc32e
+verified-at: bcda5126ec
 ---
 
 <!-- Derived from docs/models-issues.md. Do not edit by hand: fix the reference doc and regenerate
@@ -52,6 +52,7 @@ nobody loaded and getting an empty value rather than an error.**
   correct by hand.
 - **N+1** — fetching *n* things and then running *n* more queries, one per item.
 - **sentinel error** — a shared error value that code elsewhere can test for.
+- **JSON field** — one column holding a small bundle of named values, saved as JSON text.
 
 ## What's in these files
 
@@ -61,6 +62,7 @@ nobody loaded and getting an empty value rather than an error.**
 | `models/issues/issue_list.go` | `IssueList` — a slice of issues that can load everything for all of them at once. |
 | `models/issues/pull.go` | The pull-request-only row. |
 | `models/issues/comment.go` | Comments, and the enum of comment kinds. |
+| `models/issues/issue_close_reason.go` | Why an issue or pull request was closed: the `CloseReason` values, saved in three columns on `Issue`. |
 | `models/issues/issue_label.go` | Labels on issues — and the clearest small example of the loader pattern. |
 | `models/issues/issue_index.go` | Recalculating per-repository numbering. |
 | `models/issues/issue_group.go` | Splitting a list of issues into category groups, for the grouped ("folder") list view. |
@@ -102,6 +104,12 @@ is what turns a missing issue into a 404 instead of a 500.
 **Comment kinds are an enum**, and rendering branches on it. A plain comment and a review are both
 comments with different kinds, as are all the "closed this", "added a label" timeline entries.
 Adding a kind means handling it in the templates too, or it renders as nothing.
+
+**Extra data on a comment goes in its metadata, not a new column.** `Comment` has a JSON field,
+`CommentMetaData`, and its code comment in `comment.go` asks for any new non-index data to go there.
+It is written once, when the comment is created, and never changed — which suits a timeline, where
+each entry records what was true at that moment. The cost is that SQL cannot search, sort or index
+on anything inside it.
 
 ## How to actually do it
 

@@ -1,7 +1,7 @@
 ---
 source: docs/testing.md
-source-hash: 6395a51cf7c96def
-verified-at: c0092050a4
+source-hash: e0ccca1f2817cfd7
+verified-at: bcda5126ec
 ---
 
 <!-- Derived from docs/testing.md. Do not edit by hand: fix the reference doc and regenerate
@@ -156,6 +156,11 @@ clean up breaks a *later* test, not itself — the failure points at innocent co
 
 **`CheckConsistencyFor` fails in a test you did not write.** You added or changed a fixture row and
 a counter column no longer matches.
+
+**Your assertion passes even though the value was never saved.** `unittest.AssertExistsAndLoadBean`
+finds a row by turning the struct you pass into the SQL `WHERE`, and it silently drops zero values
+and fields tagged `xorm:"-"`. So asking for `{ID: 1, Bar: 0}` checks only the ID. Load the row by
+ID, then compare its fields, as `models/issues/issue_close_reason_test.go` does.
 
 **A browser test only passes when you raise `GITEA_TEST_E2E_TIMEOUT_FACTOR`.** That multiplier
 defaults to 4 on CI and 1 locally. Needing more is a flaky test — usually waiting on the wrong

@@ -1,6 +1,6 @@
 ---
 scope: docs/testing.md, models/unittest, models/fixtures, services/contexttest, tests
-verified-at: c0092050a4
+verified-at: bcda5126ec
 ---
 
 # testing — the five tiers and their harnesses
@@ -85,6 +85,9 @@ under `models/migrations/fixtures/`; helpers in `models/migrations/migrationtest
   cleanup). Run the suite on Linux, macOS, WSL2 or the `.devcontainer` (`STUDENTS.md` §6).
 - `tests/integration` and `tests/e2e` share one Gitea instance per run, so a test that leaves state
   behind breaks later tests rather than itself.
+- `unittest.AssertExistsAndLoadBean(t, &Foo{ID: 1, Bar: x})` turns the bean into the `WHERE`, and
+  XORM leaves out zero-valued and `xorm:"-"` fields, so those are never checked. To verify a stored
+  value, load by ID and compare fields (`models/issues/issue_close_reason_test.go`).
 
 ## Related
 

@@ -1,6 +1,6 @@
 ---
 scope: models/migrations
-verified-at: c0092050a4
+verified-at: bcda5126ec
 ---
 
 # models/migrations — versioned schema changes
@@ -19,7 +19,7 @@ invokes this at boot.
 | Path | What it holds |
 | --- | --- |
 | `models/migrations/migrations.go` | the ordered slice, `newMigration`, `minDBVersion`, `Migrate`, `EnsureUpToDate`, `GetCurrentDBVersion`, `ExpectedDBVersion` |
-| `models/migrations/v1_27/v342.go` | the newest migration — the shape to copy |
+| `models/migrations/v1_27/v343.go` | the smallest complete add-columns migration — the shape to copy |
 | `models/migrations/base/db.go` | `RecreateTable`, `RecreateTables`, `DropTableColumns`, `ModifyColumn` |
 | `models/migrations/migrationtest/tests.go` | `PrepareTestEnv`, `MainTest` for migration tests |
 | `models/migrations/fixtures/Test_<FuncName>/` | per-test fixture directory, named after the test |
@@ -42,7 +42,10 @@ invokes this at boot.
 - Partial table changes use `x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true,
   IgnoreConstrains: true}, new(Foo))` rather than plain `Sync`, so unrelated indices and
   constraints survive (`docs/guidelines-backend.md`).
-- New columns need `NOT NULL DEFAULT <value>` in the xorm tag, or existing rows cannot be migrated.
+- A column added to an existing table takes `NOT NULL DEFAULT <zero value>`
+  (`models/migrations/v1_27/v343.go`): the default fills existing rows in the same `ALTER TABLE`.
+  Without it the column is nullable and old rows hold NULL (`models/migrations/v1_27/v332.go`),
+  which `WHERE col = 0` does not match. `NOT NULL` with no default fails on a populated table.
 - New `.go` files carry a copyright header with the current year (`AGENTS.md`).
 
 ## Recipes
@@ -71,6 +74,9 @@ changes some drivers cannot express.
   upgrade.
 - Migration tests use their own harness (`migrationtest`), not `models/unittest`. The fixture
   directory name must match the test function name exactly or no fixtures load.
+- `migrationtest` loads fixtures through `models/unittest/fixtures_loader.go` → `NewFixturesLoader`,
+  which skips, without an error, any table whose model is not registered. Blank-import the owning
+  package and assert the row count, as `models/migrations/v1_27/v343_test.go` does.
 - `make test-migration` is a separate target from `make test-backend`; a migration can be broken
   while the backend suite is green.
 

@@ -1,6 +1,6 @@
 ---
 scope: models/issues, models/pull
-verified-at: 7075389dd1
+verified-at: bcda5126ec
 ---
 
 # models/issues — issues, pull requests, comments, reviews
@@ -31,6 +31,7 @@ One package for the whole issue domain, because pull requests *are* issues in th
 | `models/issues/issue_list.go` | `IssueList` and its batching `LoadAttributes` |
 | `models/issues/pull.go` | `PullRequest`, `PullRequestType`, `PullRequestStatus` |
 | `models/issues/comment.go` | `Comment` and the `CommentType` enum |
+| `models/issues/issue_close_reason.go` | `CloseReason`, stored in `Issue.CloseReason`, `CloseReasonText`, `CloseDuplicateIssueID` |
 | `models/issues/issue_label.go` | `LoadLabels` — the idempotency pattern in miniature |
 | `models/issues/issue_index.go` | `RecalculateIssueIndexForRepo` |
 | `models/issues/issue_group.go` | `IssueLabelGroup`, `IssueList.GroupByExclusiveLabelScope` — the grouped list view |
@@ -58,6 +59,9 @@ One package for the whole issue domain, because pull requests *are* issues in th
 - Comment kinds are the `CommentType` iota in `comment.go` (`CommentTypeComment` is a plain
   comment, `CommentTypeReview` a review, plus many state-change kinds). Rendering branches on it —
   adding a value means handling it in the templates too.
+- New non-index data on a comment goes in the `Comment.CommentMetaData` JSON field, not a new
+  column, as its code comment in `comment.go` says. It is written once at insert and never changed,
+  and SQL cannot filter or index on it.
 
 ## Recipes
 
