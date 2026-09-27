@@ -1,0 +1,25 @@
+# open issue, closed issue, open PR, closed PR
+-
+  id: 1
+  repo_id: 1
+  index: 1
+  is_closed: false
+  is_pull: false
+-
+  id: 2
+  repo_id: 1
+  index: 2
+  is_closed: true
+  is_pull: false
+-
+  id: 3
+  repo_id: 1
+  index: 3
+  is_closed: false
+  is_pull: true
+-
+  id: 4
+  repo_id: 1
+  index: 4
+  is_closed: true
+  is_pull: true
