@@ -29,6 +29,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getIssuesSelection(t testing.TB, htmlDoc *HTMLDoc) *goquery.Selection {
@@ -246,6 +247,56 @@ func TestIssueCommentClose(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	val := htmlDoc.doc.Find(".comment-list .comment .render-content p").First().Text()
 	assert.Equal(t, "Description", val)
+}
+
+func TestIssueCommentCloseWithReason(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+
+	// closeWithReason opens a new issue and posts the close button with the given form fields
+	closeWithReason := func(t *testing.T, fields map[string]string) *issues_model.Issue {
+		issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+		resp := session.MakeRequest(t, NewRequest(t, "GET", issueURL), http.StatusOK)
+		link, exists := NewHTMLParser(t, resp.Body).doc.Find("#comment-form").Attr("action")
+		require.True(t, exists, "The template has changed")
+
+		fields["status"] = "close"
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", link, fields), http.StatusOK)
+
+		index, err := strconv.ParseInt(path.Base(issueURL), 10, 64)
+		require.NoError(t, err)
+		return unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: index})
+	}
+
+	t.Run("not planned", func(t *testing.T) {
+		issue := closeWithReason(t, map[string]string{"close_reason": "not_planned"})
+		assert.True(t, issue.IsClosed)
+		assert.Equal(t, issues_model.CloseReasonNotPlanned, issue.CloseReason)
+	})
+
+	t.Run("other with text", func(t *testing.T) {
+		issue := closeWithReason(t, map[string]string{"close_reason": "other", "close_reason_text": "superseded"})
+		assert.True(t, issue.IsClosed)
+		assert.Equal(t, "superseded", issue.CloseReasonText)
+	})
+
+	t.Run("duplicate", func(t *testing.T) {
+		target := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 1})
+		issue := closeWithReason(t, map[string]string{"close_reason": "duplicate", "close_duplicate_index": "1"})
+		assert.True(t, issue.IsClosed)
+		assert.Equal(t, target.ID, issue.CloseDuplicateIssueID)
+	})
+
+	t.Run("refused reason leaves the issue open", func(t *testing.T) {
+		issue := closeWithReason(t, map[string]string{"close_reason": "other"})
+		assert.False(t, issue.IsClosed)
+		assert.Equal(t, `The description is not valid. It is required for "Other", can be up to 255 characters, and is only used with "Other".`, session.GetCookieFlashMessage().ErrorMsg)
+
+		issue = closeWithReason(t, map[string]string{"close_reason": "duplicate", "close_duplicate_index": "9999"})
+		assert.False(t, issue.IsClosed)
+		assert.Equal(t, "The duplicate must be another issue or pull request in this repository.", session.GetCookieFlashMessage().ErrorMsg)
+	})
 }
 
 func TestIssueCommentDelete(t *testing.T) {
