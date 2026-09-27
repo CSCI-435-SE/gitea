@@ -735,6 +735,13 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 					return
 				}
 			}
+		} else if comment.Type == issues_model.CommentTypeClose {
+			if err = comment.LoadCloseDuplicateIssue(ctx); err != nil {
+				if !issues_model.IsErrIssueNotExist(err) { // a deleted target still lets the page render
+					ctx.ServerError("LoadCloseDuplicateIssue", err)
+					return
+				}
+			}
 		} else if comment.Type.HasContentSupport() {
 			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
 				FootnoteContextID: strconv.FormatInt(comment.ID, 10),

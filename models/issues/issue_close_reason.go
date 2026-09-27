@@ -38,15 +38,25 @@ func AllowedCloseReasons(isPull bool) []CloseReason {
 
 // CloseReasonOptions is the reason a person gives when closing an issue or pull request.
 type CloseReasonOptions struct {
-	Reason CloseReason
-	Text   string // only for CloseReasonOther
+	Reason         CloseReason
+	Text           string // only for CloseReasonOther
+	DuplicateIndex int64  // only for CloseReasonDuplicate: the number of the issue it duplicates, in the same repository
 }
 
-// Validate checks the options for an issue or pull request.
+// Validate checks the options for an issue or pull request, without looking anything up;
+// SetIssueAsClosed checks that the duplicate target exists.
 // CloseReasonNone is always valid, so close paths that give no reason keep working.
 func (opts CloseReasonOptions) Validate(isPull bool) error {
 	if opts.Reason != CloseReasonNone && !slices.Contains(AllowedCloseReasons(isPull), opts.Reason) {
 		return ErrCloseReasonNotAllowed{Reason: opts.Reason, IsPull: isPull}
+	}
+
+	if opts.Reason == CloseReasonDuplicate {
+		if opts.DuplicateIndex <= 0 {
+			return ErrInvalidCloseDuplicate{Index: opts.DuplicateIndex, Detail: "no issue number given"}
+		}
+	} else if opts.DuplicateIndex != 0 {
+		return ErrInvalidCloseDuplicate{Index: opts.DuplicateIndex, Detail: "an issue number is only allowed with the duplicate reason"}
 	}
 
 	hasText := strings.TrimSpace(opts.Text) != "" // whitespace-only counts as no text
@@ -102,5 +112,25 @@ func (err ErrInvalidCloseReasonText) Error() string {
 }
 
 func (err ErrInvalidCloseReasonText) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
+// ErrInvalidCloseDuplicate represents a duplicate target that is missing, is the issue itself, or is not in the same repository.
+type ErrInvalidCloseDuplicate struct {
+	Index  int64
+	Detail string
+}
+
+// IsErrInvalidCloseDuplicate checks if an error is a ErrInvalidCloseDuplicate.
+func IsErrInvalidCloseDuplicate(err error) bool {
+	_, ok := err.(ErrInvalidCloseDuplicate)
+	return ok
+}
+
+func (err ErrInvalidCloseDuplicate) Error() string {
+	return fmt.Sprintf("invalid duplicate target: %s [index: %d]", err.Detail, err.Index)
+}
+
+func (err ErrInvalidCloseDuplicate) Unwrap() error {
 	return util.ErrInvalidArgument
 }

@@ -62,6 +62,20 @@ func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, 
 		return nil, err
 	}
 
+	var duplicateID int64
+	if reason.Reason == CloseReasonDuplicate {
+		if reason.DuplicateIndex == issue.Index {
+			return nil, ErrInvalidCloseDuplicate{Index: reason.DuplicateIndex, Detail: "an issue cannot duplicate itself"}
+		}
+		target, err := GetIssueByIndex(ctx, issue.RepoID, reason.DuplicateIndex) // the repo ID keeps the target in the same repository
+		if IsErrIssueNotExist(err) {
+			return nil, ErrInvalidCloseDuplicate{Index: reason.DuplicateIndex, Detail: "no issue with this number in the repository"}
+		} else if err != nil {
+			return nil, err
+		}
+		duplicateID = target.ID
+	}
+
 	// Check for open dependencies
 	if issue.Repo.IsDependenciesEnabled(ctx) {
 		// only check if dependencies are enabled and we're about to close an issue, otherwise reopening an issue would fail when there are unsatisfied dependencies
@@ -79,8 +93,9 @@ func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, 
 	issue.ClosedUnix = timeutil.TimeStampNow()
 	issue.CloseReason = reason.Reason
 	issue.CloseReasonText = util.Iif(reason.Reason == CloseReasonOther, reason.Text, "") // Validate lets whitespace-only text through with other reasons
+	issue.CloseDuplicateIssueID = duplicateID
 
-	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix", "close_reason", "close_reason_text").
+	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix", "close_reason", "close_reason_text", "close_duplicate_issue_id").
 		Where("is_closed = ?", false).
 		Update(issue); err != nil {
 		return nil, err
@@ -170,6 +185,7 @@ func updateIssueNumbers(ctx context.Context, issue *Issue, doer *user_model.User
 	if cmtType == CommentTypeClose {
 		opts.CloseReason = issue.CloseReason
 		opts.CloseReasonText = issue.CloseReasonText
+		opts.CloseDuplicateIssueID = issue.CloseDuplicateIssueID
 	}
 	return CreateComment(ctx, opts)
 }

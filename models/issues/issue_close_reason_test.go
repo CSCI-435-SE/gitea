@@ -68,7 +68,7 @@ func TestCloseReasonOptionsValidate(t *testing.T) {
 		{name: "no reason on a pull request", opts: issues_model.CloseReasonOptions{}, isPull: true},
 		{name: "completed issue", opts: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonCompleted}},
 		{name: "not planned pull request", opts: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonNotPlanned}, isPull: true},
-		{name: "duplicate issue", opts: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonDuplicate}},
+		{name: "duplicate with a number", opts: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonDuplicate, DuplicateIndex: 3}},
 		{name: "other with text", opts: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonOther, Text: "superseded"}},
 		{name: "other with 255 two-byte characters", opts: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonOther, Text: strings.Repeat("é", 255)}},
 		{name: "whitespace-only text with another reason", opts: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonCompleted, Text: " "}},
@@ -80,6 +80,10 @@ func TestCloseReasonOptionsValidate(t *testing.T) {
 		{name: "other with 256 characters", opts: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonOther, Text: strings.Repeat("a", 256)}, isErr: issues_model.IsErrInvalidCloseReasonText},
 		{name: "text with another reason", opts: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonNotPlanned, Text: "because"}, isErr: issues_model.IsErrInvalidCloseReasonText},
 		{name: "text with no reason", opts: issues_model.CloseReasonOptions{Text: "because"}, isErr: issues_model.IsErrInvalidCloseReasonText},
+		{name: "duplicate with no number", opts: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonDuplicate}, isErr: issues_model.IsErrInvalidCloseDuplicate},
+		{name: "duplicate with a negative number", opts: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonDuplicate, DuplicateIndex: -1}, isErr: issues_model.IsErrInvalidCloseDuplicate},
+		{name: "number with another reason", opts: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonNotPlanned, DuplicateIndex: 3}, isErr: issues_model.IsErrInvalidCloseDuplicate},
+		{name: "number with no reason", opts: issues_model.CloseReasonOptions{DuplicateIndex: 3}, isErr: issues_model.IsErrInvalidCloseDuplicate},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -135,6 +139,9 @@ func TestCloseIssueInvalidReasonLeavesItOpen(t *testing.T) {
 	}{
 		{name: "pull request closed as completed", issueID: 2, reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonCompleted}, isErr: issues_model.IsErrCloseReasonNotAllowed},
 		{name: "other with no text", issueID: 1, reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonOther}, isErr: issues_model.IsErrInvalidCloseReasonText},
+		{name: "duplicate of itself", issueID: 1, reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonDuplicate, DuplicateIndex: 1}, isErr: issues_model.IsErrInvalidCloseDuplicate},
+		{name: "duplicate of a number that does not exist", issueID: 1, reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonDuplicate, DuplicateIndex: 999}, isErr: issues_model.IsErrInvalidCloseDuplicate},
+		{name: "duplicate of a number only in another repository", issueID: 6, reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonDuplicate, DuplicateIndex: 3}, isErr: issues_model.IsErrInvalidCloseDuplicate}, // repo 3 has no #3; repo 1 does
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -152,4 +159,34 @@ func TestCloseIssueInvalidReasonLeavesItOpen(t *testing.T) {
 			unittest.AssertNotExistsBean(t, &issues_model.Comment{IssueID: c.issueID, Type: issues_model.CommentTypeClose})
 		})
 	}
+}
+
+func TestCloseIssueAsDuplicate(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	target := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: issue.RepoID, Index: 4}) // closed, which is allowed
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	comment, err := issues_model.CloseIssue(t.Context(), issue, doer, issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonDuplicate, DuplicateIndex: 4})
+	require.NoError(t, err)
+
+	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	assert.Equal(t, issues_model.CloseReasonDuplicate, issue.CloseReason)
+	assert.Equal(t, target.ID, issue.CloseDuplicateIssueID) // stored as the global ID, not the number
+
+	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID})
+	assert.Equal(t, issues_model.CloseReasonDuplicate, comment.MetaCloseReason().Reason)
+	require.NoError(t, comment.LoadCloseDuplicateIssue(t.Context()))
+	require.NotNil(t, comment.CloseDuplicateIssue)
+	assert.Equal(t, target.ID, comment.CloseDuplicateIssue.ID)
+	assert.Equal(t, int64(4), comment.CloseDuplicateIssue.Index)
+	assert.Equal(t, target.Title, comment.CloseDuplicateIssue.Title)
+	assert.True(t, strings.HasSuffix(comment.CloseDuplicateIssue.Link(), "/user2/repo1/issues/4"), comment.CloseDuplicateIssue.Link())
+}
+
+func TestLoadCloseDuplicateIssueDeletedTarget(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	comment := &issues_model.Comment{CommentMetaData: &issues_model.CommentMetaData{CloseReason: issues_model.CloseReasonDuplicate, CloseDuplicateIssueID: 999999}}
+	assert.True(t, issues_model.IsErrIssueNotExist(comment.LoadCloseDuplicateIssue(t.Context())))
+	assert.Nil(t, comment.CloseDuplicateIssue)
 }
