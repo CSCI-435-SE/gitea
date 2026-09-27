@@ -1,6 +1,6 @@
 ---
 scope: models/issues, models/pull
-verified-at: 9773b1b903
+verified-at: 916a29ba28
 ---
 
 # models/issues — issues, pull requests, comments, reviews
@@ -31,7 +31,7 @@ One package for the whole issue domain, because pull requests *are* issues in th
 | `models/issues/issue_list.go` | `IssueList` and its batching `LoadAttributes` |
 | `models/issues/pull.go` | `PullRequest`, `PullRequestType`, `PullRequestStatus` |
 | `models/issues/comment.go` | `Comment` and the `CommentType` enum |
-| `models/issues/issue_close_reason.go` | `CloseReason`, `AllowedCloseReasons`, `CloseReasonOptions.Validate` and its two errors; stored in `Issue.CloseReason`, `CloseReasonText`, `CloseDuplicateIssueID` |
+| `models/issues/issue_close_reason.go` | `CloseReason`, `AllowedCloseReasons`, `CloseReasonOptions.Validate` and its three errors; stored in `Issue.CloseReason`, `CloseReasonText`, `CloseDuplicateIssueID` |
 | `models/issues/issue_label.go` | `LoadLabels` — the idempotency pattern in miniature |
 | `models/issues/issue_index.go` | `RecalculateIssueIndexForRepo` |
 | `models/issues/issue_group.go` | `IssueLabelGroup`, `IssueList.GroupByExclusiveLabelScope` — the grouped list view |
@@ -65,6 +65,11 @@ One package for the whole issue domain, because pull requests *are* issues in th
 - A close comment snapshots the issue's reason in `CommentMetaData`. Read it with
   `Comment.MetaCloseReason()`, which returns no reason when the comment has no metadata, as every
   close comment written before the columns existed does.
+- A close as duplicate takes the target's per-repository number; `SetIssueAsClosed` resolves it
+  with `GetIssueByIndex` in the issue's own repository and stores the global ID.
+  `Comment.LoadCloseDuplicateIssue` loads the target with its repository; a deleted target returns
+  `ErrIssueNotExist`. Reopening (`setIssueAsReopen`, the only code that reopens) clears the issue's
+  reason, text and target; the close comment keeps its snapshot.
 
 ## Recipes
 
@@ -85,6 +90,8 @@ direction, `pr.Issue` after the PR's own loader.
   denormalised. Changing issue state means keeping them in step, and fixture rows must match or
   `unittest.CheckConsistencyFor` fails.
 - `Issue.Index` and `PullRequest.Index` are both present. They agree, but write through the issue.
+- `Issue.Link()` dereferences `issue.Repo`, so an issue fetched with `GetIssueByID` panics there
+  until `LoadRepo(ctx)` has run.
 - `models/pull` is not "pull requests" — those are here in `models/issues/pull.go`. `models/pull`
   is only automerge and review state.
 - `GroupByExclusiveLabelScope` and `applyGroupByLabelScope` (`models/issues/issue_search.go`, driven

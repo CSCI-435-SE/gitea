@@ -1,7 +1,7 @@
 ---
 source: docs/models-issues.md
-source-hash: 58fbf7e69615f31b
-verified-at: 9773b1b903
+source-hash: c89bbe4e8e1b665b
+verified-at: 916a29ba28
 ---
 
 <!-- Derived from docs/models-issues.md. Do not edit by hand: fix the reference doc and regenerate
@@ -117,6 +117,17 @@ with `Comment.MetaCloseReason()` rather than reaching into the metadata yourself
 written before this feature existed have no metadata at all, and the method turns that into "no
 reason" instead of an error.
 
+**A duplicate is typed as a number but stored as an ID.** Closing as a duplicate of `#12` looks
+`#12` up in the issue's own repository (`GetIssueByIndex`, inside `SetIssueAsClosed`), so a number
+from another repository is refused. What gets stored is that issue's global ID, the same way the
+other links between issues are stored. `Comment.LoadCloseDuplicateIssue` turns the ID back into the
+issue, repository included; if the target has since been deleted, it reports "not found" instead
+of breaking the page.
+
+**Reopening wipes the issue's reason, not the comment's.** `setIssueAsReopen` is the only code that
+reopens anything, and it clears the reason, text and duplicate target on the issue. The close
+comment keeps what was true when it was written.
+
 ## How to actually do it
 
 **Display a list of issues.** Fetch into an `IssueList`, then call `LoadAttributes(ctx)` **once, on
@@ -156,6 +167,9 @@ The grouping is worked out in two places that must agree: `applyGroupByLabelScop
 sit together, and `GroupByExclusiveLabelScope` in `models/issues/issue_group.go` then cuts that page
 into groups in Go. If you change the order in one, change it in the other. In particular both settle
 ties on the label's `id`, not its name, because the database and Go do not sort text the same way.
+
+**Building an issue's link crashes with a nil pointer.** `Issue.Link()` reads `issue.Repo`, and
+`GetIssueByID` does not fill it in. Call `LoadRepo(ctx)` first.
 
 **You go looking for pull requests in `models/pull` and it is nearly empty.** Pull requests are in
 `models/issues/pull.go`. `models/pull` only holds automerge and review state. Both `Issue` and

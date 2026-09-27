@@ -1,6 +1,6 @@
 ---
 scope: services/forms, services/convert
-verified-at: c0092050a4
+verified-at: 916a29ba28
 ---
 
 # services/forms and services/convert — request in, DTO out
@@ -34,8 +34,13 @@ The API layer does **not** use `services/forms`: it binds `modules/structs` opti
 **Forms**
 
 - A form is a plain struct with `binding:"..."` tags: `binding:"Required;MaxSize(255)"`. Field
-  names map from the request automatically; add `form:"assignee_ids"` only when the request field
-  name differs from the Go field name.
+  names map from the request through `util.ToSnakeCase` (`modules/web/middleware/binding.go`), so
+  `CloseReasonText` binds `close_reason_text`. A plural acronym does not survive it —
+  `AssigneeIDs` would become `assignee_i_ds` — which is why that field carries `form:"assignee_ids"`.
+- A choice among named options arrives as a string, and a method on the form maps it to the
+  model's integer enum, falling back to an unknown value the model rejects:
+  `SubmitReviewForm.ReviewType`, `CreateCommentForm.CloseReasonOptions` (`services/forms/repo_form.go`).
+  The stored numbers never appear in the request.
 - A form that needs the standard error handling implements
   `Validate(req *http.Request, errs binding.Errors) binding.Errors` and returns
   `middleware.Validate(errs, ctx.Data, f, ctx.Locale)` — copy the body from a neighbouring form

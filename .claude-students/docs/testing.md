@@ -1,6 +1,6 @@
 ---
 scope: docs/testing.md, models/unittest, models/fixtures, services/contexttest, tests
-verified-at: bcda5126ec
+verified-at: 916a29ba28
 ---
 
 # testing — the five tiers and their harnesses
@@ -71,6 +71,10 @@ with `unittest.AssertExistsAndLoadBean`; add fixture rows only if no existing ro
 **Add an integration test.** New `tests/integration/<feature>_test.go`; `defer tests.PrepareTestEnv(t)()`
 at the top of the test; drive it through HTTP the way the neighbouring tests do. Do not add a
 `TestMain` — `integration_test.go` already owns it.
+
+**Check a flash message in an integration test.** After the request,
+`session.GetCookieFlashMessage().ErrorMsg` (`tests/integration/integration_test.go`) holds the
+rendered text. Compare the exact string: a missing locale key renders as the key and then fails.
 
 **Add a migration test.** Alongside the migration in `models/migrations/`, with its own fixtures
 under `models/migrations/fixtures/`; helpers in `models/migrations/migrationtest/`.

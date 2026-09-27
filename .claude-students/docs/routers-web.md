@@ -1,6 +1,6 @@
 ---
 scope: routers/web, routers/common, modules/web
-verified-at: 69d66d604f
+verified-at: 916a29ba28
 ---
 
 # routers/web — the HTML route table and page handlers
@@ -85,6 +85,12 @@ the extension.
   add the route to the group that already carries the guards you need instead of re-listing them.
 - `ctx.HTML` after something has already written the response is a bug; `ctx.Written()` reports
   whether that happened.
+- The issue page loads each comment type's linked data in one `if … else if` chain over
+  `issue.Comments` (`routers/web/repo/issue_view.go`). A new type's loading goes there as its own
+  branch; a type matched by an earlier branch never reaches a later one.
+- A handler branch that only logs an error still redirects as if it worked. `NewComment`
+  (`routers/web/repo/issue_comment.go`) shows a flash only for the close refusals it maps, so every
+  refusal a person can cause needs its own `ctx.Flash.Error(ctx.Tr(...))`.
 
 ## Related
 
