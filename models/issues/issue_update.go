@@ -130,8 +130,11 @@ func setIssueAsReopen(ctx context.Context, issue *Issue, doer *user_model.User) 
 
 	issue.IsClosed = false
 	issue.ClosedUnix = 0
+	issue.CloseReason = CloseReasonNone // an open issue has no close reason; the close comment keeps its own copy
+	issue.CloseReasonText = ""
+	issue.CloseDuplicateIssueID = 0
 
-	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix").
+	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix", "close_reason", "close_reason_text", "close_duplicate_issue_id").
 		Where("is_closed = ?", true).
 		Update(issue); err != nil {
 		return nil, err

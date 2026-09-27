@@ -190,3 +190,41 @@ func TestLoadCloseDuplicateIssueDeletedTarget(t *testing.T) {
 	assert.True(t, issues_model.IsErrIssueNotExist(comment.LoadCloseDuplicateIssue(t.Context())))
 	assert.Nil(t, comment.CloseDuplicateIssue)
 }
+
+func TestReopenIssueClearsReason(t *testing.T) {
+	cases := []struct {
+		name   string
+		reason issues_model.CloseReasonOptions
+	}{
+		{name: "other with text", reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonOther, Text: "superseded"}},
+		{name: "duplicate", reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonDuplicate, DuplicateIndex: 4}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+			doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+			closeComment, err := issues_model.CloseIssue(t.Context(), issue, doer, c.reason)
+			require.NoError(t, err)
+			reopenComment, err := issues_model.ReopenIssue(t.Context(), issue, doer)
+			require.NoError(t, err)
+
+			issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+			assert.False(t, issue.IsClosed)
+			assert.Equal(t, issues_model.CloseReasonNone, issue.CloseReason)
+			assert.Empty(t, issue.CloseReasonText)
+			assert.Zero(t, issue.CloseDuplicateIssueID)
+
+			closeComment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: closeComment.ID})
+			assert.Equal(t, c.reason.Reason, closeComment.MetaCloseReason().Reason, "the close comment keeps its reason")
+			assert.Equal(t, c.reason.Text, closeComment.MetaCloseReason().Text)
+			require.NoError(t, closeComment.LoadCloseDuplicateIssue(t.Context()))
+			assert.Equal(t, c.reason.Reason == issues_model.CloseReasonDuplicate, closeComment.CloseDuplicateIssue != nil)
+
+			reopenComment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: reopenComment.ID})
+			assert.Equal(t, issues_model.CommentTypeReopen, reopenComment.Type)
+			assert.Nil(t, reopenComment.CommentMetaData)
+		})
+	}
+}
