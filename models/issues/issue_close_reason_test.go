@@ -107,6 +107,7 @@ func TestCloseIssueRecordsReason(t *testing.T) {
 		{name: "no reason", reason: issues_model.CloseReasonOptions{}},
 		{name: "completed", reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonCompleted}},
 		{name: "other with text", reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonOther, Text: "superseded"}, wantText: "superseded"},
+		{name: "other text is stored as entered", reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonOther, Text: "  superseded by #4  "}, wantText: "  superseded by #4  "},
 		{name: "whitespace-only text is not stored", reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonNotPlanned, Text: " "}},
 	}
 	for _, c := range cases {

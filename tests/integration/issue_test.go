@@ -286,6 +286,7 @@ func TestIssueCommentCloseWithReason(t *testing.T) {
 		issue := closeWithReason(t, map[string]string{"close_reason": "duplicate", "close_duplicate_index": "1"})
 		assert.True(t, issue.IsClosed)
 		assert.Equal(t, target.ID, issue.CloseDuplicateIssueID)
+		session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/issues/%d", issue.Index)), http.StatusOK) // the page loads the target for the close comment
 	})
 
 	t.Run("refused reason leaves the issue open", func(t *testing.T) {
