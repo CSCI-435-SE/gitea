@@ -48,7 +48,7 @@ func (err ErrIssueIsClosed) Error() string {
 	return fmt.Sprintf("%s [id: %d, repo_id: %d, index: %d] is already closed", util.Iif(err.IsPull, "Pull Request", "Issue"), err.ID, err.RepoID, err.Index)
 }
 
-func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
+func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool, reason CloseReasonOptions) (*Comment, error) {
 	if issue.IsClosed {
 		return nil, ErrIssueIsClosed{
 			ID:     issue.ID,
@@ -56,6 +56,10 @@ func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, 
 			Index:  issue.Index,
 			IsPull: issue.IsPull,
 		}
+	}
+
+	if err := reason.Validate(issue.IsPull); err != nil {
+		return nil, err
 	}
 
 	// Check for open dependencies
@@ -73,8 +77,10 @@ func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, 
 
 	issue.IsClosed = true
 	issue.ClosedUnix = timeutil.TimeStampNow()
+	issue.CloseReason = reason.Reason
+	issue.CloseReasonText = util.Iif(reason.Reason == CloseReasonOther, reason.Text, "") // Validate lets whitespace-only text through with other reasons
 
-	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix").
+	if cnt, err := db.GetEngine(ctx).ID(issue.ID).Cols("is_closed", "closed_unix", "close_reason", "close_reason_text").
 		Where("is_closed = ?", false).
 		Update(issue); err != nil {
 		return nil, err
@@ -155,16 +161,21 @@ func updateIssueNumbers(ctx context.Context, issue *Issue, doer *user_model.User
 		return nil, fmt.Errorf("invalid comment type: %d", cmtType)
 	}
 
-	return CreateComment(ctx, &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:  cmtType,
 		Doer:  doer,
 		Repo:  issue.Repo,
 		Issue: issue,
-	})
+	}
+	if cmtType == CommentTypeClose {
+		opts.CloseReason = issue.CloseReason
+		opts.CloseReasonText = issue.CloseReasonText
+	}
+	return CreateComment(ctx, opts)
 }
 
 // CloseIssue changes issue status to closed.
-func CloseIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comment, error) {
+func CloseIssue(ctx context.Context, issue *Issue, doer *user_model.User, reason CloseReasonOptions) (*Comment, error) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
@@ -173,7 +184,7 @@ func CloseIssue(ctx context.Context, issue *Issue, doer *user_model.User) (*Comm
 	}
 
 	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
-		return SetIssueAsClosed(ctx, issue, doer, false)
+		return SetIssueAsClosed(ctx, issue, doer, false, reason)
 	})
 }
 

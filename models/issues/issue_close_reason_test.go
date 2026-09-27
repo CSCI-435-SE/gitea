@@ -9,6 +9,7 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -89,6 +90,66 @@ func TestCloseReasonOptionsValidate(t *testing.T) {
 			}
 			assert.True(t, c.isErr(err), "unexpected error: %v", err)
 			assert.ErrorIs(t, err, util.ErrInvalidArgument)
+		})
+	}
+}
+
+func TestCloseIssueRecordsReason(t *testing.T) {
+	cases := []struct {
+		name     string
+		reason   issues_model.CloseReasonOptions
+		wantText string
+	}{
+		{name: "no reason", reason: issues_model.CloseReasonOptions{}},
+		{name: "completed", reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonCompleted}},
+		{name: "other with text", reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonOther, Text: "superseded"}, wantText: "superseded"},
+		{name: "whitespace-only text is not stored", reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonNotPlanned, Text: " "}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+			doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+			comment, err := issues_model.CloseIssue(t.Context(), issue, doer, c.reason)
+			require.NoError(t, err)
+
+			want := issues_model.CloseReasonOptions{Reason: c.reason.Reason, Text: c.wantText}
+			issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+			assert.True(t, issue.IsClosed)
+			assert.Equal(t, want, issues_model.CloseReasonOptions{Reason: issue.CloseReason, Text: issue.CloseReasonText})
+
+			comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID}) // reloaded, so the metadata went through JSON
+			assert.Equal(t, issues_model.CommentTypeClose, comment.Type)
+			assert.Equal(t, want, comment.MetaCloseReason())
+		})
+	}
+}
+
+func TestCloseIssueInvalidReasonLeavesItOpen(t *testing.T) {
+	cases := []struct {
+		name    string
+		issueID int64
+		reason  issues_model.CloseReasonOptions
+		isErr   func(error) bool
+	}{
+		{name: "pull request closed as completed", issueID: 2, reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonCompleted}, isErr: issues_model.IsErrCloseReasonNotAllowed},
+		{name: "other with no text", issueID: 1, reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonOther}, isErr: issues_model.IsErrInvalidCloseReasonText},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: c.issueID})
+			doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+			_, err := issues_model.CloseIssue(t.Context(), issue, doer, c.reason)
+			assert.True(t, c.isErr(err), "unexpected error: %v", err)
+			assert.False(t, issue.IsClosed, "the in-memory issue must not be changed either")
+
+			issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: c.issueID})
+			assert.False(t, issue.IsClosed)
+			assert.Equal(t, issues_model.CloseReasonNone, issue.CloseReason)
+			unittest.AssertNotExistsBean(t, &issues_model.Comment{IssueID: c.issueID, Type: issues_model.CommentTypeClose})
 		})
 	}
 }
