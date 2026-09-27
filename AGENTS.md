@@ -20,5 +20,6 @@
 - Include authorship attribution in issue and pull request comments
 - Every pull request description you draft needs an AI assistance section, and every issue you work needs an AI Assistance issue comment drafted for the human to post, filled in from the actual session and never with placeholders. AI log links go in the issue comment only, never in PRs. See `.claude-students/AI-ASSISTANCE.md`
 - Draft issues, pull requests and code reviews in the course formats in `.claude-students/COURSE-WORKFLOW.md` (user story / bug report with a Design Decision section, PR sections, review rubric); it also lists the current sprint's deliverables and deadline
+- Every AI session on this project must be logged per `ai-logs/README.md`: remind the human to start sessions with `specstory run claude`, and when a piece of work finishes (issue spec posted, PR merged, review done), remind them to `specstory sync`, file the log under `ai-logs/sprint<N>/<github-username>/`, and post their AI Assistance issue comment. When filing logs, only copy and rename; never edit, summarise or trim a log's contents
 - Always add `Assisted-By` trailers to commit messages in format `Assisted-by: AGENT_NAME:MODEL_VERSION`
 - Never add `Co-Authored-By` `Signed-off-by` trailer to commit messages. Sign off must be done by a human.
