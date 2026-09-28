@@ -14,8 +14,8 @@ import (
 )
 
 // CloseIssue close an issue.
-// It records no reason and is kept for backwards compatibility: automatic closes (commit keywords, issues
-// referenced by a merged pull request, pull requests whose branch was deleted) have none to give.
+// It records no reason and is kept for backwards compatibility: callers with no reason to give keep using it,
+// such as commit keywords, merged pull requests closing the issues they reference, bulk close and the API.
 // Callers with a reason use CloseIssueWithReason.
 func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string) error {
 	return CloseIssueWithReason(ctx, issue, doer, commitID, issues_model.CloseReasonOptions{})

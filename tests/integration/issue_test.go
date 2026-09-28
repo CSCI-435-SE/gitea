@@ -296,7 +296,11 @@ func TestIssueCommentCloseWithReason(t *testing.T) {
 
 		issue, _ = closeWithReason(t, map[string]string{"close_reason": "duplicate", "close_duplicate_index": "9999"}, http.StatusOK)
 		assert.False(t, issue.IsClosed)
-		assert.Equal(t, "The duplicate must be another issue or pull request in this repository.", session.GetCookieFlashMessage().ErrorMsg)
+		assert.Equal(t, `The duplicate must be another issue or pull request in this repository, and a number is only used with "Duplicate".`, session.GetCookieFlashMessage().ErrorMsg)
+
+		issue, _ = closeWithReason(t, map[string]string{"close_reason": "bogus"}, http.StatusOK)
+		assert.False(t, issue.IsClosed)
+		assert.Equal(t, "This close reason is not available for this issue or pull request.", session.GetCookieFlashMessage().ErrorMsg)
 	})
 
 	t.Run("too long a description is refused by the form", func(t *testing.T) {

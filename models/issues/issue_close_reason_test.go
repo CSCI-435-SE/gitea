@@ -138,7 +138,7 @@ func TestCloseIssueInvalidReasonLeavesItOpen(t *testing.T) {
 		reason  issues_model.CloseReasonOptions
 		isErr   func(error) bool
 	}{
-		{name: "pull request closed as completed", issueID: 2, reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonCompleted}, isErr: issues_model.IsErrCloseReasonNotAllowed},
+		{name: "pull request closed as completed", issueID: 3, reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonCompleted}, isErr: issues_model.IsErrCloseReasonNotAllowed}, // an open, unmerged pull request
 		{name: "other with no text", issueID: 1, reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonOther}, isErr: issues_model.IsErrInvalidCloseReasonText},
 		{name: "duplicate of itself", issueID: 1, reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonDuplicate, DuplicateIndex: 1}, isErr: issues_model.IsErrInvalidCloseDuplicate},
 		{name: "duplicate of a number that does not exist", issueID: 1, reason: issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonDuplicate, DuplicateIndex: 999}, isErr: issues_model.IsErrInvalidCloseDuplicate},

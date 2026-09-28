@@ -1072,35 +1072,35 @@ List repo issues with labels and assignees
 `gh issue list --state all --limit 60 --json number,title,labels,assignees,milestone --jq '.[] | "\(.number)\t\(.title)\t\([.labels[].name]|join(","))\t\([.assignees[].login]|join(","))\t\(.milestone.title // "")"'`
 
 ```text
-52	Sort notifications by reason or type	enhancement,scope: medium	CarsonRackley	
-51	Bulk actions on notifications (mark read/unread, pin, delete)	enhancement,scope: medium	CarsonRackley	
-50	Filter notifications by repository and type	enhancement,scope: medium	CarsonRackley	
-37	Expedite integration test suite	enhancement,scope: large,skip-changelog		
-36	Calendar view and iCalendar subscription feed	enhancement,scope: large		
-35	Two-factor authentication feature for organizations' members	enhancement,scope: medium		
-34	Sort issues and pull requests by due date	enhancement,scope: medium		
-29	AI Conflict Resolution Explanation	enhancement,scope: large		
-28	UI Views, Color Pallets	scope: medium,type/feature	controlled-opposition	
-27	AI Bot Describing PR and Dependencies	scope: large		
-26	Categorize PRs by type of change	scope: small,type/feature	controlled-opposition	
-25	Make dropdowns Accessible	scope: large		
-23	Expand/Implement functionality for keyboard navigation/shortcuts	scope: large		
-22	Show hover previews for issue, pull request, and user references	scope: small	vvchopra	
-21	Display Semantically Similar issues when typing Issue name	scope: small	vvchopra	
-20	Block pull request merges until prerequisite pull requests are merged	scope: large		
-19	Restrict personal access tokens to selected repositories	scope: xl		
-18	Add a ping option for webhook test deliveries	enhancement,scope: medium	arjunsb26	
-17	Allow users to rename registered passkeys	enhancement,scope: small	CarsonRackley	
-14	Add a burndown chart to milestones with an ideal line and projected finish date	enhancement,scope: large		
-13	Add an Issues chart to the Activity tab showing open issues over time	enhancement,scope: medium,type/feature	arjunsb26	
-12	Let users choose a reason when closing an issue or pull request	enhancement,scope: large	ab-wm	
-11	Show a "stale" badge on branches with no recent commits	enhancement,scope: small,type/feature	Jack-Donohue	
-7	Overhauled notifications system	enhancement,scope: large	CarsonRackley	
-6	No popup to prevent navigation while editing an issue	bug		
-5	Add a default Robot.txt	enhancement,scope: small		
-4	Create a new wiki system	enhancement,scope: large		
-3	UI feedback for issues near, but not at, the provided deadline	enhancement,scope: small	Jack-Donohue	
-2	Show a character counter next to the issue title field	enhancement		
+52	Sort notifications by reason or type	enhancement,scope: medium	CarsonRackley
+51	Bulk actions on notifications (mark read/unread, pin, delete)	enhancement,scope: medium	CarsonRackley
+50	Filter notifications by repository and type	enhancement,scope: medium	CarsonRackley
+37	Expedite integration test suite	enhancement,scope: large,skip-changelog
+36	Calendar view and iCalendar subscription feed	enhancement,scope: large
+35	Two-factor authentication feature for organizations' members	enhancement,scope: medium
+34	Sort issues and pull requests by due date	enhancement,scope: medium
+29	AI Conflict Resolution Explanation	enhancement,scope: large
+28	UI Views, Color Pallets	scope: medium,type/feature	controlled-opposition
+27	AI Bot Describing PR and Dependencies	scope: large
+26	Categorize PRs by type of change	scope: small,type/feature	controlled-opposition
+25	Make dropdowns Accessible	scope: large
+23	Expand/Implement functionality for keyboard navigation/shortcuts	scope: large
+22	Show hover previews for issue, pull request, and user references	scope: small	vvchopra
+21	Display Semantically Similar issues when typing Issue name	scope: small	vvchopra
+20	Block pull request merges until prerequisite pull requests are merged	scope: large
+19	Restrict personal access tokens to selected repositories	scope: xl
+18	Add a ping option for webhook test deliveries	enhancement,scope: medium	arjunsb26
+17	Allow users to rename registered passkeys	enhancement,scope: small	CarsonRackley
+14	Add a burndown chart to milestones with an ideal line and projected finish date	enhancement,scope: large
+13	Add an Issues chart to the Activity tab showing open issues over time	enhancement,scope: medium,type/feature	arjunsb26
+12	Let users choose a reason when closing an issue or pull request	enhancement,scope: large	ab-wm
+11	Show a "stale" badge on branches with no recent commits	enhancement,scope: small,type/feature	Jack-Donohue
+7	Overhauled notifications system	enhancement,scope: large	CarsonRackley
+6	No popup to prevent navigation while editing an issue	bug
+5	Add a default Robot.txt	enhancement,scope: small
+4	Create a new wiki system	enhancement,scope: large
+3	UI feedback for issues near, but not at, the provided deadline	enhancement,scope: small	Jack-Donohue
+2	Show a character counter next to the issue title field	enhancement
 1	Show a message when a repository has no releases	enhancement	CarsonRackley
 ```
 </details></tool-use>
@@ -2408,7 +2408,7 @@ alright, now working on the second sub issue. Based onthis  user story:
 A user who is attempting to close an issue or PR can either close the issue with a default message by clicking the current "close issue/PR" button or by clicking the split button that will show a drop down to select from set responses:
 
 | Reason | Special Semantics |
-| --- | ---| 
+| --- | ---|
 | "Completed" | **Default** option for Issue. **NOT AVAILABLE FOR PR**. |
 |"Not Planned" | **Default** for PR |
 | "Duplicate" | Asks for the original issue number |
@@ -2463,7 +2463,7 @@ Unless you want to change the plan, move the whole automated table to the third 
 
 _**User (2026-09-23 21:43:04Z)**_
 
-the locale strings will be part of the acceptance criteria, since that the project demands?. Popup in out of scope. 
+the locale strings will be part of the acceptance criteria, since that the project demands?. Popup in out of scope.
 
 
 
@@ -2473,7 +2473,7 @@ the locale strings will be part of the acceptance criteria, since that the proje
 A user who is attempting to close an issue or PR can either close the issue with a default message by clicking the current "close issue/PR" button or by clicking the split button that will show a drop down to select from set responses:
 
 | Reason | Special Semantics |
-| --- | ---| 
+| --- | ---|
 | "Completed" | **Default** option for Issue. **NOT AVAILABLE FOR PR**. |
 |"Not Planned" | **Default** for PR |
 | "Duplicate" | Asks for the original issue number and links to the relevant issue |
@@ -2531,7 +2531,7 @@ What's still open in the new draft:
 
 _**User (2026-09-23 21:46:54Z)**_
 
-What kind of page shows both issues and PRs? Well, the dropdown will always work and the last selected reason will be the one sent (**Note: The choice/reason can be changed before closing the issue or PR**.) 
+What kind of page shows both issues and PRs? Well, the dropdown will always work and the last selected reason will be the one sent (**Note: The choice/reason can be changed before closing the issue or PR**.)
 
 
 
@@ -2540,13 +2540,13 @@ What kind of page shows both issues and PRs? Well, the dropdown will always work
 A user who is attempting to close an issue or PR can either close the issue with a default reason by clicking the current "close issue/PR" button or by clicking the split button that will show a drop down to select from set responses:
 
 | Reason | Special Semantics |
-| --- | ---| 
+| --- | ---|
 | "Completed" | **Default** option for Issue. **NOT AVAILABLE FOR PR**. |
 |"Not Planned" | **Default** for PR |
 | "Duplicate" | Asks for the original issue number and links to the relevant issue |
 | "Other" | Shows a text box to fill (required, and max 255 characters) (shown in plain text) |
 
-This applies to the issue/PR bulk "Close" action button, but only "completed and not planned" are the possible reasons. 
+This applies to the issue/PR bulk "Close" action button, but only "completed and not planned" are the possible reasons.
 
 The button text will reflect the chosen reason.
 
@@ -2790,7 +2790,7 @@ As a user and a member of a dev team, I want a way to set a close reason for an 
 A user who is attempting to close an issue or PR can either close the issue with a default reason by clicking the current "close issue/PR" button or by clicking the split button that will show a drop down to select from set responses:
 
 | Reason | Special Semantics |
-| --- | ---| 
+| --- | ---|
 | "Completed" | **Default** option for Issue. **NOT AVAILABLE FOR PR**. |
 |"Not Planned" | **Default** for PR |
 | "Duplicate" | Asks for the original issue number and links to the relevant issue |
@@ -3113,7 +3113,7 @@ View issue 55 with parent and blocked-by links
 TITLE: Set close reason when issue or PR is closed by an automated system or via API
 LABELS: enhancement,scope: medium
 MILESTONE: Sprint 1
-ASSIGNEES: 
+ASSIGNEES:
 
 ### User Story
 
@@ -3218,7 +3218,7 @@ TITLE: A way to store and retrieve "closed" reasons for issues and PRs
 LABELS: enhancement,scope: medium
 MILESTONE: Sprint 1
 ASSIGNEES: ab-wm
-blocked by: 
+blocked by:
 ===== #54
 TITLE: Select close reasons for Issues and PRs and show it under closed Issues and PRs in the UI.
 LABELS: enhancement,scope: medium
@@ -3229,7 +3229,7 @@ blocked by: 53
 TITLE: Set close reason when issue or PR is closed by an automated system or via API
 LABELS: enhancement,scope: medium
 MILESTONE: none
-ASSIGNEES: 
+ASSIGNEES:
 blocked by: 53,54
 ===== #55 body
 ### User Story

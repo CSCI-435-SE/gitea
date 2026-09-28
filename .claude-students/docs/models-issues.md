@@ -1,6 +1,6 @@
 ---
 scope: models/issues, models/pull
-verified-at: 916a29ba28
+verified-at: 773c614f56
 ---
 
 # models/issues — issues, pull requests, comments, reviews
@@ -63,9 +63,9 @@ One package for the whole issue domain, because pull requests *are* issues in th
   column, as its code comment in `comment.go` says. It is written once at insert and never changed,
   and SQL cannot filter or index on it.
 - A close comment snapshots the issue's reason in `CommentMetaData`. Read it with
-  `Comment.MetaCloseReason()`, which returns no reason when the comment has no metadata, as every
+  `Comment.MetaCloseReason()` (`models/issues/comment.go`), which returns no reason when the comment has no metadata, as every
   close comment written before the columns existed does.
-- A close as duplicate takes the target's per-repository number; `SetIssueAsClosed` resolves it
+- A close as duplicate takes the target's per-repository number; `SetIssueAsClosed` (`models/issues/issue_update.go`) resolves it
   with `GetIssueByIndex` in the issue's own repository and stores the global ID.
   `Comment.LoadCloseDuplicateIssue` loads the target with its repository; a deleted target returns
   `ErrIssueNotExist`. Reopening (`setIssueAsReopen`, the only code that reopens) clears the issue's

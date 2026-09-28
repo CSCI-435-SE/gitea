@@ -1,7 +1,7 @@
 ---
 source: docs/models-migrations.md
-source-hash: e537237243dc7c02
-verified-at: 9773b1b903
+source-hash: e89e209c79b2bd23
+verified-at: 773c614f56
 ---
 
 <!-- Derived from docs/models-migrations.md. Do not edit by hand: fix the reference doc and
@@ -54,7 +54,7 @@ identical code. If a shipped migration is wrong, the fix is another migration.
 | Where | What it is for |
 | --- | --- |
 | `models/migrations/migrations.go` | The list itself, and the functions that run it. |
-| `models/migrations/v1_27/v343.go` | The smallest complete migration that adds columns — the shape to copy. |
+| `models/migrations/v1_27/v343.go` | A minimal migration that adds columns — the shape to copy. |
 | `models/migrations/base/db.go` | Helpers for awkward changes: modifying a column, dropping columns, recreating a table. |
 | `models/migrations/migrationtest/tests.go` | The test harness for migrations, separate from the normal one. |
 | `models/migrations/fixtures/Test_<FuncName>/` | Fixtures for one migration test, in a directory named after the test function. |
@@ -93,7 +93,7 @@ A migration is a photograph of one moment, not a window onto the present.
 struct — and since your local struct only lists the columns you care about, it would helpfully
 delete the indexes and constraints you left out.
 
-**A column added to an existing table takes `NOT NULL DEFAULT <zero value>`.** Existing rows already
+**A column added to an existing table takes `NOT NULL DEFAULT <value>`.** Existing rows already
 exist, and they need *some* value in the new column. The default gives them one, in the same step
 that adds the column — `models/migrations/v1_27/v343.go` does this for three columns at once.
 

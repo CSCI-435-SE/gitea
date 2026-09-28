@@ -1,6 +1,6 @@
 ---
 scope: models/migrations
-verified-at: 9773b1b903
+verified-at: 773c614f56
 ---
 
 # models/migrations — versioned schema changes
@@ -19,7 +19,7 @@ invokes this at boot.
 | Path | What it holds |
 | --- | --- |
 | `models/migrations/migrations.go` | the ordered slice, `newMigration`, `minDBVersion`, `Migrate`, `EnsureUpToDate`, `GetCurrentDBVersion`, `ExpectedDBVersion` |
-| `models/migrations/v1_27/v343.go` | the smallest complete add-columns migration — the shape to copy |
+| `models/migrations/v1_27/v343.go` | a minimal add-columns migration — the shape to copy |
 | `models/migrations/base/db.go` | `RecreateTable`, `RecreateTables`, `DropTableColumns`, `ModifyColumn` |
 | `models/migrations/migrationtest/tests.go` | `PrepareTestEnv`, `MainTest` for migration tests |
 | `models/migrations/fixtures/Test_<FuncName>/` | per-test fixture directory, named after the test |
@@ -42,7 +42,7 @@ invokes this at boot.
 - Partial table changes use `x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true,
   IgnoreConstrains: true}, new(Foo))` rather than plain `Sync`, so unrelated indices and
   constraints survive (`docs/guidelines-backend.md`).
-- A column added to an existing table takes `NOT NULL DEFAULT <zero value>`
+- A column added to an existing table takes `NOT NULL DEFAULT <value>`
   (`models/migrations/v1_27/v343.go`): the default fills existing rows in the same `ALTER TABLE`.
   Without it the column is nullable and old rows hold NULL (`models/migrations/v1_27/v332.go`),
   which `WHERE col = 0` does not match. `NOT NULL` with no default fails on a populated table.

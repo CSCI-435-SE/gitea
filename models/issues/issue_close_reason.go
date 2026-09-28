@@ -29,6 +29,7 @@ const CloseReasonUnknown CloseReason = -1
 
 // CloseReasonTextMaxLength matches the VARCHAR(255) close_reason_text column and the close form's MaxSize(255)
 // rule. Validate counts characters the same way MaxSize does, so paths that skip the form get the same limit.
+// MSSQL's NVARCHAR counts UTF-16 units instead, so text with many emoji can pass this limit and still not fit.
 const CloseReasonTextMaxLength = 255
 
 // AllowedCloseReasons lists the reasons a person can pick when closing.
@@ -49,7 +50,7 @@ type CloseReasonOptions struct {
 
 // Validate checks the options for an issue or pull request, without looking anything up;
 // SetIssueAsClosed checks that the duplicate target exists.
-// CloseReasonNone is always valid, so close paths that give no reason keep working.
+// No reason at all is valid, so close paths that give none keep working.
 func (opts CloseReasonOptions) Validate(isPull bool) error {
 	if opts.Reason != CloseReasonNone && !slices.Contains(AllowedCloseReasons(isPull), opts.Reason) {
 		return ErrCloseReasonNotAllowed{Reason: opts.Reason, IsPull: isPull}

@@ -1,6 +1,6 @@
 ---
 scope: services/issue
-verified-at: 9773b1b903
+verified-at: 773c614f56
 ---
 
 # services/issue — issue business logic
@@ -51,7 +51,8 @@ call this package; they must not call `models/issues` directly.
 - `ChangeContent` takes a `contentVersion` for optimistic concurrency — pass the version the client
   submitted, do not invent one.
 - A close that records why goes through `CloseIssueWithReason`. `CloseIssue` passes an empty
-  `issues_model.CloseReasonOptions`, for automatic closes such as commit keywords; the reason is
+  `issues_model.CloseReasonOptions`, for callers with no reason to give (commit keywords, bulk close,
+  the API); the reason is
   validated in `models/issues/issue_update.go` → `SetIssueAsClosed`, inside the close transaction.
 
 ## Recipes

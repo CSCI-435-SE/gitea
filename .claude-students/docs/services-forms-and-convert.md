@@ -1,6 +1,6 @@
 ---
 scope: services/forms, services/convert
-verified-at: 916a29ba28
+verified-at: 773c614f56
 ---
 
 # services/forms and services/convert — request in, DTO out
@@ -38,7 +38,7 @@ The API layer does **not** use `services/forms`: it binds `modules/structs` opti
   `CloseReasonText` binds `close_reason_text`. A plural acronym does not survive it —
   `AssigneeIDs` would become `assignee_i_ds` — which is why that field carries `form:"assignee_ids"`.
 - A choice among named options arrives as a string, and a method on the form maps it to the
-  model's integer enum, falling back to an unknown value the model rejects:
+  model's integer enum, falling back to an unknown value that is then rejected:
   `SubmitReviewForm.ReviewType`, `CreateCommentForm.CloseReasonOptions` (`services/forms/repo_form.go`).
   The stored numbers never appear in the request.
 - A form that needs the standard error handling implements

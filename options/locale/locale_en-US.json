@@ -1554,7 +1554,7 @@
   "repo.issues.close_reason.text": "Close reason description",
   "repo.issues.close_reason.not_allowed": "This close reason is not available for this issue or pull request.",
   "repo.issues.close_reason.text_invalid": "The description is not valid. It is required for \"Other\", can be up to %d characters, and is only used with \"Other\".",
-  "repo.issues.close_reason.duplicate_invalid": "The duplicate must be another issue or pull request in this repository.",
+  "repo.issues.close_reason.duplicate_invalid": "The duplicate must be another issue or pull request in this repository, and a number is only used with \"Duplicate\".",
   "repo.issues.reopen_issue": "Reopen Issue",
   "repo.issues.reopen_comment_issue": "Reopen with Comment",
   "repo.issues.create_comment": "Comment",

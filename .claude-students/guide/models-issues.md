@@ -1,7 +1,7 @@
 ---
 source: docs/models-issues.md
-source-hash: c89bbe4e8e1b665b
-verified-at: 916a29ba28
+source-hash: 94b0bd74f84fe15e
+verified-at: 773c614f56
 ---
 
 <!-- Derived from docs/models-issues.md. Do not edit by hand: fix the reference doc and regenerate
@@ -119,8 +119,7 @@ reason" instead of an error.
 
 **A duplicate is typed as a number but stored as an ID.** Closing as a duplicate of `#12` looks
 `#12` up in the issue's own repository (`GetIssueByIndex`, inside `SetIssueAsClosed`), so a number
-from another repository is refused. What gets stored is that issue's global ID, the same way the
-other links between issues are stored. `Comment.LoadCloseDuplicateIssue` turns the ID back into the
+from another repository is refused. What gets stored is that issue's global ID. `Comment.LoadCloseDuplicateIssue` turns the ID back into the
 issue, repository included; if the target has since been deleted, it reports "not found" instead
 of breaking the page.
 

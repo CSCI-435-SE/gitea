@@ -1,7 +1,7 @@
 ---
 source: docs/services-forms-and-convert.md
-source-hash: 54c21486c9d51454
-verified-at: 916a29ba28
+source-hash: 021edffca9cb2473
+verified-at: 773c614f56
 ---
 
 <!-- Derived from docs/services-forms-and-convert.md. Do not edit by hand: fix the reference doc and
@@ -79,7 +79,7 @@ acronyms — `AssigneeIDs` would become `assignee_i_ds` — so that field spells
 few options, the request carries a name such as `approve` or `not_planned`, and a method on the
 form maps it to the model's integer enum: `SubmitReviewForm.ReviewType` and
 `CreateCommentForm.CloseReasonOptions` in `services/forms/repo_form.go`. Anything unrecognised maps
-to an "unknown" value that the model then refuses. The numbers stored in the database never travel
+to an "unknown" value that is then refused. The numbers stored in the database never travel
 through the page.
 
 **The `Validate` method is boilerplate — copy it.** A form that wants standard error handling
