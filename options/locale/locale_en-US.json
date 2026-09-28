@@ -1551,6 +1551,7 @@
   "repo.issues.comment_pull_merged_at": "merged commit %[1]s into %[2]s %[3]s",
   "repo.issues.comment_manually_pull_merged_at": "manually merged commit %[1]s into %[2]s %[3]s",
   "repo.issues.close_comment_issue": "Close with Comment",
+  "repo.issues.close_reason.text": "Close reason description",
   "repo.issues.close_reason.not_allowed": "This close reason is not available for this issue or pull request.",
   "repo.issues.close_reason.text_invalid": "The description is not valid. It is required for \"Other\", can be up to %d characters, and is only used with \"Other\".",
   "repo.issues.close_reason.duplicate_invalid": "The duplicate must be another issue or pull request in this repository.",

@@ -83,6 +83,9 @@ the matching `services/convert` function, and check whether the swagger response
   match the type in `web.Bind` exactly.
 - Adding a field to a `modules/structs` type without setting it in the converter ships a field
   that is always the zero value, and swagger will still document it as present.
+- A binding error message starts with the field's label: the `locale:"…"` tag, or else the key
+  `form.<FieldName>` (`modules/web/middleware/binding.go` → `Validate`). A field with a rule but no
+  tag or key shows the raw key to the person; `CreateCommentForm.CloseReasonText` sets the tag.
 
 ## Related
 

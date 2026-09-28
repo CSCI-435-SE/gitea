@@ -435,7 +435,7 @@ type CreateCommentForm struct {
 	Files   []string
 
 	CloseReason         string // a name, mapped by CloseReasonOptions
-	CloseReasonText     string
+	CloseReasonText     string `binding:"MaxSize(255)" locale:"repo.issues.close_reason.text"` // same limit as issues_model.CloseReasonTextMaxLength
 	CloseDuplicateIndex int64
 }
 

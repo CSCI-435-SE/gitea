@@ -4,11 +4,13 @@
 package forms
 
 import (
+	"strings"
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/modules/json"
 
+	"gitea.com/go-chi/binding"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -110,4 +112,13 @@ func TestCreateCommentForm_CloseReasonOptions(t *testing.T) {
 
 	unknown := CreateCommentForm{CloseReason: "bogus"}
 	assert.True(t, issues_model.IsErrCloseReasonNotAllowed(unknown.CloseReasonOptions().Validate(false)))
+}
+
+func TestCreateCommentForm_CloseReasonTextMaxSize(t *testing.T) {
+	assert.Empty(t, binding.RawValidate(&CreateCommentForm{CloseReasonText: strings.Repeat("é", 255)})) // counts characters, not bytes
+
+	errs := binding.RawValidate(&CreateCommentForm{CloseReasonText: strings.Repeat("a", 256)})
+	require.Len(t, errs, 1)
+	assert.Equal(t, binding.ERR_MAX_SIZE, errs[0].Classification)
+	assert.Equal(t, []string{"CloseReasonText"}, errs[0].FieldNames)
 }

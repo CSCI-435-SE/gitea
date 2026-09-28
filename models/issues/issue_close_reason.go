@@ -27,7 +27,8 @@ const (
 // CloseReasonUnknown is never stored: it stands for an unrecognised reason name, so that Validate rejects it.
 const CloseReasonUnknown CloseReason = -1
 
-// CloseReasonTextMaxLength matches the VARCHAR(255) close_reason_text column, counted in characters.
+// CloseReasonTextMaxLength matches the VARCHAR(255) close_reason_text column and the close form's MaxSize(255)
+// rule. Validate counts characters the same way MaxSize does, so paths that skip the form get the same limit.
 const CloseReasonTextMaxLength = 255
 
 // AllowedCloseReasons lists the reasons a person can pick when closing.

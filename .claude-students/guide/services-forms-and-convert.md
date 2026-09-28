@@ -1,6 +1,6 @@
 ---
 source: docs/services-forms-and-convert.md
-source-hash: 937826290a0a29cf
+source-hash: 54c21486c9d51454
 verified-at: 916a29ba28
 ---
 
@@ -141,6 +141,11 @@ look alike and are not interchangeable.
 **Your handler panics the moment someone submits the form.** `web.GetForm` returns an untyped value,
 so a wrong type assertion is not caught at compile time — it explodes at request time. The type in
 `web.GetForm` must match the type in `web.Bind` exactly.
+
+**An error message starts with something like `form.CloseReasonText`.** When a binding rule such as
+`MaxSize` fails, the message begins with the field's label, taken from the `locale:"…"` tag on the
+field, or else from the key `form.<FieldName>` (`modules/web/middleware/binding.go`). With neither,
+the person sees the raw key. Give the field a `locale` tag pointing at a real key.
 
 **A list endpoint is mysteriously slow.** A converter in the loop is querying per item. Load the
 data once before converting.
