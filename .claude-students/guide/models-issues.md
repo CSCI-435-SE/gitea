@@ -1,7 +1,7 @@
 ---
 source: docs/models-issues.md
-source-hash: 94b0bd74f84fe15e
-verified-at: 773c614f56
+source-hash: 1140cb991ec56c0f
+verified-at: bdfbdbf832
 ---
 
 <!-- Derived from docs/models-issues.md. Do not edit by hand: fix the reference doc and regenerate
@@ -166,6 +166,13 @@ The grouping is worked out in two places that must agree: `applyGroupByLabelScop
 sit together, and `GroupByExclusiveLabelScope` in `models/issues/issue_group.go` then cuts that page
 into groups in Go. If you change the order in one, change it in the other. In particular both settle
 ties on the label's `id`, not its name, because the database and Go do not sort text the same way.
+
+**`Test_MigrateFromGiteaToGitea` fails with "missing fixture" after you add a column to `Issue`.** The
+migration code fetches issues in pages sized by `db.MaxBatchInsertSize` (`models/db/engine.go`): 999
+divided by the number of columns. One more column changes the page size, the request asks for a
+different `limit`, and the recorded response in
+`tests/integration/_mock_data/Test_MigrateFromGiteaToGitea/` no longer matches its name. Rename that
+file to the new `limit`; its contents stay valid while the repository has fewer issues than the page size.
 
 **Building an issue's link crashes with a nil pointer.** `Issue.Link()` reads `issue.Repo`, and
 `GetIssueByID` does not fill it in. Call `LoadRepo(ctx)` first.

@@ -1,6 +1,6 @@
 ---
 scope: models/issues, models/pull
-verified-at: 773c614f56
+verified-at: bdfbdbf832
 ---
 
 # models/issues — issues, pull requests, comments, reviews
@@ -80,6 +80,10 @@ type exists to prevent.
 **Add a column to `Issue`.** Add the field with its xorm tag, add a migration
 (`models-migrations.md`), and if it is denormalised from elsewhere, extend the consistency check in
 `models/main_test.go` and the fixtures (`testing.md`).
+Each new column also lowers `db.MaxBatchInsertSize` (`models/db/engine.go`, 999 divided by the column
+count), which `services/migrations/migrate.go` uses as the issue page size. The recorded response in
+`tests/integration/_mock_data/Test_MigrateFromGiteaToGitea/` is named after that `limit`, so rename it
+to the new value or `Test_MigrateFromGiteaToGitea` fails with "missing fixture".
 
 **Find a PR from an issue.** `issue.LoadPullRequest(ctx)`, then `issue.PullRequest`. From the other
 direction, `pr.Issue` after the PR's own loader.
