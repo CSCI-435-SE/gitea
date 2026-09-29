@@ -117,13 +117,57 @@ func TestUpdateNotificationStatuses(t *testing.T) {
 		&activities_model.Notification{UserID: user.ID, Status: activities_model.NotificationStatusRead})
 	notfPinned := unittest.AssertExistsAndLoadBean(t,
 		&activities_model.Notification{UserID: user.ID, Status: activities_model.NotificationStatusPinned})
-	assert.NoError(t, activities_model.UpdateNotificationStatuses(t.Context(), user, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead))
+	assert.NoError(t, activities_model.UpdateNotificationStatuses(t.Context(), user, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead, activities_model.FindNotificationOptions{}))
 	unittest.AssertExistsAndLoadBean(t,
 		&activities_model.Notification{ID: notfUnread.ID, Status: activities_model.NotificationStatusRead})
 	unittest.AssertExistsAndLoadBean(t,
 		&activities_model.Notification{ID: notfRead.ID, Status: activities_model.NotificationStatusRead})
 	unittest.AssertExistsAndLoadBean(t,
 		&activities_model.Notification{ID: notfPinned.ID, Status: activities_model.NotificationStatusPinned})
+}
+
+func TestUpdateNotificationStatusesFiltered(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// notification 4 (repo 1) and 5 (repo 2) are both unread for user 2
+	assert.NoError(t, activities_model.UpdateNotificationStatuses(t.Context(), user, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead,
+		activities_model.FindNotificationOptions{RepoID: 1}))
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 4, Status: activities_model.NotificationStatusRead})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5, Status: activities_model.NotificationStatusUnread})
+
+	// a source filter that matches nothing leaves everything unread
+	assert.NoError(t, activities_model.UpdateNotificationStatuses(t.Context(), user, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead,
+		activities_model.FindNotificationOptions{Source: []activities_model.NotificationSource{activities_model.NotificationSourcePullRequest}}))
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5, Status: activities_model.NotificationStatusUnread})
+
+	// a filter's UserID is ignored, so user 2 cannot touch user 1's notification 1
+	assert.NoError(t, activities_model.UpdateNotificationStatuses(t.Context(), user, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead,
+		activities_model.FindNotificationOptions{UserID: 1}))
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 1, Status: activities_model.NotificationStatusUnread})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5, Status: activities_model.NotificationStatusRead})
+}
+
+func TestFindNotificationRepoIDs(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	unread, err := activities_model.FindNotificationRepoIDs(t.Context(), activities_model.FindNotificationOptions{
+		UserID: 2,
+		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
+	})
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []int64{1, 2}, unread)
+
+	all, err := activities_model.FindNotificationRepoIDs(t.Context(), activities_model.FindNotificationOptions{UserID: 1})
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{1}, all)
+
+	none, err := activities_model.FindNotificationRepoIDs(t.Context(), activities_model.FindNotificationOptions{
+		UserID: 2,
+		Source: []activities_model.NotificationSource{activities_model.NotificationSourceCommit},
+	})
+	assert.NoError(t, err)
+	assert.Empty(t, none)
 }
 
 func TestSetIssueReadBy(t *testing.T) {

@@ -407,12 +407,24 @@ func GetNotificationByID(ctx context.Context, notificationID int64) (*Notificati
 	return notification, nil
 }
 
-// UpdateNotificationStatuses updates the statuses of all of a user's notifications that are of the currentStatus type to the desiredStatus
-func UpdateNotificationStatuses(ctx context.Context, user *user_model.User, currentStatus, desiredStatus NotificationStatus) error {
+// UpdateNotificationStatuses updates the statuses of all of a user's notifications that are of the currentStatus type to the desiredStatus.
+// filter narrows the update (e.g. RepoID, Source); its UserID and Status are always overwritten.
+func UpdateNotificationStatuses(ctx context.Context, user *user_model.User, currentStatus, desiredStatus NotificationStatus, filter FindNotificationOptions) error {
+	filter.UserID = user.ID // never let a caller widen the update to another user
+	filter.Status = []NotificationStatus{currentStatus}
 	n := &Notification{Status: desiredStatus, UpdatedBy: user.ID}
 	_, err := db.GetEngine(ctx).
-		Where("user_id = ? AND status = ?", user.ID, currentStatus).
+		Where(filter.ToConds()).
 		Cols("status", "updated_by", "updated_unix").
 		Update(n)
 	return err
+}
+
+// FindNotificationRepoIDs returns the distinct repository IDs of the notifications matching opts
+func FindNotificationRepoIDs(ctx context.Context, opts FindNotificationOptions) ([]int64, error) {
+	repoIDs := make([]int64, 0, 10)
+	return repoIDs, db.GetEngine(ctx).Table("notification").
+		Where(opts.ToConds()).
+		Distinct("notification.repo_id").
+		Find(&repoIDs)
 }

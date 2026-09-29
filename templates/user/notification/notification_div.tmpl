@@ -1,25 +1,65 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
 		{{$statusUnread := 1}}{{$statusRead := 2}}{{$statusPinned := 3}}
-		{{$notificationUnreadCount := call .PageGlobalData.GetNotificationUnreadCount}}
+		{{$notificationUnreadCount := .FilteredUnreadCount}}{{/* the navbar badge stays global */}}
 		{{$pageTypeIsRead := eq $.PageType "read"}}
+		{{$filterQuery := QueryBuild "repo" $.FilterRepoID "source" $.FilterSource}}
+		{{$queryLink := QueryBuild "?" "type" $.PageType "repo" $.FilterRepoID "source" $.FilterSource}}
 		<div class="flex-left-right tw-mb-[--page-spacing]">
 			<div class="small-menu-items ui compact tiny menu">
-				<a class="{{if not $pageTypeIsRead}}active{{end}} item" href="{{AppSubUrl}}/notifications?type=unread">
+				<a class="{{if not $pageTypeIsRead}}active{{end}} item" href="{{AppSubUrl}}/notifications{{QueryBuild "?" "type" "unread" "repo" $.FilterRepoID "source" $.FilterSource}}">
 					{{ctx.Locale.Tr "notification.unread"}}
 					<div class="notifications-unread-count ui label {{if not $notificationUnreadCount}}tw-hidden{{end}}">{{$notificationUnreadCount}}</div>
 				</a>
-				<a class="{{if $pageTypeIsRead}}active{{end}} item" href="{{AppSubUrl}}/notifications?type=read">
+				<a class="{{if $pageTypeIsRead}}active{{end}} item" href="{{AppSubUrl}}/notifications{{QueryBuild "?" "type" "read" "repo" $.FilterRepoID "source" $.FilterSource}}">
 					{{ctx.Locale.Tr "notification.read"}}
 				</a>
 			</div>
-			{{if and (not $pageTypeIsRead) $notificationUnreadCount}}
-				<form action="{{AppSubUrl}}/notifications/purge" method="post">
-					<button class="ui mini button primary tw-mr-0" title="{{ctx.Locale.Tr "notification.mark_all_as_read"}}">
-						{{svg "octicon-checklist"}}
-					</button>
-				</form>
-			{{end}}
+			<div class="flex-text-block">
+				<div class="list-header-filters ui secondary menu tw-m-0">
+					<div class="ui dropdown jump item" data-test-id="notification-filter-repo">
+						<span class="text">{{if $.FilterRepo}}{{$.FilterRepo.FullName}}{{else}}{{ctx.Locale.Tr "notification.filter_repo"}}{{end}}</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<div class="ui icon search input">
+								<i class="icon">{{svg "octicon-search"}}</i>
+								<input type="text" placeholder="{{ctx.Locale.Tr "notification.filter_repo"}}">
+							</div>
+							<a class="item{{if not $.FilterRepoID}} selected{{end}}" href="{{QueryBuild $queryLink "repo" NIL}}">{{ctx.Locale.Tr "notification.filter_repo_all"}}</a>
+							{{range $.FilterRepos}}
+								<a class="item flex-text-block{{if eq .ID $.FilterRepoID}} selected{{end}}" href="{{QueryBuild $queryLink "repo" .ID}}">
+									<span class="tw-flex-1 gt-ellipsis">{{.FullName}}</span>
+									{{if $.FilterRepoUnread.Contains .ID}}
+										<span class="tw-inline-block tw-w-2 tw-h-2 tw-rounded-full tw-bg-blue" role="img" aria-label="{{ctx.Locale.Tr "notification.filter_repo_has_unread"}}" data-tooltip-content="{{ctx.Locale.Tr "notification.filter_repo_has_unread"}}"></span>
+									{{end}}
+								</a>
+							{{end}}
+						</div>
+					</div>
+					<div class="ui dropdown jump item" data-test-id="notification-filter-type">
+						<span class="text">{{if $.FilterSource}}{{ctx.Locale.Tr (printf "notification.filter_type_%s" $.FilterSource)}}{{else}}{{ctx.Locale.Tr "notification.filter_type"}}{{end}}</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<a class="item{{if not $.FilterSource}} selected{{end}}" href="{{QueryBuild $queryLink "source" NIL}}">{{ctx.Locale.Tr "notification.filter_type_all"}}</a>
+							<a class="item{{if eq $.FilterSource "issue"}} selected{{end}}" href="{{QueryBuild $queryLink "source" "issue"}}">{{ctx.Locale.Tr "notification.filter_type_issue"}}</a>
+							<a class="item{{if eq $.FilterSource "pull"}} selected{{end}}" href="{{QueryBuild $queryLink "source" "pull"}}">{{ctx.Locale.Tr "notification.filter_type_pull"}}</a>
+							<a class="item{{if eq $.FilterSource "commit"}} selected{{end}}" href="{{QueryBuild $queryLink "source" "commit"}}">{{ctx.Locale.Tr "notification.filter_type_commit"}}</a>
+							<a class="item{{if eq $.FilterSource "repository"}} selected{{end}}" href="{{QueryBuild $queryLink "source" "repository"}}">{{ctx.Locale.Tr "notification.filter_type_repository"}}</a>
+						</div>
+					</div>
+				</div>
+				{{if $.IsFiltered}}
+					<a class="ui mini basic button" href="{{AppSubUrl}}/notifications{{QueryBuild "?" "type" $.PageType}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
+				{{end}}
+				{{if and (not $pageTypeIsRead) $notificationUnreadCount}}
+					{{$markAllTitle := Iif $.IsFiltered (ctx.Locale.Tr "notification.mark_all_filtered_as_read") (ctx.Locale.Tr "notification.mark_all_as_read")}}
+					<form action="{{AppSubUrl}}/notifications/purge{{if $.IsFiltered}}?{{$filterQuery}}{{end}}" method="post">
+						<button class="ui mini button primary tw-mr-0" title="{{$markAllTitle}}" aria-label="{{$markAllTitle}}">
+							{{svg "octicon-checklist"}}
+						</button>
+					</form>
+				{{end}}
+			</div>
 		</div>
 		<div id="notification_table">
 			{{range $one := .Notifications}}
@@ -53,7 +93,7 @@
 							{{DateUtils.TimeSince $one.UpdatedUnix}}
 						{{end}}
 					</div>
-					<form class="notifications-buttons form-fetch-action" action="{{AppSubUrl}}/notifications/status?type={{$.PageType}}&page={{$.Page.Paginater.Current}}&perPage={{$.Page.Paginater.PagingNum}}" method="post"
+					<form class="notifications-buttons form-fetch-action" action="{{AppSubUrl}}/notifications/status?type={{$.PageType}}&page={{$.Page.Paginater.Current}}&perPage={{$.Page.Paginater.PagingNum}}{{if $.IsFiltered}}&{{$filterQuery}}{{end}}" method="post"
 								data-fetch-sync="$body #notification_div"
 					>
 						<input type="hidden" name="notification_id" value="{{$one.ID}}">
@@ -82,7 +122,10 @@
 			{{else}}
 				<div class="empty-placeholder">
 					{{svg "octicon-inbox" 56 "tw-mb-4"}}
-					{{if $pageTypeIsRead}}
+					{{if $.IsFiltered}}
+						{{ctx.Locale.Tr "notification.no_filtered"}}
+						<a href="{{AppSubUrl}}/notifications{{QueryBuild "?" "type" $.PageType}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
+					{{else if $pageTypeIsRead}}
 						{{ctx.Locale.Tr "notification.no_read"}}
 					{{else}}
 						{{ctx.Locale.Tr "notification.no_unread"}}

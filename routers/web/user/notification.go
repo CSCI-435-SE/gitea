@@ -7,6 +7,9 @@ import (
 	stdCtx "context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"slices"
+	"strconv"
 	"strings"
 
 	activities_model "gitea.dev/models/activities"
@@ -54,13 +57,27 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	page := max(1, ctx.FormInt("page"))
 	perPage := util.IfZero(ctx.FormInt("perPage"), 20) // this value is never used or exposed ....
 	queryStatus := util.Iif(pageType == "read", activities_model.NotificationStatusRead, activities_model.NotificationStatusUnread)
+	filter := parseNotificationFilter(ctx)
 
-	total, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
-		UserID: ctx.Doer.ID,
-		Status: []activities_model.NotificationStatus{queryStatus},
-	})
+	countOpts := filter.findOptions(ctx.Doer.ID)
+	countOpts.Status = []activities_model.NotificationStatus{queryStatus}
+	total, err := db.Count[activities_model.Notification](ctx, countOpts)
 	if err != nil {
 		ctx.ServerError("ErrGetNotificationCount", err)
+		return
+	}
+
+	unreadOpts := filter.findOptions(ctx.Doer.ID)
+	unreadOpts.Status = []activities_model.NotificationStatus{activities_model.NotificationStatusUnread}
+	filteredUnreadCount, err := db.Count[activities_model.Notification](ctx, unreadOpts) // the navbar badge stays global
+	if err != nil {
+		ctx.ServerError("ErrGetNotificationCount", err)
+		return
+	}
+
+	filterRepos, unreadRepoIDs, err := loadNotificationFilterRepos(ctx, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("loadNotificationFilterRepos", err)
 		return
 	}
 
@@ -71,15 +88,13 @@ func prepareUserNotificationsData(ctx *context.Context) {
 		pager = context.NewPagination(total, perPage, page, 5)
 	}
 
-	statuses := []activities_model.NotificationStatus{queryStatus, activities_model.NotificationStatusPinned}
-	nls, err := db.Find[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
-		ListOptions: db.ListOptions{
-			PageSize: perPage,
-			Page:     page,
-		},
-		UserID: ctx.Doer.ID,
-		Status: statuses,
-	})
+	findOpts := filter.findOptions(ctx.Doer.ID) // pinned rows are filtered like the rest
+	findOpts.ListOptions = db.ListOptions{
+		PageSize: perPage,
+		Page:     page,
+	}
+	findOpts.Status = []activities_model.NotificationStatus{queryStatus, activities_model.NotificationStatusPinned}
+	nls, err := db.Find[activities_model.Notification](ctx, findOpts)
 	if err != nil {
 		ctx.ServerError("db.Find[activities_model.Notification]", err)
 		return
@@ -138,6 +153,18 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	ctx.Data["Notifications"] = notifications
 	ctx.Data["Link"] = setting.AppSubURL + "/notifications"
 	ctx.Data["SequenceNumber"] = ctx.FormString("sequence-number")
+	ctx.Data["FilterRepoID"] = filter.RepoID
+	ctx.Data["FilterSource"] = filter.Source
+	ctx.Data["IsFiltered"] = filter.IsActive()
+	ctx.Data["FilterRepos"] = filterRepos
+	ctx.Data["FilterRepoUnread"] = unreadRepoIDs
+	ctx.Data["FilteredUnreadCount"] = filteredUnreadCount
+	for _, repo := range filterRepos {
+		if repo.ID == filter.RepoID {
+			ctx.Data["FilterRepo"] = repo // only accessible repos are named, a guessed ID shows the generic label
+			break
+		}
+	}
 
 	pager.AddParamFromRequest(ctx.Req)
 	pager.RemoveParam(container.SetOf("div-only", "sequence-number"))
@@ -159,6 +186,101 @@ func filterNotificationsByRepoAccess(ctx stdCtx.Context, doer *user_model.User, 
 		}
 	}
 	return notifications.Without(failures), failures, nil
+}
+
+// notificationSourceParams maps the "source" query value to the notification source it selects
+var notificationSourceParams = map[string]activities_model.NotificationSource{
+	"issue":      activities_model.NotificationSourceIssue,
+	"pull":       activities_model.NotificationSourcePullRequest,
+	"commit":     activities_model.NotificationSourceCommit,
+	"repository": activities_model.NotificationSourceRepository,
+}
+
+// notificationFilter is the repository and type filter of the notifications page
+type notificationFilter struct {
+	RepoID int64
+	Source string // a key of notificationSourceParams, or "" for any
+}
+
+func parseNotificationFilter(ctx *context.Context) notificationFilter {
+	filter := notificationFilter{RepoID: max(0, ctx.FormInt64("repo"))}
+	if source := ctx.FormString("source"); notificationSourceParams[source] != 0 {
+		filter.Source = source // unknown values are ignored rather than matching nothing
+	}
+	return filter
+}
+
+func (f notificationFilter) IsActive() bool {
+	return f.RepoID != 0 || f.Source != ""
+}
+
+func (f notificationFilter) findOptions(userID int64) activities_model.FindNotificationOptions {
+	opts := activities_model.FindNotificationOptions{UserID: userID, RepoID: f.RepoID}
+	if f.Source != "" {
+		opts.Source = []activities_model.NotificationSource{notificationSourceParams[f.Source]}
+	}
+	return opts
+}
+
+// queryString is built from the parsed values, never the raw request, so redirects only carry validated input
+func (f notificationFilter) queryString() string {
+	q := url.Values{}
+	if f.RepoID != 0 {
+		q.Set("repo", strconv.FormatInt(f.RepoID, 10))
+	}
+	if f.Source != "" {
+		q.Set("source", f.Source)
+	}
+	return q.Encode()
+}
+
+// loadNotificationFilterRepos returns the repositories offered by the repository filter, sorted by full name,
+// and the IDs of those with unread notifications
+func loadNotificationFilterRepos(ctx stdCtx.Context, doer *user_model.User) (repo_model.RepositoryList, container.Set[int64], error) {
+	searchOpts := repo_model.SearchRepoOptions{
+		Actor:   doer,
+		OwnerID: doer.ID,
+		Private: true,
+	}
+	repos, _, err := repo_model.SearchRepositoryByCondition(ctx, searchOpts, repo_model.SearchRepositoryCondition(searchOpts), false)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// watched repos the user neither owns nor collaborates on are missing from the search
+	notifRepoIDs, err := activities_model.FindNotificationRepoIDs(ctx, activities_model.FindNotificationOptions{UserID: doer.ID})
+	if err != nil {
+		return nil, nil, err
+	}
+	known := container.SetOf(repos.IDs()...)
+	missingIDs := slices.DeleteFunc(notifRepoIDs, func(id int64) bool { return known.Contains(id) })
+	if len(missingIDs) > 0 {
+		missing, err := repo_model.GetRepositoriesMapByIDs(ctx, missingIDs)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, repo := range missing {
+			perm, err := access_model.GetIndividualUserRepoPermission(ctx, repo, doer)
+			if err != nil {
+				return nil, nil, err
+			}
+			if perm.HasAnyUnitAccessOrPublicAccess() {
+				repos = append(repos, repo)
+			}
+		}
+	}
+	slices.SortFunc(repos, func(a, b *repo_model.Repository) int {
+		return strings.Compare(strings.ToLower(a.FullName()), strings.ToLower(b.FullName()))
+	})
+
+	unreadIDs, err := activities_model.FindNotificationRepoIDs(ctx, activities_model.FindNotificationOptions{
+		UserID: doer.ID,
+		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return repos, container.SetOf(unreadIDs...), nil
 }
 
 // NotificationStatusPost is a route for changing the status of a notification
@@ -189,13 +311,18 @@ func NotificationStatusPost(ctx *context.Context) {
 
 // NotificationPurgePost is a route for 'purging' the list of notifications - marking all unread as read
 func NotificationPurgePost(ctx *context.Context) {
-	err := activities_model.UpdateNotificationStatuses(ctx, ctx.Doer, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead)
+	filter := parseNotificationFilter(ctx) // only the notifications the user is looking at are marked
+	err := activities_model.UpdateNotificationStatuses(ctx, ctx.Doer, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead, filter.findOptions(ctx.Doer.ID))
 	if err != nil {
 		ctx.ServerError("UpdateNotificationStatuses", err)
 		return
 	}
 
-	ctx.Redirect(setting.AppSubURL+"/notifications", http.StatusSeeOther)
+	redirect := setting.AppSubURL + "/notifications"
+	if q := filter.queryString(); q != "" {
+		redirect += "?" + q
+	}
+	ctx.Redirect(redirect, http.StatusSeeOther)
 }
 
 // NotificationSubscriptions returns the list of subscribed issues
