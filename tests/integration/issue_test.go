@@ -310,6 +310,56 @@ func TestIssueCommentCloseWithReason(t *testing.T) {
 	})
 }
 
+func TestIssueCloseReasonMenu(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+
+	// closeFromPage checks the close button and its menu, then closes with the reason the page itself sends
+	closeFromPage := func(t *testing.T, link, wantText, wantTextWithComment string, wantReasons, wantLabels []string) {
+		htmlDoc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK).Body)
+		button := htmlDoc.doc.Find("#comment-form .ui.buttons #status-button")
+		assert.Equal(t, wantText, strings.TrimSpace(button.Find(".status-button-text").Text()))
+		assert.Equal(t, wantTextWithComment, button.AttrOr("data-status-and-comment", ""))
+
+		var reasons, labels []string
+		htmlDoc.doc.Find("#comment-form .ui.buttons .menu .item").Each(func(_ int, item *goquery.Selection) {
+			reasons = append(reasons, item.AttrOr("data-value", ""))
+			labels = append(labels, strings.TrimSpace(item.Text())) // a missing locale key would show as the key
+		})
+		assert.Equal(t, wantReasons, reasons)
+		assert.Equal(t, wantLabels, labels)
+
+		reason, exists := htmlDoc.doc.Find(`#comment-form input[name="close_reason"]`).Attr("value")
+		require.True(t, exists, "The template has changed")
+		action, exists := htmlDoc.doc.Find("#comment-form").Attr("action")
+		require.True(t, exists, "The template has changed")
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", action, map[string]string{"status": "close", "close_reason": reason}), http.StatusOK)
+	}
+
+	t.Run("an issue starts on completed", func(t *testing.T) {
+		closeFromPage(t, "/user2/repo1/issues/1", "Close as completed", "Close as completed with comment",
+			[]string{"completed", "not_planned", "duplicate", "other"}, []string{"Completed", "Not planned", "Duplicate", "Other"})
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		assert.True(t, issue.IsClosed)
+		assert.Equal(t, issues_model.CloseReasonCompleted, issue.CloseReason)
+	})
+
+	t.Run("a pull request starts on not planned and cannot be completed", func(t *testing.T) {
+		closeFromPage(t, "/user2/repo1/pulls/3", "Close as not planned", "Close as not planned with comment",
+			[]string{"not_planned", "duplicate", "other"}, []string{"Not planned", "Duplicate", "Other"})
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+		assert.True(t, issue.IsClosed)
+		assert.Equal(t, issues_model.CloseReasonNotPlanned, issue.CloseReason)
+	})
+
+	t.Run("a closed issue only offers reopening", func(t *testing.T) {
+		htmlDoc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/issues/4"), http.StatusOK).Body)
+		assert.Equal(t, "Reopen Issue", strings.TrimSpace(htmlDoc.doc.Find("#status-button .status-button-text").Text()))
+		assert.Zero(t, htmlDoc.doc.Find("#comment-form .ui.buttons .ui.dropdown").Length())
+		assert.Zero(t, htmlDoc.doc.Find(`#comment-form input[name="close_reason"]`).Length())
+	})
+}
+
 func TestIssueCommentDelete(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")

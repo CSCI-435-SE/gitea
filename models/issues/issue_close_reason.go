@@ -69,6 +69,14 @@ func AllowedCloseReasons(isPull bool) []CloseReason {
 	return []CloseReason{CloseReasonCompleted, CloseReasonNotPlanned, CloseReasonDuplicate, CloseReasonOther}
 }
 
+// DefaultCloseReason is the reason the close button starts on; consumers may still send any allowed reason, or none.
+func DefaultCloseReason(isPull bool) CloseReason {
+	if isPull {
+		return CloseReasonNotPlanned
+	}
+	return CloseReasonCompleted
+}
+
 // CloseReasonOptions is the reason a person gives when closing an issue or pull request.
 type CloseReasonOptions struct {
 	Reason         CloseReason

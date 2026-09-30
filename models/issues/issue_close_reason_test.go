@@ -57,6 +57,14 @@ func TestAllowedCloseReasons(t *testing.T) {
 	}, issues_model.AllowedCloseReasons(true))
 }
 
+func TestDefaultCloseReason(t *testing.T) {
+	assert.Equal(t, issues_model.CloseReasonCompleted, issues_model.DefaultCloseReason(false))
+	assert.Equal(t, issues_model.CloseReasonNotPlanned, issues_model.DefaultCloseReason(true))
+	for _, isPull := range []bool{false, true} {
+		assert.Contains(t, issues_model.AllowedCloseReasons(isPull), issues_model.DefaultCloseReason(isPull), "isPull %v", isPull)
+	}
+}
+
 func TestCloseReasonNames(t *testing.T) {
 	cases := []struct {
 		name string

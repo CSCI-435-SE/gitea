@@ -405,6 +405,8 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.Permission.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
+	ctx.Data["CloseReasons"] = issues_model.AllowedCloseReasons(issue.IsPull)
+	ctx.Data["DefaultCloseReason"] = issues_model.DefaultCloseReason(issue.IsPull)
 	ctx.Data["RefEndName"] = git.RefName(issue.Ref).ShortName()
 
 	tags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)

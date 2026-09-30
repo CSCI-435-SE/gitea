@@ -96,13 +96,28 @@
 												{{$btnValue = "close"}}
 												{{$btnIconColor = "tw-text-red"}}
 												{{$btnIcon = Iif .Issue.IsPull "octicon-git-pull-request-closed" "octicon-issue-closed"}}
-												{{$btnTextNoComment = ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.close" "repo.issues.close")}}
-												{{$btnTextWithComment = ctx.Locale.Tr "repo.issues.close_comment_issue"}}{{/* general: Close with Comment */}}
+												{{$btnTextNoComment = ctx.Locale.Tr (printf "repo.issues.close_as.%s" .DefaultCloseReason.String)}}
+												{{$btnTextWithComment = ctx.Locale.Tr (printf "repo.issues.close_as_with_comment.%s" .DefaultCloseReason.String)}}
 											{{end}}
-											<button id="status-button" class="ui button" data-status="{{$btnTextNoComment}}" data-status-and-comment="{{$btnTextWithComment}}" name="status" value="{{$btnValue}}">
-												<span class="status-button-icon {{$btnIconColor}}">{{svg $btnIcon}}</span>
-												<span class="status-button-text">{{$btnTextNoComment}}</span>
-											</button>
+											{{if not .Issue.IsClosed}}
+												<input type="hidden" name="close_reason" value="{{.DefaultCloseReason.String}}">{{/* outside the dropdown, so picking an item doesn't change it before the button text follows */}}
+											{{end}}
+											<div class="ui buttons">
+												<button id="status-button" class="ui button" data-status="{{$btnTextNoComment}}" data-status-and-comment="{{$btnTextWithComment}}" name="status" value="{{$btnValue}}">
+													<span class="status-button-icon {{$btnIconColor}}">{{svg $btnIcon}}</span>
+													<span class="status-button-text">{{$btnTextNoComment}}</span>
+												</button>
+												{{if not .Issue.IsClosed}}
+													<div class="ui dropdown icon button" aria-label="{{ctx.Locale.Tr "repo.issues.close_reason.choose"}}">
+														{{svg "octicon-triangle-down"}}
+														<div class="menu">
+															{{range .CloseReasons}}
+																<div class="item{{if eq . $.DefaultCloseReason}} selected{{end}}" data-value="{{.String}}">{{ctx.Locale.Tr (printf "repo.issues.close_reason.%s" .String)}}</div>
+															{{end}}
+														</div>
+													</div>
+												{{end}}
+											</div>
 										{{end}}
 										<button id="comment-button" class="ui primary button">
 											{{ctx.Locale.Tr "repo.issues.create_comment"}}
