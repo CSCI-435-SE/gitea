@@ -1,6 +1,6 @@
 ---
 scope: web_src/js/index.ts, web_src/js/features, web_src/js/modules, web_src/js/utils, web_src/js/webcomponents, web_src/js/markup, web_src/js/render
-verified-at: 187c98fee9
+verified-at: 85a296b0ad
 ---
 
 # web_src/js — page features and how they get wired up
@@ -86,6 +86,11 @@ its root element is missing, then add the import and the array entry in `index.t
   it with Vue — Vue may use its CSS classes but not its JavaScript.
 - `utils/` is for pure helpers. A function that reaches for `window` or a global selector belongs
   in `modules/` or `features/`.
+- A feature can follow a comment box it did not create: the editor's change and upload events
+  bubble (`features/comp/EditorMarkdown.ts`, `features/comp/EditorUpload.ts`), and
+  `getComboMarkdownEditor` finds the editor, as `features/repo-issue-status-button.ts` does. But
+  the editor attaches itself before its async `init` finishes, and calling it before then throws;
+  read its textarea until an event arrives.
 
 ## Related
 

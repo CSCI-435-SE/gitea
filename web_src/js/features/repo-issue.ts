@@ -448,16 +448,11 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
   // pages:
   // * normal new issue/pr page: no status-button, no comment-button (there is only a normal submit button which can submit empty content)
   // * issue/pr view page: with comment form, has status-button and comment-button
+  // the status-button follows the editor on its own, see initRepoIssueStatusButton
   const editor = await initComboMarkdownEditor(commentForm.querySelector('.combo-markdown-editor')!);
-  const statusButton = document.querySelector<HTMLButtonElement>('#status-button');
   const commentButton = document.querySelector<HTMLButtonElement>('#comment-button');
   const syncUiState = () => {
     const editorText = editor.value().trim(), isUploading = editor.isUploading();
-    if (statusButton) {
-      const statusText = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
-      statusButton.querySelector<HTMLElement>('.status-button-text')!.textContent = statusText;
-      statusButton.disabled = isUploading;
-    }
     if (commentButton) {
       commentButton.disabled = !editorText || isUploading;
     }

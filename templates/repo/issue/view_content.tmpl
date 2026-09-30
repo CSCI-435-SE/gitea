@@ -102,7 +102,7 @@
 											{{if not .Issue.IsClosed}}
 												<input type="hidden" name="close_reason" value="{{.DefaultCloseReason.String}}">{{/* outside the dropdown, so picking an item doesn't change it before the button text follows */}}
 											{{end}}
-											<div class="ui buttons">
+											<div class="ui buttons" data-global-init="initRepoIssueStatusButton">
 												<button id="status-button" class="ui button" data-status="{{$btnTextNoComment}}" data-status-and-comment="{{$btnTextWithComment}}" name="status" value="{{$btnValue}}">
 													<span class="status-button-icon {{$btnIconColor}}">{{svg $btnIcon}}</span>
 													<span class="status-button-text">{{$btnTextNoComment}}</span>

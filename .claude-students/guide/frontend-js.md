@@ -1,7 +1,7 @@
 ---
 source: docs/frontend-js.md
-source-hash: 2d8405ac2117ea73
-verified-at: 187c98fee9
+source-hash: 8f7f7c2065c1c5c9
+verified-at: 85a296b0ad
 ---
 
 <!-- Derived from docs/frontend-js.md. Do not edit by hand: fix the reference doc and regenerate
@@ -157,6 +157,14 @@ use its CSS classes, but the two fight over who owns the DOM.
 
 **You put a helper in `utils/` and it breaks in tests.** That folder is for pure helpers. Anything
 reaching for `window` or searching the page belongs in `modules/` or `features/`.
+
+**Your feature crashes when it asks the comment box what was typed.** A feature can follow a
+comment box someone else set up: the box's "content changed" and "upload" events travel up the
+page (`features/comp/EditorMarkdown.ts`, `features/comp/EditorUpload.ts`), and
+`getComboMarkdownEditor` hands you the editor, as `features/repo-issue-status-button.ts` does. The
+catch is timing: the editor is attached to its box *before* it finishes setting up, so asking it
+anything too early throws. Read the box's textarea at start-up, and only ask the editor once one of
+its events arrives — the events come from an editor that is ready.
 
 ## Where to go next
 

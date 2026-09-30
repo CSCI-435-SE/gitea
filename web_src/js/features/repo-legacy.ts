@@ -18,6 +18,7 @@ import {initRepoNew} from './repo-new.ts';
 import {createApp} from 'vue';
 import RepoBranchTagSelector from '../components/RepoBranchTagSelector.vue';
 import {initRepoPullMergeBox, initRepoPullRequestUpdate} from './repo-issue-pull.ts';
+import {initRepoIssueStatusButton} from './repo-issue-status-button.ts';
 
 function initRepoBranchTagSelector() {
   registerGlobalInitFunc('initRepoBranchTagSelector', async (elRoot: HTMLInputElement) => {
@@ -40,6 +41,7 @@ export function initBranchSelectorTabs() {
 export function initRepository() {
   registerGlobalInitFunc('initRepoPullMergeBox', initRepoPullMergeBox);
   registerGlobalInitFunc('initRepoPullRequestUpdate', initRepoPullRequestUpdate);
+  registerGlobalInitFunc('initRepoIssueStatusButton', initRepoIssueStatusButton);
 
   const pageContent = document.querySelector('.page-content.repository');
   if (!pageContent) return;
