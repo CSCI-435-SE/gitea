@@ -100,7 +100,7 @@
 												{{$btnTextWithComment = ctx.Locale.Tr (printf "repo.issues.close_as_with_comment.%s" .DefaultCloseReason.String)}}
 											{{end}}
 											{{if not .Issue.IsClosed}}
-												<input type="hidden" name="close_reason" value="{{.DefaultCloseReason.String}}">{{/* outside the dropdown, so picking an item doesn't change it before the button text follows */}}
+												<input type="hidden" name="close_reason" value="{{.DefaultCloseReason.String}}">{{/* changed together with the button's texts by initRepoIssueStatusButton */}}
 											{{end}}
 											<div class="ui buttons" data-global-init="initRepoIssueStatusButton">
 												<button id="status-button" class="ui button" data-status="{{$btnTextNoComment}}" data-status-and-comment="{{$btnTextWithComment}}" name="status" value="{{$btnValue}}">
@@ -112,7 +112,11 @@
 														{{svg "octicon-triangle-down"}}
 														<div class="menu">
 															{{range .CloseReasons}}
-																<div class="item{{if eq . $.DefaultCloseReason}} selected{{end}}" data-value="{{.String}}">{{ctx.Locale.Tr (printf "repo.issues.close_reason.%s" .String)}}</div>
+																{{/* js-aria-clickable: Enter on the item is a click too, see modules/fomantic/dropdown.ts */}}
+																<div class="item js-aria-clickable{{if eq . $.DefaultCloseReason}} selected{{end}}" data-value="{{.String}}"
+																	data-status="{{ctx.Locale.Tr (printf "repo.issues.close_as.%s" .String)}}"
+																	data-status-and-comment="{{ctx.Locale.Tr (printf "repo.issues.close_as_with_comment.%s" .String)}}"
+																>{{ctx.Locale.Tr (printf "repo.issues.close_reason.%s" .String)}}</div>
 															{{end}}
 														</div>
 													</div>

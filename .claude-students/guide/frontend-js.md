@@ -1,6 +1,6 @@
 ---
 source: docs/frontend-js.md
-source-hash: 8f7f7c2065c1c5c9
+source-hash: 2a2975639ad5c3cd
 verified-at: 85a296b0ad
 ---
 
@@ -165,6 +165,14 @@ page (`features/comp/EditorMarkdown.ts`, `features/comp/EditorUpload.ts`), and
 catch is timing: the editor is attached to its box *before* it finishes setting up, so asking it
 anything too early throws. Read the box's textarea at start-up, and only ask the editor once one of
 its events arrives — the events come from an editor that is ready.
+
+**Your menu works with the mouse but not with the keyboard.** You listened for clicks on the items
+of a Fomantic dropdown. Pressing Enter on a highlighted item only becomes a real click when the item
+is a link or has the class `js-aria-clickable` — Gitea's own patch in
+`web_src/js/modules/fomantic/dropdown.ts` does that, so everything else is handled inside Fomantic
+and your listener never hears it. Add the class, as the comment menu
+(`templates/repo/issue/view_content/context_menu.tmpl`) and the close reason menu
+(`templates/repo/issue/view_content.tmpl`) do.
 
 ## Where to go next
 

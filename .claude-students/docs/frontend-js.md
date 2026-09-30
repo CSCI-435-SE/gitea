@@ -91,6 +91,10 @@ its root element is missing, then add the import and the array entry in `index.t
   `getComboMarkdownEditor` finds the editor, as `features/repo-issue-status-button.ts` does. But
   the editor attaches itself before its async `init` finishes, and calling it before then throws;
   read its textarea until an event arrives.
+- Enter on a Fomantic dropdown item only fires a `click` when the item is a link or carries
+  `js-aria-clickable` (`web_src/js/modules/fomantic/dropdown.ts`), so a plain click listener on other
+  items never hears a keyboard pick. `templates/repo/issue/view_content/context_menu.tmpl` and the
+  close reason menu in `templates/repo/issue/view_content.tmpl` mark their items.
 
 ## Related
 

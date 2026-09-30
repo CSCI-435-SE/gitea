@@ -314,6 +314,14 @@ func TestIssueCloseReasonMenu(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 
+	// the button texts each menu item hands to the button when it is picked
+	itemTexts := map[string][2]string{
+		"completed":   {"Close as completed", "Close as completed with comment"},
+		"not_planned": {"Close as not planned", "Close as not planned with comment"},
+		"duplicate":   {"Close as duplicate", "Close as duplicate with comment"},
+		"other":       {"Close with other reason", "Close with other reason and comment"},
+	}
+
 	// closeFromPage checks the close button and its menu, then closes with the reason the page itself sends
 	closeFromPage := func(t *testing.T, link, wantText, wantTextWithComment string, wantReasons, wantLabels []string) {
 		htmlDoc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK).Body)
@@ -323,8 +331,11 @@ func TestIssueCloseReasonMenu(t *testing.T) {
 
 		var reasons, labels []string
 		htmlDoc.doc.Find("#comment-form .ui.buttons .menu .item").Each(func(_ int, item *goquery.Selection) {
-			reasons = append(reasons, item.AttrOr("data-value", ""))
+			reason := item.AttrOr("data-value", "")
+			reasons = append(reasons, reason)
 			labels = append(labels, strings.TrimSpace(item.Text())) // a missing locale key would show as the key
+			assert.Equal(t, itemTexts[reason], [2]string{item.AttrOr("data-status", ""), item.AttrOr("data-status-and-comment", "")}, "reason %q", reason)
+			assert.True(t, item.HasClass("js-aria-clickable"), "reason %q: without it, Enter does not pick the item", reason)
 		})
 		assert.Equal(t, wantReasons, reasons)
 		assert.Equal(t, wantLabels, labels)
