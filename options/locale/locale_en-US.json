@@ -1516,7 +1516,6 @@
   "repo.issues.group_by.count_on_page": "Number shown on this page",
   "repo.issues.quick_goto": "Go to issue",
   "repo.issues.action_open": "Open",
-  "repo.issues.action_close": "Close",
   "repo.issues.action_label": "Label",
   "repo.issues.action_milestone": "Milestone",
   "repo.issues.action_milestone_no_select": "No milestone",

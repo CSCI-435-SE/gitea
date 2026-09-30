@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"path"
 	"slices"
@@ -590,6 +591,119 @@ func TestIssueCloseReasonIcons(t *testing.T) {
 		assert.Equal(t, "octicon-git-merge tw-text-purple", merged.listIcon)
 		assert.Equal(t, "purple", merged.labelColor)
 	})
+}
+
+func TestIssueBulkCloseReason(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+
+	type closeButton struct {
+		text, reason                 string
+		reasons, labels, statusTexts []string
+	}
+	// buttonOf reads the list's Close button, the reason it starts on, and its menu; and the address it sends to
+	buttonOf := func(t *testing.T, kind string) (closeButton, string) {
+		htmlDoc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/"+kind+"?state=open"), http.StatusOK).Body)
+		buttons := htmlDoc.doc.Find("#issue-actions .js-issue-list-close-reason")
+		button := buttons.Find(`.issue-action[data-action="close"]`)
+		got := closeButton{text: strings.TrimSpace(button.Text()), reason: button.AttrOr("data-close-reason", "")}
+		buttons.Find(".menu .item").Each(func(_ int, item *goquery.Selection) {
+			got.reasons = append(got.reasons, item.AttrOr("data-value", ""))
+			got.labels = append(got.labels, strings.TrimSpace(item.Text())) // a missing locale key would show as the key
+			got.statusTexts = append(got.statusTexts, item.AttrOr("data-status", ""))
+			assert.True(t, item.HasClass("js-aria-clickable"), "without it, Enter does not pick the item")
+		})
+		return got, button.AttrOr("data-url", "")
+	}
+	newIssue := func(t *testing.T) *issues_model.Issue {
+		index, err := strconv.ParseInt(path.Base(testNewIssue(t, session, "user2", "repo1", "Bulk close check", "Description")), 10, 64)
+		require.NoError(t, err)
+		return unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Index: index})
+	}
+	// bulkClose sends what the Close button sends for the selected items, with no reason when reason is ""
+	bulkClose := func(t *testing.T, url, reason string, wantStatus int, issues ...*issues_model.Issue) *httptest.ResponseRecorder {
+		ids := make([]string, 0, len(issues))
+		for _, issue := range issues {
+			ids = append(ids, strconv.FormatInt(issue.ID, 10))
+		}
+		fields := map[string]string{"action": "close", "issue_ids": strings.Join(ids, ","), "id": ""}
+		if reason != "" {
+			fields["close_reason"] = reason
+		}
+		return session.MakeRequest(t, NewRequestWithValues(t, "POST", url, fields), wantStatus)
+	}
+	reasonOf := func(t *testing.T, issue *issues_model.Issue) (bool, issues_model.CloseReason) {
+		issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID})
+		return issue.IsClosed, issue.CloseReason
+	}
+
+	t.Run("the Issues tab starts on completed and offers not planned", func(t *testing.T) {
+		button, url := buttonOf(t, "issues")
+		assert.Equal(t, closeButton{
+			"Close as completed", "completed",
+			[]string{"completed", "not_planned"},
+			[]string{"Completed", "Not planned"},
+			[]string{"Close as completed", "Close as not planned"},
+		}, button)
+
+		for _, reason := range button.reasons {
+			first, second := newIssue(t), newIssue(t)
+			bulkClose(t, url, reason, http.StatusOK, first, second)
+			for _, issue := range []*issues_model.Issue{first, second} {
+				isClosed, closeReason := reasonOf(t, issue)
+				assert.True(t, isClosed)
+				assert.Equal(t, reason, closeReason.String(), "every selected issue closes with the reason sent")
+			}
+		}
+	})
+
+	t.Run("the Pull Requests tab offers only not planned", func(t *testing.T) {
+		button, url := buttonOf(t, "pulls")
+		assert.Equal(t, closeButton{
+			"Close as not planned", "not_planned",
+			[]string{"not_planned"},
+			[]string{"Not planned"},
+			[]string{"Close as not planned"},
+		}, button)
+
+		pull := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+		bulkClose(t, url, button.reason, http.StatusOK, pull)
+		isClosed, closeReason := reasonOf(t, pull)
+		assert.True(t, isClosed)
+		assert.Equal(t, issues_model.CloseReasonNotPlanned, closeReason)
+	})
+
+	t.Run("no reason closes with none, as before close reasons", func(t *testing.T) {
+		issue := newIssue(t)
+		bulkClose(t, "/user2/repo1/issues/status", "", http.StatusOK, issue)
+		isClosed, closeReason := reasonOf(t, issue)
+		assert.True(t, isClosed)
+		assert.Equal(t, issues_model.CloseReasonNone, closeReason)
+	})
+
+	// only a hand-made request can send these; the list can't send a duplicate's number or an "other" description
+	for _, c := range []struct {
+		name, reason string
+		isPull       bool
+	}{
+		{"completed for a pull request", "completed", true},
+		{"duplicate", "duplicate", false},
+		{"other", "other", false},
+		{"an unknown name", "fixed", false},
+	} {
+		t.Run("refuses "+c.name, func(t *testing.T) {
+			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 11}) // an open pull request
+			if !c.isPull {
+				issue = newIssue(t)
+			}
+			resp := bulkClose(t, "/user2/repo1/issues/status", c.reason, http.StatusBadRequest, issue)
+			var body map[string]string
+			DecodeJSON(t, resp, &body)
+			assert.Equal(t, "This close reason is not available for this issue or pull request.", body["error"], "the same reply as a blocked dependency")
+			isClosed, _ := reasonOf(t, issue)
+			assert.False(t, isClosed)
+		})
+	}
 }
 
 func TestIssueCommentDelete(t *testing.T) {

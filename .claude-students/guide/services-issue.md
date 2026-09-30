@@ -1,7 +1,7 @@
 ---
 source: docs/services-issue.md
-source-hash: af503abd4dd8e6bf
-verified-at: 773c614f56
+source-hash: 40bfc9bb543f58c6
+verified-at: cc13d79078
 ---
 
 <!-- Derived from docs/services-issue.md. Do not edit by hand: fix the reference doc and regenerate
@@ -100,7 +100,7 @@ sent; do not invent one.
 
 **Closing with a reason uses `CloseIssueWithReason`.** `CloseIssue` keeps its old signature and
 simply passes an empty `issues_model.CloseReasonOptions`. Callers with no reason to give — commit keywords,
-bulk close, the API — keep calling it unchanged. The reason itself is checked further
+the API — keep calling it unchanged. Bulk close on the list passes the reason picked there. The reason itself is checked further
 down, in `models/issues/issue_update.go`, inside the same transaction as the close.
 
 ## How to actually do it

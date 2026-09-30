@@ -1,6 +1,6 @@
 ---
 scope: models/issues, models/pull
-verified-at: 85a296b0ad
+verified-at: cc13d79078
 ---
 
 # models/issues — issues, pull requests, comments, reviews
@@ -31,7 +31,7 @@ One package for the whole issue domain, because pull requests *are* issues in th
 | `models/issues/issue_list.go` | `IssueList` and its batching `LoadAttributes` |
 | `models/issues/pull.go` | `PullRequest`, `PullRequestType`, `PullRequestStatus` |
 | `models/issues/comment.go` | `Comment` and the `CommentType` enum |
-| `models/issues/issue_close_reason.go` | `CloseReason` and its names (`String`, `AsCloseReason`), `AllowedCloseReasons`, `DefaultCloseReason`, `CloseReasonOptions.Validate` and its three errors; stored in `Issue.CloseReason`, `CloseReasonText`, `CloseDuplicateIssueID` |
+| `models/issues/issue_close_reason.go` | `CloseReason` and its names (`String`, `AsCloseReason`), `AllowedCloseReasons`, `BulkCloseReasons` (the list's bulk Close), `DefaultCloseReason`, `CloseReasonOptions.Validate` and its three errors; stored in `Issue.CloseReason`, `CloseReasonText`, `CloseDuplicateIssueID` |
 | `models/issues/issue_label.go` | `LoadLabels` — the idempotency pattern in miniature |
 | `models/issues/issue_index.go` | `RecalculateIssueIndexForRepo` |
 | `models/issues/issue_group.go` | `IssueLabelGroup`, `IssueList.GroupByExclusiveLabelScope` — the grouped list view |

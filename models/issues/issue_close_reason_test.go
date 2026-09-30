@@ -65,6 +65,16 @@ func TestDefaultCloseReason(t *testing.T) {
 	}
 }
 
+func TestBulkCloseReasons(t *testing.T) {
+	assert.Equal(t, []issues_model.CloseReason{issues_model.CloseReasonCompleted, issues_model.CloseReasonNotPlanned}, issues_model.BulkCloseReasons(false))
+	assert.Equal(t, []issues_model.CloseReason{issues_model.CloseReasonNotPlanned}, issues_model.BulkCloseReasons(true))
+	for _, isPull := range []bool{false, true} {
+		assert.Contains(t, issues_model.BulkCloseReasons(isPull), issues_model.DefaultCloseReason(isPull), "isPull %v: the bulk button starts on it", isPull)
+	}
+	// it removes from the list it is built from, which must stay whole for the item page
+	assert.Equal(t, []issues_model.CloseReason{issues_model.CloseReasonCompleted, issues_model.CloseReasonNotPlanned, issues_model.CloseReasonDuplicate, issues_model.CloseReasonOther}, issues_model.AllowedCloseReasons(false))
+}
+
 func TestCloseReasonNames(t *testing.T) {
 	cases := []struct {
 		name string

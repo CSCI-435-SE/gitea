@@ -1,7 +1,7 @@
 ---
 source: docs/models-issues.md
-source-hash: 3d1d9231ace5c3d2
-verified-at: 85a296b0ad
+source-hash: cd21f39c0b1f4eac
+verified-at: cc13d79078
 ---
 
 <!-- Derived from docs/models-issues.md. Do not edit by hand: fix the reference doc and regenerate
@@ -62,7 +62,7 @@ nobody loaded and getting an empty value rather than an error.**
 | `models/issues/issue_list.go` | `IssueList` — a slice of issues that can load everything for all of them at once. |
 | `models/issues/pull.go` | The pull-request-only row. |
 | `models/issues/comment.go` | Comments, and the enum of comment kinds. |
-| `models/issues/issue_close_reason.go` | Why an issue or pull request was closed: the `CloseReason` values and their names, which ones each kind may use, which one the close button starts on, and the check that refuses a bad one. Saved in three columns on `Issue`. |
+| `models/issues/issue_close_reason.go` | Why an issue or pull request was closed: the `CloseReason` values and their names, which ones each kind may use, which ones the list's bulk Close offers, which one the close button starts on, and the check that refuses a bad one. Saved in three columns on `Issue`. |
 | `models/issues/issue_label.go` | Labels on issues — and the clearest small example of the loader pattern. |
 | `models/issues/issue_index.go` | Recalculating per-repository numbering. |
 | `models/issues/issue_group.go` | Splitting a list of issues into category groups, for the grouped ("folder") list view. |

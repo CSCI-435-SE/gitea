@@ -69,6 +69,14 @@ func AllowedCloseReasons(isPull bool) []CloseReason {
 	return []CloseReason{CloseReasonCompleted, CloseReasonNotPlanned, CloseReasonDuplicate, CloseReasonOther}
 }
 
+// BulkCloseReasons lists the reasons offered when closing several items at once: the allowed ones that need
+// nothing more, as a duplicate's number and an "other" description each belong to a single item.
+func BulkCloseReasons(isPull bool) []CloseReason {
+	return slices.DeleteFunc(AllowedCloseReasons(isPull), func(r CloseReason) bool {
+		return r == CloseReasonDuplicate || r == CloseReasonOther
+	})
+}
+
 // DefaultCloseReason is the reason the close button starts on; consumers may still send any allowed reason, or none.
 func DefaultCloseReason(isPull bool) CloseReason {
 	if isPull {
