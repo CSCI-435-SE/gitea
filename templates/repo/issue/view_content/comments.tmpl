@@ -97,7 +97,7 @@
 		{{else if eq .Type 2}}
 			{{$closeReason := .MetaCloseReason}}{{/* the reason this close had; closes from before close reasons have none */}}
 			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge tw-bg-red tw-text-white">{{svg "octicon-issue-closed"}}</span>
+				{{template "shared/close_reason_icon" dict "Reason" $closeReason.Reason "IsPull" .Issue.IsPull "For" "badge"}}
 				{{if not .OriginalAuthor}}
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 				{{end}}

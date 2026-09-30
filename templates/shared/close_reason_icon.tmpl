@@ -1,0 +1,32 @@
+{{/* The look of a closed issue or pull request by why it was closed: its icon in lists, its state label on its page,
+and the badge of its close event in the timeline. A close without a reason (from before close reasons, a merge,
+an automatic close) keeps the red closed look it always had. Purple means done, as for a merged pull request;
+grey means set aside, as for a draft or a skipped job.
+
+Template Attributes:
+* Reason: the issues.CloseReason, of the item for "list" and "label", of the close event for "badge"
+* IsPull: whether the item is a pull request
+* For: "list" (the icon alone), "label" (the state label with its text) or "badge" (the timeline badge)
+
+The hover popup on issue links (getIssueIcon in web_src/js/features/issue.ts) doesn't show reasons yet: it reads the API.
+*/}}
+{{- $reason := .Reason.String -}}
+{{- $icon := Iif .IsPull "octicon-git-pull-request-closed" "octicon-issue-closed" -}}
+{{- if eq .For "badge" -}}{{- $icon = "octicon-issue-closed" -}}{{- end -}}{{/* the close event's badge has always used it for pull requests too */}}
+{{- $iconClass := "tw-text-red" -}}{{- $labelColor := "red" -}}{{- $badgeClass := "tw-bg-red tw-text-white" -}}
+{{- if eq $reason "completed" -}}
+	{{- $icon = "octicon-issue-closed" -}}{{- $iconClass = "tw-text-purple" -}}{{- $labelColor = "purple" -}}{{- $badgeClass = "tw-bg-purple tw-text-white" -}}
+{{- else if eq $reason "not_planned" -}}
+	{{- $icon = "octicon-skip" -}}{{- $iconClass = "tw-text-text-light" -}}{{- $labelColor = "grey" -}}{{- $badgeClass = "" -}}
+{{- else if eq $reason "duplicate" -}}
+	{{- $icon = "octicon-duplicate" -}}{{- $iconClass = "tw-text-text-light" -}}{{- $labelColor = "grey" -}}{{- $badgeClass = "" -}}
+{{- else if eq $reason "other" -}}
+	{{- $icon = "octicon-note" -}}{{- $iconClass = "tw-text-text-light" -}}{{- $labelColor = "grey" -}}{{- $badgeClass = "" -}}
+{{- end -}}
+{{- if eq .For "list" -}}
+	{{- svg $icon 16 $iconClass -}}
+{{- else if eq .For "label" -}}
+	<div class="ui {{$labelColor}} label issue-state-label">{{svg $icon}} {{if and $reason (ne $reason "other")}}{{ctx.Locale.Tr (printf "repo.issues.closed_title_as.%s" $reason)}}{{else}}{{ctx.Locale.Tr "repo.issues.closed_title"}}{{end}}</div>
+{{- else -}}
+	<span class="badge{{if $badgeClass}} {{$badgeClass}}{{end}}">{{svg $icon}}</span>
+{{- end -}}

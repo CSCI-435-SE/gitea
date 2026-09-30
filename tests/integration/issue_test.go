@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -477,6 +478,117 @@ func TestIssueTimelineCloseReason(t *testing.T) {
 		entry := closeEntry()
 		assert.Contains(t, mainLine(entry), "closed this as a duplicate")
 		assert.Zero(t, entry.Find(".detail").Length())
+	})
+}
+
+func TestIssueCloseReasonIcons(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+
+	// the octicon and colour classes of an icon, which are what tell the reasons apart, sorted since their order means nothing
+	iconClasses := func(svg *goquery.Selection) string {
+		var classes []string
+		for class := range strings.FieldsSeq(svg.AttrOr("class", "")) {
+			if strings.HasPrefix(class, "octicon-") || strings.HasPrefix(class, "tw-") {
+				classes = append(classes, class)
+			}
+		}
+		slices.Sort(classes)
+		return strings.Join(classes, " ")
+	}
+	// closeFromPage posts the close form of an issue or pull request page with the given reason fields
+	closeFromPage := func(t *testing.T, link string, fields map[string]string) {
+		action, exists := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK).Body).doc.Find("#comment-form").Attr("action")
+		require.True(t, exists, "The template has changed")
+		fields["status"] = "close"
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", action, fields), http.StatusOK)
+	}
+	type look struct{ listIcon, label, labelColor, badge string }
+	// lookOf reads an item's icon in its list, its state label, and the badge of its latest close event
+	lookOf := func(t *testing.T, kind string, index int64, listState string) look {
+		link := fmt.Sprintf("/user2/repo1/%s/%d", kind, index)
+		list := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/%s?state=%s", kind, listState)), http.StatusOK).Body)
+		row := list.doc.Find(fmt.Sprintf(`a.list-item-large-title[href="%s"]`, link)).Closest(".item")
+		require.Equal(t, 1, row.Length(), "%s is in the %s list", link, listState)
+
+		page := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK).Body)
+		label := page.doc.Find(".issue-title-meta .issue-state-label")
+		labelColor := ""
+		for _, color := range []string{"red", "purple", "grey", "green"} {
+			if label.HasClass(color) {
+				labelColor = color
+			}
+		}
+		var badge string // the last close event's; a merged pull request has none
+		page.doc.Find(".timeline-item.event").Each(func(_ int, event *goquery.Selection) {
+			if strings.Contains(event.Find(".comment-text-line").First().Text(), "closed this") {
+				b := event.Find(".badge")
+				badge = strings.TrimSpace(b.AttrOr("class", "") + " " + iconClasses(b.Find("svg")))
+			}
+		})
+		return look{iconClasses(row.Find(".item-leading svg")), strings.Join(strings.Fields(label.Text()), " "), labelColor, badge}
+	}
+
+	for _, c := range []struct {
+		name   string
+		fields map[string]string
+		want   look
+	}{
+		{
+			"completed is purple, like a merge",
+			map[string]string{"close_reason": "completed"},
+			look{"octicon-issue-closed tw-text-purple", "Closed as completed", "purple", "badge tw-bg-purple tw-text-white octicon-issue-closed"},
+		},
+		{
+			"not planned is grey, like a skipped job",
+			map[string]string{"close_reason": "not_planned"},
+			look{"octicon-skip tw-text-text-light", "Closed as not planned", "grey", "badge octicon-skip"},
+		},
+		{
+			"duplicate",
+			map[string]string{"close_reason": "duplicate", "close_duplicate_index": "1"},
+			look{"octicon-duplicate tw-text-text-light", "Closed as duplicate", "grey", "badge octicon-duplicate"},
+		},
+		{
+			"other keeps the plain title, its text is in the timeline",
+			map[string]string{"close_reason": "other", "close_reason_text": "superseded"},
+			look{"octicon-note tw-text-text-light", "Closed", "grey", "badge octicon-note"},
+		},
+		{
+			"no reason looks as it always did",
+			map[string]string{},
+			look{"octicon-issue-closed tw-text-red", "Closed", "red", "badge tw-bg-red tw-text-white octicon-issue-closed"},
+		},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			issueURL := testNewIssue(t, session, "user2", "repo1", "Icon check", "Description")
+			closeFromPage(t, issueURL, c.fields)
+			index, err := strconv.ParseInt(path.Base(issueURL), 10, 64)
+			require.NoError(t, err)
+			assert.Equal(t, c.want, lookOf(t, "issues", index, "closed"))
+		})
+	}
+
+	t.Run("reopening shows the open look again, and the earlier close keeps its badge", func(t *testing.T) {
+		issueURL := testNewIssue(t, session, "user2", "repo1", "Icon check", "Description")
+		closeFromPage(t, issueURL, map[string]string{"close_reason": "not_planned"})
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", issueURL+"/comments", map[string]string{"status": "reopen"}), http.StatusOK)
+		index, err := strconv.ParseInt(path.Base(issueURL), 10, 64)
+		require.NoError(t, err)
+		got := lookOf(t, "issues", index, "open")
+		assert.Equal(t, look{"octicon-issue-opened tw-text-green", "Open", "green", "badge octicon-skip"}, got)
+	})
+
+	t.Run("a pull request shows its reason; a merged one still looks merged", func(t *testing.T) {
+		closeFromPage(t, "/user2/repo1/pulls/3", map[string]string{"close_reason": "not_planned"})
+		assert.Equal(t, look{"octicon-skip tw-text-text-light", "Closed as not planned", "grey", "badge octicon-skip"}, lookOf(t, "pulls", 3, "closed"))
+		// pull request #2 is merged in the fixtures, but its issue is left open, which a real merge never does
+		mergedIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+		mergedIssue.IsClosed = true
+		require.NoError(t, issues_model.UpdateIssueCols(t.Context(), mergedIssue, "is_closed"))
+		merged := lookOf(t, "pulls", 2, "closed")
+		assert.Equal(t, "octicon-git-merge tw-text-purple", merged.listIcon)
+		assert.Equal(t, "purple", merged.labelColor)
 	})
 }
 
