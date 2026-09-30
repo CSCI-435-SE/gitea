@@ -1,6 +1,6 @@
 ---
 scope: services/forms, services/convert
-verified-at: 773c614f56
+verified-at: 85a296b0ad
 ---
 
 # services/forms and services/convert — request in, DTO out
@@ -39,8 +39,10 @@ The API layer does **not** use `services/forms`: it binds `modules/structs` opti
   `AssigneeIDs` would become `assignee_i_ds` — which is why that field carries `form:"assignee_ids"`.
 - A choice among named options arrives as a string, and a method on the form maps it to the
   model's integer enum, falling back to an unknown value that is then rejected:
-  `SubmitReviewForm.ReviewType`, `CreateCommentForm.CloseReasonOptions` (`services/forms/repo_form.go`).
-  The stored numbers never appear in the request.
+  `SubmitReviewForm.ReviewType` (`services/forms/repo_form.go`). When other code needs the same
+  names, the model owns them and the form calls it: `CreateCommentForm.CloseReasonOptions` uses
+  `AsCloseReason` (`models/issues/issue_close_reason.go`). The stored numbers never appear in the
+  request.
 - A form that needs the standard error handling implements
   `Validate(req *http.Request, errs binding.Errors) binding.Errors` and returns
   `middleware.Validate(errs, ctx.Data, f, ctx.Locale)` — copy the body from a neighbouring form

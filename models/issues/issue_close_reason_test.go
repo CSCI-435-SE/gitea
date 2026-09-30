@@ -57,6 +57,31 @@ func TestAllowedCloseReasons(t *testing.T) {
 	}, issues_model.AllowedCloseReasons(true))
 }
 
+func TestCloseReasonNames(t *testing.T) {
+	cases := []struct {
+		name string
+		want issues_model.CloseReason
+	}{
+		{name: "", want: issues_model.CloseReasonNone},
+		{name: "completed", want: issues_model.CloseReasonCompleted},
+		{name: "not_planned", want: issues_model.CloseReasonNotPlanned},
+		{name: "duplicate", want: issues_model.CloseReasonDuplicate},
+		{name: "other", want: issues_model.CloseReasonOther},
+		{name: "2", want: issues_model.CloseReasonUnknown}, // the stored number is not accepted
+		{name: "Completed", want: issues_model.CloseReasonUnknown},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.want, issues_model.AsCloseReason(c.name), "name %q", c.name)
+	}
+
+	for _, reason := range issues_model.AllowedCloseReasons(false) { // an issue allows every reason
+		assert.NotEmpty(t, reason.String(), "reason %d", reason)
+		assert.Equal(t, reason, issues_model.AsCloseReason(reason.String()), "reason %d", reason)
+	}
+	assert.Empty(t, issues_model.CloseReasonNone.String())
+	assert.Empty(t, issues_model.CloseReasonUnknown.String())
+}
+
 func TestCloseReasonOptionsValidate(t *testing.T) {
 	cases := []struct {
 		name   string

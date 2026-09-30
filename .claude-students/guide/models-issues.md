@@ -1,7 +1,7 @@
 ---
 source: docs/models-issues.md
-source-hash: 1140cb991ec56c0f
-verified-at: bdfbdbf832
+source-hash: 16e7c8268b6e8906
+verified-at: 85a296b0ad
 ---
 
 <!-- Derived from docs/models-issues.md. Do not edit by hand: fix the reference doc and regenerate
@@ -62,7 +62,7 @@ nobody loaded and getting an empty value rather than an error.**
 | `models/issues/issue_list.go` | `IssueList` — a slice of issues that can load everything for all of them at once. |
 | `models/issues/pull.go` | The pull-request-only row. |
 | `models/issues/comment.go` | Comments, and the enum of comment kinds. |
-| `models/issues/issue_close_reason.go` | Why an issue or pull request was closed: the `CloseReason` values, which ones each kind may use, and the check that refuses a bad one. Saved in three columns on `Issue`. |
+| `models/issues/issue_close_reason.go` | Why an issue or pull request was closed: the `CloseReason` values and their names, which ones each kind may use, and the check that refuses a bad one. Saved in three columns on `Issue`. |
 | `models/issues/issue_label.go` | Labels on issues — and the clearest small example of the loader pattern. |
 | `models/issues/issue_index.go` | Recalculating per-repository numbering. |
 | `models/issues/issue_group.go` | Splitting a list of issues into category groups, for the grouped ("folder") list view. |
@@ -110,6 +110,12 @@ Adding a kind means handling it in the templates too, or it renders as nothing.
 It is written once, when the comment is created, and never changed — which suits a timeline, where
 each entry records what was true at that moment. The cost is that SQL cannot search, sort or index
 on anything inside it.
+
+**A close reason travels as a word, not a number.** The database stores each reason as a number,
+but forms and pages send its name instead: `not_planned`, not `2`. `CloseReason.String` turns a
+reason into its name and `AsCloseReason` turns a name back, the same way `CommentType.String` and
+`AsCommentType` work for comment kinds. Because pages send these names, a name can no more be
+changed than its number can.
 
 **A close comment keeps its own copy of the reason.** The issue's reason describes the *current*
 close; the comment's copy, in `CommentMetaData`, describes *that* close and never changes. Read it

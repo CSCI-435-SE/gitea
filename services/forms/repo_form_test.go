@@ -90,22 +90,9 @@ func TestMergePullRequestForm(t *testing.T) {
 }
 
 func TestCreateCommentForm_CloseReasonOptions(t *testing.T) {
-	cases := []struct {
-		name string
-		want issues_model.CloseReason
-	}{
-		{name: "", want: issues_model.CloseReasonNone},
-		{name: "completed", want: issues_model.CloseReasonCompleted},
-		{name: "not_planned", want: issues_model.CloseReasonNotPlanned},
-		{name: "duplicate", want: issues_model.CloseReasonDuplicate},
-		{name: "other", want: issues_model.CloseReasonOther},
-		{name: "2", want: issues_model.CloseReasonUnknown}, // the stored number is not accepted
-		{name: "Completed", want: issues_model.CloseReasonUnknown},
-	}
-	for _, c := range cases {
-		form := CreateCommentForm{CloseReason: c.name}
-		assert.Equal(t, c.want, form.CloseReasonOptions().Reason, "name %q", c.name)
-	}
+	// the names themselves are tested with issues_model.AsCloseReason
+	empty := CreateCommentForm{}
+	assert.Equal(t, issues_model.CloseReasonOptions{}, empty.CloseReasonOptions()) // a form with no reason fields closes with no reason
 
 	form := CreateCommentForm{CloseReason: "other", CloseReasonText: "superseded", CloseDuplicateIndex: 3}
 	assert.Equal(t, issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonOther, Text: "superseded", DuplicateIndex: 3}, form.CloseReasonOptions())
