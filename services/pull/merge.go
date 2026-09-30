@@ -716,8 +716,8 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 			return false, fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", pr.ID, err)
 		}
 
-		// Set issue as closed
-		if _, err := issues_model.SetIssueAsClosed(ctx, pr.Issue, pr.Merger, true); err != nil {
+		// Set issue as closed; the merge itself says why, so no close reason is recorded
+		if _, err := issues_model.SetIssueAsClosed(ctx, pr.Issue, pr.Merger, true, issues_model.CloseReasonOptions{}); err != nil {
 			return false, fmt.Errorf("ChangeIssueStatus: %w", err)
 		}
 

@@ -1,7 +1,7 @@
 ---
 source: docs/routers-web.md
-source-hash: eff7c884d160466a
-verified-at: 69d66d604f
+source-hash: 61a9501d987c75ed
+verified-at: 916a29ba28
 ---
 
 <!-- Derived from docs/routers-web.md. Do not edit by hand: fix the reference doc and regenerate
@@ -153,6 +153,16 @@ path parameters are placeholders like `{username}`, so grepping the literal URL 
 
 **`ctx.HTML` after something already wrote the response.** That is a bug; `ctx.Written()` tells you
 whether it happened. Return immediately after anything that writes a response.
+
+**Your new kind of timeline entry shows up, but its linked data is missing.** The issue page loads
+each comment type's extra data in one long `if … else if` chain in
+`routers/web/repo/issue_view.go`. Your type needs its own branch there — and if an earlier branch
+already matches your type, a later one never runs.
+
+**A form post fails, but the page just reloads as if it worked.** The handler logged the error and
+redirected anyway. `NewComment` in `routers/web/repo/issue_comment.go` only tells the person about
+the close refusals it knows; every refusal someone can cause needs its own
+`ctx.Flash.Error(ctx.Tr(...))`, with the message as a locale key.
 
 One more piece of context: the static routes registered before the middleware chain is assembled —
 assets, avatars, the favicon, the health check — deliberately skip session and authentication. Do

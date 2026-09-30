@@ -1,6 +1,6 @@
 ---
 scope: services/issue
-verified-at: c0092050a4
+verified-at: 773c614f56
 ---
 
 # services/issue — issue business logic
@@ -23,7 +23,7 @@ call this package; they must not call `models/issues` directly.
 | `services/issue/label.go` | `AddLabel`, `AddLabels`, `RemoveLabel`, `ReplaceLabels`, `ClearLabels` |
 | `services/issue/assignee.go` | `ToggleAssignee`, `AddAssignees`, `RemoveAssignees`, `UpdateAssignees` |
 | `services/issue/content.go` | `ChangeContent` |
-| `services/issue/status.go` | open/close transitions |
+| `services/issue/status.go` | `CloseIssueWithReason`, `CloseIssue` (the no-reason wrapper), `ReopenIssue` |
 | `services/issue/comments.go`, `reaction.go`, `milestone.go` | comment, reaction and milestone operations |
 | `services/issue/review_request.go` | `ReviewRequest`, `TeamReviewRequest`, `CanDoerChangeReviewRequests` |
 | `services/issue/commit.go` | `UpdateIssuesCommit` — acts on `fixes #123` in pushed commit messages |
@@ -50,6 +50,10 @@ call this package; they must not call `models/issues` directly.
   no history.
 - `ChangeContent` takes a `contentVersion` for optimistic concurrency — pass the version the client
   submitted, do not invent one.
+- A close that records why goes through `CloseIssueWithReason`. `CloseIssue` passes an empty
+  `issues_model.CloseReasonOptions`, for callers with no reason to give (commit keywords, bulk close,
+  the API); the reason is
+  validated in `models/issues/issue_update.go` → `SetIssueAsClosed`, inside the close transaction.
 
 ## Recipes
 
@@ -72,6 +76,9 @@ an unhandled type renders as nothing.
   Import-alias the two (`issue_service` / `issues_model`) so the call site says which one you mean.
 - Counter columns on `Repository` are maintained by the model layer; if you write a mutation that
   bypasses it, `unittest.CheckConsistencyFor` will fail (`testing.md`).
+- A merged pull request is closed by `services/pull/merge.go` → `SetMerged` calling
+  `issues_model.SetIssueAsClosed` directly, skipping `CloseIssue`. Close-time behaviour that must
+  cover merges belongs in `SetIssueAsClosed`, not here.
 
 ## Related
 

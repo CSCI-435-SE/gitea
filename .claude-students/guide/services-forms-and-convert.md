@@ -1,7 +1,7 @@
 ---
 source: docs/services-forms-and-convert.md
-source-hash: d6cd1f5878804697
-verified-at: c0092050a4
+source-hash: 021edffca9cb2473
+verified-at: 773c614f56
 ---
 
 <!-- Derived from docs/services-forms-and-convert.md. Do not edit by hand: fix the reference doc and
@@ -69,8 +69,18 @@ and "what we promise".
 ### Forms
 
 **A form is a plain struct with tags.** `binding:"Required;MaxSize(255)"` says the field must be
-present and at most 255 characters. Fields map from the request by name automatically; add
-`form:"assignee_ids"` only when the incoming name differs from the Go field name.
+present and at most 255 characters. Fields map from the request by name: Gitea turns the Go name
+into snake case with `util.ToSnakeCase` (set up in `modules/web/middleware/binding.go`), so
+`CloseReasonText` reads the request field `close_reason_text`. The conversion mangles plural
+acronyms — `AssigneeIDs` would become `assignee_i_ds` — so that field spells its name out with
+`form:"assignee_ids"`.
+
+**A choice arrives as a word, and the form turns it into a number.** When a person picks one of a
+few options, the request carries a name such as `approve` or `not_planned`, and a method on the
+form maps it to the model's integer enum: `SubmitReviewForm.ReviewType` and
+`CreateCommentForm.CloseReasonOptions` in `services/forms/repo_form.go`. Anything unrecognised maps
+to an "unknown" value that is then refused. The numbers stored in the database never travel
+through the page.
 
 **The `Validate` method is boilerplate — copy it.** A form that wants standard error handling
 implements `Validate(req *http.Request, errs binding.Errors) binding.Errors` and returns
@@ -131,6 +141,11 @@ look alike and are not interchangeable.
 **Your handler panics the moment someone submits the form.** `web.GetForm` returns an untyped value,
 so a wrong type assertion is not caught at compile time — it explodes at request time. The type in
 `web.GetForm` must match the type in `web.Bind` exactly.
+
+**An error message starts with something like `form.CloseReasonText`.** When a binding rule such as
+`MaxSize` fails, the message begins with the field's label, taken from the `locale:"…"` tag on the
+field, or else from the key `form.<FieldName>` (`modules/web/middleware/binding.go`). With neither,
+the person sees the raw key. Give the field a `locale` tag pointing at a real key.
 
 **A list endpoint is mysteriously slow.** A converter in the loop is querying per item. Load the
 data once before converting.

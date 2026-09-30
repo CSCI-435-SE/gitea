@@ -1,6 +1,6 @@
 ---
 scope: models/db
-verified-at: c0092050a4
+verified-at: 773c614f56
 ---
 
 # models/db — engine access, transactions and generic queries
@@ -45,6 +45,11 @@ registration.
 - **Never call `x.Update(exemplar)` without an explicit `WHERE`** — it updates every row
   (`docs/guidelines-backend.md`).
 - Fields tagged `xorm:"-"` are in-memory only. They are never read from or written to the database.
+- An enum column is a named Go integer type with `iota` constants, stored as a plain integer column:
+  `CommentType` (`models/issues/comment.go`), `XRefAction` (`modules/references/references.go`,
+  stored as `SMALLINT` on `Comment.RefAction` in `models/issues/comment.go`). No model uses a database `ENUM`. The database holds only the numbers, so
+  existing values are never renumbered, and nothing but Go code rejects an out-of-range value.
+  Some enums are stored as names instead, such as commit status `State` (`models/git/commit_status.go`).
 
 ## Recipes
 

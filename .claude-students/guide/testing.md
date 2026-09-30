@@ -1,7 +1,7 @@
 ---
 source: docs/testing.md
-source-hash: 6395a51cf7c96def
-verified-at: c0092050a4
+source-hash: e39355d2ef234ad0
+verified-at: 916a29ba28
 ---
 
 <!-- Derived from docs/testing.md. Do not edit by hand: fix the reference doc and regenerate
@@ -141,6 +141,12 @@ GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e
 3. Drive it over HTTP the way the neighbouring tests do.
 4. Do **not** add a `TestMain`. `integration_test.go` already has one for the whole suite.
 
+**Check a flash message in an integration test.** A handler's flash message travels in a cookie.
+After the request, `session.GetCookieFlashMessage().ErrorMsg` gives you the rendered text (the
+helper is in `tests/integration/integration_test.go`). Compare the whole string rather than
+checking it is not empty: a missing locale key renders as the key itself, and only an exact
+comparison notices.
+
 **Write a migration test.** Put it next to the migration in `models/migrations/`, with its own
 fixtures under `models/migrations/fixtures/` and helpers from `models/migrations/migrationtest/`.
 
@@ -156,6 +162,11 @@ clean up breaks a *later* test, not itself — the failure points at innocent co
 
 **`CheckConsistencyFor` fails in a test you did not write.** You added or changed a fixture row and
 a counter column no longer matches.
+
+**Your assertion passes even though the value was never saved.** `unittest.AssertExistsAndLoadBean`
+finds a row by turning the struct you pass into the SQL `WHERE`, and it silently drops zero values
+and fields tagged `xorm:"-"`. So asking for `{ID: 1, Bar: 0}` checks only the ID. Load the row by
+ID, then compare its fields, as `models/issues/issue_close_reason_test.go` does.
 
 **A browser test only passes when you raise `GITEA_TEST_E2E_TIMEOUT_FACTOR`.** That multiplier
 defaults to 4 on CI and 1 locally. Needing more is a flaky test — usually waiting on the wrong

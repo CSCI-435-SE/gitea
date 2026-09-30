@@ -92,6 +92,10 @@ type Issue struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	ClosedUnix  timeutil.TimeStamp `xorm:"INDEX"`
 
+	CloseReason           CloseReason `xorm:"SMALLINT NOT NULL DEFAULT 0"`
+	CloseReasonText       string      `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"` // only for CloseReasonOther
+	CloseDuplicateIssueID int64       `xorm:"NOT NULL DEFAULT 0"`               // only for CloseReasonDuplicate
+
 	Attachments         []*repo_model.Attachment `xorm:"-"`
 	isAttachmentsLoaded bool                     `xorm:"-"`
 	Comments            CommentList              `xorm:"-"`

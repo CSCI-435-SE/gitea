@@ -160,14 +160,20 @@ func NewComment(ctx *context.Context) {
 		}
 
 		if form.Status == "close" && !issue.IsClosed {
-			if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
-				log.Error("CloseIssue: %v", err)
+			if err := issue_service.CloseIssueWithReason(ctx, issue, ctx.Doer, "", form.CloseReasonOptions()); err != nil {
+				log.Error("CloseIssueWithReason: %v", err)
 				if issues_model.IsErrDependenciesLeft(err) {
 					if issue.IsPull {
 						ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
 					} else {
 						ctx.Flash.Error(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
 					}
+				} else if issues_model.IsErrCloseReasonNotAllowed(err) {
+					ctx.Flash.Error(ctx.Tr("repo.issues.close_reason.not_allowed"))
+				} else if issues_model.IsErrInvalidCloseReasonText(err) {
+					ctx.Flash.Error(ctx.Tr("repo.issues.close_reason.text_invalid", issues_model.CloseReasonTextMaxLength))
+				} else if issues_model.IsErrInvalidCloseDuplicate(err) {
+					ctx.Flash.Error(ctx.Tr("repo.issues.close_reason.duplicate_invalid"))
 				}
 			} else {
 				if err := stopTimerIfAvailable(ctx, ctx.Doer, issue); err != nil {

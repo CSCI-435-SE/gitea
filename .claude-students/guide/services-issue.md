@@ -1,7 +1,7 @@
 ---
 source: docs/services-issue.md
-source-hash: fe02972eafd8c2c7
-verified-at: c0092050a4
+source-hash: af503abd4dd8e6bf
+verified-at: 773c614f56
 ---
 
 <!-- Derived from docs/services-issue.md. Do not edit by hand: fix the reference doc and regenerate
@@ -57,7 +57,7 @@ timeline entry and the notification.
 | `services/issue/label.go` | Adding, removing and replacing labels. |
 | `services/issue/assignee.go` | Assigning and unassigning people. |
 | `services/issue/content.go` | Editing the issue body. |
-| `services/issue/status.go` | Opening and closing. |
+| `services/issue/status.go` | Opening and closing: `CloseIssueWithReason` records why, `CloseIssue` is the older no-reason form. |
 | `services/issue/comments.go`, `reaction.go`, `milestone.go` | Comments, reactions, milestones. |
 | `services/issue/review_request.go` | Requesting a review from a person or a team. |
 | `services/issue/commit.go` | Acting on `fixes #123` in a pushed commit message. |
@@ -98,6 +98,11 @@ closed and nothing says who did it or when.
 that if someone else edited in the meantime the clash is detected. Pass through what the client
 sent; do not invent one.
 
+**Closing with a reason uses `CloseIssueWithReason`.** `CloseIssue` keeps its old signature and
+simply passes an empty `issues_model.CloseReasonOptions`. Callers with no reason to give — commit keywords,
+bulk close, the API — keep calling it unchanged. The reason itself is checked further
+down, in `models/issues/issue_update.go`, inside the same transaction as the close.
+
 ## How to actually do it
 
 **Add a new issue operation.** Write the row change in `models/issues` first. Then write a short
@@ -130,6 +135,11 @@ catches it.
 
 **Your new timeline entry does not appear.** The comment row is being created, but the templates do
 not handle that comment type, so it renders as nothing.
+
+**Your new close-time behaviour works for every close except merges.** A merged pull request never
+passes through this package: `services/pull/merge.go` calls `issues_model.SetIssueAsClosed`
+directly. Anything that must also happen on a merge belongs in that model function, not in
+`CloseIssue`.
 
 ## Where to go next
 

@@ -1,7 +1,7 @@
 ---
 source: docs/models-issues.md
-source-hash: fa4fa56b2837aa21
-verified-at: 7075389dd1
+source-hash: 1140cb991ec56c0f
+verified-at: bdfbdbf832
 ---
 
 <!-- Derived from docs/models-issues.md. Do not edit by hand: fix the reference doc and regenerate
@@ -52,6 +52,7 @@ nobody loaded and getting an empty value rather than an error.**
   correct by hand.
 - **N+1** — fetching *n* things and then running *n* more queries, one per item.
 - **sentinel error** — a shared error value that code elsewhere can test for.
+- **JSON field** — one column holding a small bundle of named values, saved as JSON text.
 
 ## What's in these files
 
@@ -61,6 +62,7 @@ nobody loaded and getting an empty value rather than an error.**
 | `models/issues/issue_list.go` | `IssueList` — a slice of issues that can load everything for all of them at once. |
 | `models/issues/pull.go` | The pull-request-only row. |
 | `models/issues/comment.go` | Comments, and the enum of comment kinds. |
+| `models/issues/issue_close_reason.go` | Why an issue or pull request was closed: the `CloseReason` values, which ones each kind may use, and the check that refuses a bad one. Saved in three columns on `Issue`. |
 | `models/issues/issue_label.go` | Labels on issues — and the clearest small example of the loader pattern. |
 | `models/issues/issue_index.go` | Recalculating per-repository numbering. |
 | `models/issues/issue_group.go` | Splitting a list of issues into category groups, for the grouped ("folder") list view. |
@@ -103,6 +105,28 @@ is what turns a missing issue into a 404 instead of a 500.
 comments with different kinds, as are all the "closed this", "added a label" timeline entries.
 Adding a kind means handling it in the templates too, or it renders as nothing.
 
+**Extra data on a comment goes in its metadata, not a new column.** `Comment` has a JSON field,
+`CommentMetaData`, and its code comment in `comment.go` asks for any new non-index data to go there.
+It is written once, when the comment is created, and never changed — which suits a timeline, where
+each entry records what was true at that moment. The cost is that SQL cannot search, sort or index
+on anything inside it.
+
+**A close comment keeps its own copy of the reason.** The issue's reason describes the *current*
+close; the comment's copy, in `CommentMetaData`, describes *that* close and never changes. Read it
+with `Comment.MetaCloseReason()` rather than reaching into the metadata yourself: close comments
+written before this feature existed have no metadata at all, and the method turns that into "no
+reason" instead of an error.
+
+**A duplicate is typed as a number but stored as an ID.** Closing as a duplicate of `#12` looks
+`#12` up in the issue's own repository (`GetIssueByIndex`, inside `SetIssueAsClosed`), so a number
+from another repository is refused. What gets stored is that issue's global ID. `Comment.LoadCloseDuplicateIssue` turns the ID back into the
+issue, repository included; if the target has since been deleted, it reports "not found" instead
+of breaking the page.
+
+**Reopening wipes the issue's reason, not the comment's.** `setIssueAsReopen` is the only code that
+reopens anything, and it clears the reason, text and duplicate target on the issue. The close
+comment keeps what was true when it was written.
+
 ## How to actually do it
 
 **Display a list of issues.** Fetch into an `IssueList`, then call `LoadAttributes(ctx)` **once, on
@@ -142,6 +166,16 @@ The grouping is worked out in two places that must agree: `applyGroupByLabelScop
 sit together, and `GroupByExclusiveLabelScope` in `models/issues/issue_group.go` then cuts that page
 into groups in Go. If you change the order in one, change it in the other. In particular both settle
 ties on the label's `id`, not its name, because the database and Go do not sort text the same way.
+
+**`Test_MigrateFromGiteaToGitea` fails with "missing fixture" after you add a column to `Issue`.** The
+migration code fetches issues in pages sized by `db.MaxBatchInsertSize` (`models/db/engine.go`): 999
+divided by the number of columns. One more column changes the page size, the request asks for a
+different `limit`, and the recorded response in
+`tests/integration/_mock_data/Test_MigrateFromGiteaToGitea/` no longer matches its name. Rename that
+file to the new `limit`; its contents stay valid while the repository has fewer issues than the page size.
+
+**Building an issue's link crashes with a nil pointer.** `Issue.Link()` reads `issue.Repo`, and
+`GetIssueByID` does not fill it in. Call `LoadRepo(ctx)` first.
 
 **You go looking for pull requests in `models/pull` and it is nearly empty.** Pull requests are in
 `models/issues/pull.go`. `models/pull` only holds automerge and review state. Both `Issue` and

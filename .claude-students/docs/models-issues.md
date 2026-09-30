@@ -1,6 +1,6 @@
 ---
 scope: models/issues, models/pull
-verified-at: 7075389dd1
+verified-at: bdfbdbf832
 ---
 
 # models/issues — issues, pull requests, comments, reviews
@@ -31,6 +31,7 @@ One package for the whole issue domain, because pull requests *are* issues in th
 | `models/issues/issue_list.go` | `IssueList` and its batching `LoadAttributes` |
 | `models/issues/pull.go` | `PullRequest`, `PullRequestType`, `PullRequestStatus` |
 | `models/issues/comment.go` | `Comment` and the `CommentType` enum |
+| `models/issues/issue_close_reason.go` | `CloseReason`, `AllowedCloseReasons`, `CloseReasonOptions.Validate` and its three errors; stored in `Issue.CloseReason`, `CloseReasonText`, `CloseDuplicateIssueID` |
 | `models/issues/issue_label.go` | `LoadLabels` — the idempotency pattern in miniature |
 | `models/issues/issue_index.go` | `RecalculateIssueIndexForRepo` |
 | `models/issues/issue_group.go` | `IssueLabelGroup`, `IssueList.GroupByExclusiveLabelScope` — the grouped list view |
@@ -58,6 +59,17 @@ One package for the whole issue domain, because pull requests *are* issues in th
 - Comment kinds are the `CommentType` iota in `comment.go` (`CommentTypeComment` is a plain
   comment, `CommentTypeReview` a review, plus many state-change kinds). Rendering branches on it —
   adding a value means handling it in the templates too.
+- New non-index data on a comment goes in the `Comment.CommentMetaData` JSON field, not a new
+  column, as its code comment in `comment.go` says. It is written once at insert and never changed,
+  and SQL cannot filter or index on it.
+- A close comment snapshots the issue's reason in `CommentMetaData`. Read it with
+  `Comment.MetaCloseReason()` (`models/issues/comment.go`), which returns no reason when the comment has no metadata, as every
+  close comment written before the columns existed does.
+- A close as duplicate takes the target's per-repository number; `SetIssueAsClosed` (`models/issues/issue_update.go`) resolves it
+  with `GetIssueByIndex` in the issue's own repository and stores the global ID.
+  `Comment.LoadCloseDuplicateIssue` loads the target with its repository; a deleted target returns
+  `ErrIssueNotExist`. Reopening (`setIssueAsReopen`, the only code that reopens) clears the issue's
+  reason, text and target; the close comment keeps its snapshot.
 
 ## Recipes
 
@@ -68,6 +80,10 @@ type exists to prevent.
 **Add a column to `Issue`.** Add the field with its xorm tag, add a migration
 (`models-migrations.md`), and if it is denormalised from elsewhere, extend the consistency check in
 `models/main_test.go` and the fixtures (`testing.md`).
+Each new column also lowers `db.MaxBatchInsertSize` (`models/db/engine.go`, 999 divided by the column
+count), which `services/migrations/migrate.go` uses as the issue page size. The recorded response in
+`tests/integration/_mock_data/Test_MigrateFromGiteaToGitea/` is named after that `limit`, so rename it
+to the new value or `Test_MigrateFromGiteaToGitea` fails with "missing fixture".
 
 **Find a PR from an issue.** `issue.LoadPullRequest(ctx)`, then `issue.PullRequest`. From the other
 direction, `pr.Issue` after the PR's own loader.
@@ -78,6 +94,8 @@ direction, `pr.Issue` after the PR's own loader.
   denormalised. Changing issue state means keeping them in step, and fixture rows must match or
   `unittest.CheckConsistencyFor` fails.
 - `Issue.Index` and `PullRequest.Index` are both present. They agree, but write through the issue.
+- `Issue.Link()` dereferences `issue.Repo`, so an issue fetched with `GetIssueByID` panics there
+  until `LoadRepo(ctx)` has run.
 - `models/pull` is not "pull requests" — those are here in `models/issues/pull.go`. `models/pull`
   is only automerge and review state.
 - `GroupByExclusiveLabelScope` and `applyGroupByLabelScope` (`models/issues/issue_search.go`, driven

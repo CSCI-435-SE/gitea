@@ -6,7 +6,13 @@ package pull
 import (
 	"testing"
 
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/timeutil"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_expandDefaultMergeMessage(t *testing.T) {
@@ -89,4 +95,20 @@ func TestAddCommitMessageTailer(t *testing.T) {
 	// add tailer for message with existing tailer and different value (will append)
 	assert.Equal(t, "title\n\nTest-tailer: v1\nTest-tailer: v2", AddCommitMessageTailer("title\n\nTest-tailer: v1", "Test-tailer", "v2"))
 	assert.Equal(t, "title\n\nTest-tailer: v1\nTest-tailer: v2", AddCommitMessageTailer("title\n\nTest-tailer: v1\n", "Test-tailer", "v2"))
+}
+
+func TestSetMergedRecordsNoCloseReason(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}) // open and not merged
+	merger := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	merged, err := SetMerged(t.Context(), pr, "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3", timeutil.TimeStampNow(), merger, issues_model.PullRequestStatusMergeable)
+	require.NoError(t, err)
+	require.True(t, merged)
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
+	assert.True(t, issue.IsClosed)
+	assert.Equal(t, issues_model.CloseReasonNone, issue.CloseReason)
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeMergePull})
+	assert.Nil(t, comment.CommentMetaData)
 }

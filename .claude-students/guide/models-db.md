@@ -1,7 +1,7 @@
 ---
 source: docs/models-db.md
-source-hash: bfa8b8439f8662bd
-verified-at: c0092050a4
+source-hash: 0c07a0c9cad54027
+verified-at: 773c614f56
 ---
 
 <!-- Derived from docs/models-db.md. Do not edit by hand: fix the reference doc and regenerate
@@ -54,6 +54,8 @@ outside the transaction.** No error, no warning. It just does not roll back.
 - **atomic** — all-or-nothing.
 - **`WHERE` clause** — the part of an SQL statement saying *which* rows. Leaving it off means all
   of them.
+- **enum** — a fixed list of named values, such as "open, closed, merged".
+- **`iota`** — Go's counter for numbering constants: 0, 1, 2, … in the order they are written.
 
 ## What's in these files
 
@@ -98,6 +100,15 @@ complaint.
 **Fields tagged `xorm:"-"` are not columns.** They exist only in memory, filled in by Go code. They
 are never read from or written to the database, so setting one and saving the struct changes
 nothing.
+
+**An enum is a named Go integer, stored as a plain number.** Gitea never uses a database's own enum
+type. It declares a Go type such as `CommentType` (`models/issues/comment.go`) with numbered
+constants, and the column holds just the number; `XRefAction` (`modules/references/references.go`)
+does the same, stored as a `SMALLINT` on comments. If you know TypeScript, it is a numeric `enum` — except nothing in
+the database checks that a value is in range, so only your Go code can reject a bad one. And because
+only the numbers are saved, reordering the constants silently changes the meaning of every row
+already stored: add new values at the end, never renumber. A few enums are
+stored as text instead, such as commit status `State` (`models/git/commit_status.go`).
 
 ## How to actually do it
 

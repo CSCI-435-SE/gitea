@@ -433,6 +433,31 @@ type CreateCommentForm struct {
 	Content string
 	Status  string `binding:"OmitEmpty;In(reopen,close)"`
 	Files   []string
+
+	CloseReason         string // a name, mapped by CloseReasonOptions
+	CloseReasonText     string `binding:"MaxSize(255)" locale:"repo.issues.close_reason.text"` // same limit as issues_model.CloseReasonTextMaxLength
+	CloseDuplicateIndex int64
+}
+
+// CloseReasonOptions maps the close reason fields; an empty name means no reason,
+// and an unknown one maps to CloseReasonUnknown so that Validate rejects it.
+func (f *CreateCommentForm) CloseReasonOptions() issues_model.CloseReasonOptions {
+	opts := issues_model.CloseReasonOptions{Text: f.CloseReasonText, DuplicateIndex: f.CloseDuplicateIndex}
+	switch f.CloseReason {
+	case "":
+		opts.Reason = issues_model.CloseReasonNone
+	case "completed":
+		opts.Reason = issues_model.CloseReasonCompleted
+	case "not_planned":
+		opts.Reason = issues_model.CloseReasonNotPlanned
+	case "duplicate":
+		opts.Reason = issues_model.CloseReasonDuplicate
+	case "other":
+		opts.Reason = issues_model.CloseReasonOther
+	default:
+		opts.Reason = issues_model.CloseReasonUnknown
+	}
+	return opts
 }
 
 // Validate validates the fields

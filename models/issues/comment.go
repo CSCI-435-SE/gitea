@@ -249,6 +249,10 @@ type CommentMetaData struct {
 	ProjectTitle       string `json:"project_title,omitempty"`
 
 	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+
+	CloseReason           CloseReason `json:"close_reason,omitempty"` // snapshot at this close; never updated, unlike the issue's own reason
+	CloseReasonText       string      `json:"close_reason_text,omitempty"`
+	CloseDuplicateIssueID int64       `json:"close_duplicate_issue_id,omitempty"`
 }
 
 // Comment represents a comment in commit and issue page.
@@ -288,6 +292,8 @@ type Comment struct {
 	NewRef           string
 	DependentIssueID int64  `xorm:"index"` // This is used by issue_service.deleteIssue
 	DependentIssue   *Issue `xorm:"-"`
+
+	CloseDuplicateIssue *Issue `xorm:"-"` // filled by LoadCloseDuplicateIssue
 
 	CommitID        int64
 	Line            int64         // - previous line / + proposed line
@@ -774,6 +780,32 @@ func (c *Comment) CodeCommentLink(ctx context.Context) string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())
 }
 
+// MetaCloseReason returns the reason recorded on a close comment; comments without metadata have none.
+// The duplicate target is not included: load it with LoadCloseDuplicateIssue.
+func (c *Comment) MetaCloseReason() CloseReasonOptions {
+	if c.CommentMetaData == nil {
+		return CloseReasonOptions{}
+	}
+	return CloseReasonOptions{Reason: c.CommentMetaData.CloseReason, Text: c.CommentMetaData.CloseReasonText}
+}
+
+// LoadCloseDuplicateIssue loads the issue a close comment names as the duplicate target,
+// with its repository so that Link works. A deleted target returns ErrIssueNotExist.
+func (c *Comment) LoadCloseDuplicateIssue(ctx context.Context) error {
+	if c.CloseDuplicateIssue != nil || c.CommentMetaData == nil || c.CommentMetaData.CloseDuplicateIssueID <= 0 {
+		return nil
+	}
+	issue, err := GetIssueByID(ctx, c.CommentMetaData.CloseDuplicateIssueID)
+	if err != nil {
+		return err
+	}
+	if err := issue.LoadRepo(ctx); err != nil {
+		return err
+	}
+	c.CloseDuplicateIssue = issue
+	return nil
+}
+
 func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
 	if c.CommentMetaData == nil {
 		return ""
@@ -829,6 +861,13 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		if opts.SpecialDoerName != "" {
 			commentMetaData = &CommentMetaData{
 				SpecialDoerName: opts.SpecialDoerName,
+			}
+		}
+		if opts.CloseReason != CloseReasonNone {
+			commentMetaData = &CommentMetaData{
+				CloseReason:           opts.CloseReason,
+				CloseReasonText:       opts.CloseReasonText,
+				CloseDuplicateIssueID: opts.CloseDuplicateIssueID,
 			}
 		}
 
@@ -1028,6 +1067,10 @@ type CreateCommentOptions struct {
 	IsForcePush        bool
 	Invalidated        bool
 	SpecialDoerName    SpecialDoerNameType // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+
+	CloseReason           CloseReason
+	CloseReasonText       string
+	CloseDuplicateIssueID int64
 }
 
 // GetCommentByID returns the comment by given ID.
