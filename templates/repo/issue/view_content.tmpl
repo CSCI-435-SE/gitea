@@ -101,6 +101,9 @@
 											{{end}}
 											{{if not .Issue.IsClosed}}
 												<input type="hidden" name="close_reason" value="{{.DefaultCloseReason.String}}">{{/* changed together with the button's texts by initRepoIssueStatusButton */}}
+												{{/* filled from their reason's popup; switched off, so not sent, unless that reason is picked */}}
+												<input type="hidden" name="close_duplicate_index" data-close-reason="duplicate" disabled>
+												<input type="hidden" name="close_reason_text" data-close-reason="other" disabled>
 											{{end}}
 											<div class="ui buttons" data-global-init="initRepoIssueStatusButton">
 												<button id="status-button" class="ui button" data-status="{{$btnTextNoComment}}" data-status-and-comment="{{$btnTextWithComment}}" name="status" value="{{$btnValue}}">
@@ -122,6 +125,36 @@
 													</div>
 												{{end}}
 											</div>
+											{{if not .Issue.IsClosed}}
+												{{/* small popups under the buttons for the reasons that need more; opened by initRepoIssueStatusButton, like the editor's "add table" popup */}}
+												<div class="tippy-target" data-close-reason-popup="duplicate"
+													data-locale-status="{{ctx.Locale.Tr "repo.issues.close_as_duplicate_of" "%s"}}"
+													data-locale-status-and-comment="{{ctx.Locale.Tr "repo.issues.close_as_duplicate_of_with_comment" "%s"}}"
+												>
+													<div class="ui form tw-p-2">
+														{{/* a field, so Gitea's "error" field style can mark a number that can't be used, or a close tried with none */}}
+														<div class="inline field flex-text-block">
+															<label for="close-duplicate-index">{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_label"}}</label>
+															<input id="close-duplicate-index" type="number" min="1" step="1" class="tw-w-32" autocomplete="off">
+															{{/* the issue with the typed number, looked up as it is typed */}}
+															<span class="flex-text-inline tw-max-w-[260px] tw-hidden" data-close-duplicate-preview
+																data-locale-not-found="{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_not_found" "%s"}}"
+																data-locale-self="{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_self"}}"
+															></span>
+														</div>
+													</div>
+												</div>
+												<div class="tippy-target" data-close-reason-popup="other">
+													<div class="ui form tw-p-2">
+														<div class="field">{{/* marked "error" when closing is tried with the box empty */}}
+															<input type="text" class="tw-w-80" maxlength="255" autocomplete="off"
+																placeholder="{{ctx.Locale.Tr "repo.issues.close_reason.text_placeholder"}}"
+																aria-label="{{ctx.Locale.Tr "repo.issues.close_reason.text"}}"
+															>
+														</div>
+													</div>
+												</div>
+											{{end}}
 										{{end}}
 										<button id="comment-button" class="ui primary button">
 											{{ctx.Locale.Tr "repo.issues.create_comment"}}

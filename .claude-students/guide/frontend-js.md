@@ -1,6 +1,6 @@
 ---
 source: docs/frontend-js.md
-source-hash: 2a2975639ad5c3cd
+source-hash: b002a59e74d50273
 verified-at: 85a296b0ad
 ---
 
@@ -132,6 +132,10 @@ milliseconds.
 
 **Run one test file.** `pnpm exec vitest <path-filter>`.
 
+**Show an issue for a number someone typed.** Reuse `matchIssue` (`utils/match.ts`), the search
+behind the `#` list. It puts the issue with that exact number first, leaves out the one you're on,
+and returns only what the viewer may read, as the duplicate close reason's preview does.
+
 ## Traps, and what they look like
 
 **The whole site gets slower after your change.** You added a page-load init without an early
@@ -173,6 +177,15 @@ is a link or has the class `js-aria-clickable` — Gitea's own patch in
 and your listener never hears it. Add the class, as the comment menu
 (`templates/repo/issue/view_content/context_menu.tmpl`) and the close reason menu
 (`templates/repo/issue/view_content.tmpl`) do.
+
+**You focus a box after a menu pick, and the focus jumps back.** When an item of a Fomantic dropdown
+is clicked, the dropdown puts the focus back on itself after your click handler has run. Wait one
+tick with `setTimeout(..., 0)` before focusing anything else.
+
+**The values typed in your popup never reach the server.** `createTippy` (`modules/tippy.ts`)
+moves a popup's content to the end of the page while it is shown, so any input inside it is no
+longer inside its `<form>` and the form does not send it. Copy the value into a hidden field that
+stays in the form, as the close reason popups in `features/repo-issue-status-button.ts` do.
 
 ## Where to go next
 

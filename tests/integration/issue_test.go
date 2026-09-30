@@ -334,11 +334,24 @@ func TestIssueCloseReasonMenu(t *testing.T) {
 			reason := item.AttrOr("data-value", "")
 			reasons = append(reasons, reason)
 			labels = append(labels, strings.TrimSpace(item.Text())) // a missing locale key would show as the key
-			assert.Equal(t, itemTexts[reason], [2]string{item.AttrOr("data-status", ""), item.AttrOr("data-status-and-comment", "")}, "reason %q", reason)
+			rendered := [2]string{item.AttrOr("data-status", ""), item.AttrOr("data-status-and-comment", "")}
+			assert.Equal(t, itemTexts[reason], rendered, "reason %q", reason)
 			assert.True(t, item.HasClass("js-aria-clickable"), "reason %q: without it, Enter does not pick the item", reason)
 		})
 		assert.Equal(t, wantReasons, reasons)
 		assert.Equal(t, wantLabels, labels)
+
+		// what duplicate and other need is typed in their popups into fields that are switched off, so not sent, until picked
+		assert.Equal(t, 1, htmlDoc.doc.Find(`#comment-form input[type="hidden"][name="close_duplicate_index"][disabled]`).Length())
+		assert.Equal(t, 1, htmlDoc.doc.Find(`#comment-form input[type="hidden"][name="close_reason_text"][disabled]`).Length())
+		duplicatePopup := htmlDoc.doc.Find(`#comment-form [data-close-reason-popup="duplicate"]`)
+		assert.Equal(t, "Close as duplicate of #%s", duplicatePopup.AttrOr("data-locale-status", ""))
+		assert.Equal(t, "Close as duplicate of #%s with comment", duplicatePopup.AttrOr("data-locale-status-and-comment", ""))
+		assert.Equal(t, 1, duplicatePopup.Find(`.field label[for="close-duplicate-index"] + input#close-duplicate-index[type="number"][min="1"]`).Length(), "in a field, so an unusable number can be marked as an error")
+		preview := duplicatePopup.Find(`[data-close-duplicate-preview]`)
+		assert.Equal(t, "No #%s found in this repository", preview.AttrOr("data-locale-not-found", ""))
+		assert.Equal(t, "Can't be a duplicate of itself", preview.AttrOr("data-locale-self", ""))
+		assert.Equal(t, 1, htmlDoc.doc.Find(`#comment-form [data-close-reason-popup="other"] .field input[type="text"][maxlength="255"]`).Length())
 
 		reason, exists := htmlDoc.doc.Find(`#comment-form input[name="close_reason"]`).Attr("value")
 		require.True(t, exists, "The template has changed")
@@ -368,6 +381,7 @@ func TestIssueCloseReasonMenu(t *testing.T) {
 		assert.Equal(t, "Reopen Issue", strings.TrimSpace(htmlDoc.doc.Find("#status-button .status-button-text").Text()))
 		assert.Zero(t, htmlDoc.doc.Find("#comment-form .ui.buttons .ui.dropdown").Length())
 		assert.Zero(t, htmlDoc.doc.Find(`#comment-form input[name="close_reason"]`).Length())
+		assert.Zero(t, htmlDoc.doc.Find(`#comment-form [data-close-reason-popup], #comment-form input[data-close-reason]`).Length())
 	})
 }
 
