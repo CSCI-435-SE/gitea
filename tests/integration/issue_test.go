@@ -25,6 +25,8 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	issue_service "gitea.dev/services/issue"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -382,6 +384,99 @@ func TestIssueCloseReasonMenu(t *testing.T) {
 		assert.Zero(t, htmlDoc.doc.Find("#comment-form .ui.buttons .ui.dropdown").Length())
 		assert.Zero(t, htmlDoc.doc.Find(`#comment-form input[name="close_reason"]`).Length())
 		assert.Zero(t, htmlDoc.doc.Find(`#comment-form [data-close-reason-popup], #comment-form input[data-close-reason]`).Length())
+	})
+}
+
+func TestIssueTimelineCloseReason(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+
+	// closeWith opens a new issue and closes it through the page's form; closeEntry reads its close event from a fresh page
+	closeWith := func(t *testing.T, fields map[string]string) (issue *issues_model.Issue, closeEntry func() *goquery.Selection) {
+		issueURL := testNewIssue(t, session, "user2", "repo1", "Timeline check", "Description")
+		action, exists := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", issueURL), http.StatusOK).Body).doc.Find("#comment-form").Attr("action")
+		require.True(t, exists, "The template has changed")
+		fields["status"] = "close"
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", action, fields), http.StatusOK)
+
+		index, err := strconv.ParseInt(path.Base(issueURL), 10, 64)
+		require.NoError(t, err)
+		issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: index})
+		require.True(t, issue.IsClosed)
+		comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeClose})
+		return issue, func() *goquery.Selection {
+			return NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", issueURL), http.StatusOK).Body).doc.Find("#" + comment.HashTag())
+		}
+	}
+	mainLine := func(entry *goquery.Selection) string {
+		return strings.Join(strings.Fields(entry.Find(".comment-text-line").First().Text()), " ")
+	}
+
+	t.Run("each reason names itself, in bold like a lock reason", func(t *testing.T) {
+		for reason, want := range map[string]string{"completed": "completed", "not_planned": "not planned"} {
+			_, closeEntry := closeWith(t, map[string]string{"close_reason": reason})
+			entry := closeEntry()
+			assert.Contains(t, mainLine(entry), "closed this as "+want)
+			assert.Equal(t, want, entry.Find(".comment-text-line strong").Text())
+			assert.Zero(t, entry.Find(".detail").Length())
+		}
+	})
+
+	t.Run("a close without a reason reads as before", func(t *testing.T) {
+		_, closeEntry := closeWith(t, map[string]string{})
+		entry := closeEntry()
+		assert.Contains(t, mainLine(entry), "closed this issue")
+		assert.Zero(t, entry.Find(".comment-text-line strong, .detail").Length())
+	})
+
+	t.Run("a duplicate links to the original on its own line", func(t *testing.T) {
+		_, closeEntry := closeWith(t, map[string]string{"close_reason": "duplicate", "close_duplicate_index": "1"})
+		entry := closeEntry()
+		assert.Contains(t, mainLine(entry), "closed this as a duplicate")
+		link := entry.Find(".detail a")
+		assert.Equal(t, "/user2/repo1/issues/1", link.AttrOr("href", ""))
+		assert.Equal(t, "#1 issue1", strings.Join(strings.Fields(link.Text()), " "))
+	})
+
+	t.Run("other text is shown as plain text", func(t *testing.T) {
+		text := "<b>not bold</b> **not bold either**"
+		_, closeEntry := closeWith(t, map[string]string{"close_reason": "other", "close_reason_text": text})
+		entry := closeEntry()
+		assert.Contains(t, mainLine(entry), "closed this")
+		assert.Equal(t, text, entry.Find(".detail .comment-text-line").Text())
+		assert.Zero(t, entry.Find(".detail b, .detail strong").Length(), "neither HTML nor Markdown is rendered")
+	})
+
+	t.Run("reopening keeps the reason on the earlier close", func(t *testing.T) {
+		issue, closeEntry := closeWith(t, map[string]string{"close_reason": "not_planned"})
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/repo1/issues/%d/comments", issue.Index), map[string]string{"status": "reopen"}), http.StatusOK)
+		assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID}).IsClosed)
+		assert.Contains(t, mainLine(closeEntry()), "closed this as not planned")
+	})
+
+	t.Run("a deleted original is left out", func(t *testing.T) {
+		targetURL := testNewIssue(t, session, "user2", "repo1", "Original", "Description")
+		targetIndex := path.Base(targetURL)
+		_, closeEntry := closeWith(t, map[string]string{"close_reason": "duplicate", "close_duplicate_index": targetIndex})
+		index, err := strconv.ParseInt(targetIndex, 10, 64)
+		require.NoError(t, err)
+		target := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: index})
+		require.NoError(t, issue_service.DeleteIssue(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}), target))
+
+		entry := closeEntry() // the page still loads
+		assert.Contains(t, mainLine(entry), "closed this as a duplicate")
+		assert.Zero(t, entry.Find(".detail").Length())
+	})
+
+	t.Run("an original the viewer can't read is left out", func(t *testing.T) {
+		_, closeEntry := closeWith(t, map[string]string{"close_reason": "duplicate", "close_duplicate_index": "3"}) // #3 is a pull request
+		assert.Equal(t, 1, closeEntry().Find(".detail a").Length())
+		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit.Type{unit.TypePullRequests}))
+
+		entry := closeEntry()
+		assert.Contains(t, mainLine(entry), "closed this as a duplicate")
+		assert.Zero(t, entry.Find(".detail").Length())
 	})
 }
 

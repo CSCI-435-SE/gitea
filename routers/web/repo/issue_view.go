@@ -744,6 +744,10 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 					return
 				}
 			}
+			// the target is in this repository, but the viewer may be able to read issues and not pull requests, or the other way round
+			if comment.CloseDuplicateIssue != nil && !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.CloseDuplicateIssue.IsPull) {
+				comment.CloseDuplicateIssue = nil
+			}
 		} else if comment.Type.HasContentSupport() {
 			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
 				FootnoteContextID: strconv.FormatInt(comment.ID, 10),

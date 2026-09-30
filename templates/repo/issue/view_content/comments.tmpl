@@ -95,6 +95,7 @@
 				</span>
 			</div>
 		{{else if eq .Type 2}}
+			{{$closeReason := .MetaCloseReason}}{{/* the reason this close had; closes from before close reasons have none */}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge tw-bg-red tw-text-white">{{svg "octicon-issue-closed"}}</span>
 				{{if not .OriginalAuthor}}
@@ -102,12 +103,28 @@
 				{{end}}
 				<span class="comment-text-line">
 					{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
-					{{if .Issue.IsPull}}
+					{{if $closeReason.Reason}}
+						{{ctx.Locale.Tr (printf "repo.issues.closed_as.%s" $closeReason.Reason.String) .EventTag $createdStr}}
+					{{else if .Issue.IsPull}}
 						{{ctx.Locale.Tr "repo.pulls.closed_at" .EventTag $createdStr}}
 					{{else}}
 						{{ctx.Locale.Tr "repo.issues.closed_at" .EventTag $createdStr}}
 					{{end}}
 				</span>
+				{{/* like a dependency event: what the reason points at sits on its own line */}}
+				{{if and (eq $closeReason.Reason.String "duplicate") .CloseDuplicateIssue}}{{/* not loaded when deleted, or when the viewer can't read it */}}
+					<div class="detail flex-text-block">
+						{{svg "octicon-duplicate"}}
+						<span class="comment-text-line">
+							<a href="{{.CloseDuplicateIssue.Link}}">#{{.CloseDuplicateIssue.Index}} {{.CloseDuplicateIssue.Title}}</a>
+						</span>
+					</div>
+				{{else if and (eq $closeReason.Reason.String "other") $closeReason.Text}}
+					<div class="detail flex-text-block">
+						{{svg "octicon-note"}}
+						<span class="comment-text-line">{{$closeReason.Text}}</span>{{/* plain text: escaped, not rendered as markdown */}}
+					</div>
+				{{end}}
 			</div>
 		{{else if eq .Type 28}}
 			<div class="timeline-item event" id="{{.HashTag}}">

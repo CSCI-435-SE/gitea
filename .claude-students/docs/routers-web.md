@@ -1,6 +1,6 @@
 ---
 scope: routers/web, routers/common, modules/web
-verified-at: 916a29ba28
+verified-at: 85a296b0ad
 ---
 
 # routers/web — the HTML route table and page handlers
@@ -87,7 +87,9 @@ the extension.
   whether that happened.
 - The issue page loads each comment type's linked data in one `if … else if` chain over
   `issue.Comments` (`routers/web/repo/issue_view.go`). A new type's loading goes there as its own
-  branch; a type matched by an earlier branch never reaches a later one.
+  branch; a type matched by an earlier branch never reaches a later one. That chain is also where
+  linked data the viewer may not see is dropped: a close comment's duplicate target is cleared
+  unless `ctx.Repo.Permission.CanReadIssuesOrPulls` allows its kind, so templates never show it.
 - A handler branch that only logs an error still redirects as if it worked. `NewComment`
   (`routers/web/repo/issue_comment.go`) shows a flash only for the close refusals it maps, so every
   refusal a person can cause needs its own `ctx.Flash.Error(ctx.Tr(...))`.
