@@ -447,7 +447,7 @@ func (f *CreateCommentForm) CloseReasonOptions() issues_model.CloseReasonOptions
 		Text:           f.CloseReasonText,
 		DuplicateIndex: f.CloseDuplicateIndex,
 	}
-
+}
 
 // Validate validates the fields
 func (f *CreateCommentForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
