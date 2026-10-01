@@ -46,6 +46,7 @@ func TestNotificationFilters(t *testing.T) {
 		ids, doc := listedIDs(t, "?source=pull")
 		assert.Empty(t, ids)
 		assert.Contains(t, doc.doc.Find(".empty-placeholder").Text(), "No notifications match")
+		assert.Equal(t, "/notifications", doc.doc.Find(".empty-placeholder a").AttrOr("href", "")) // no stray "?"
 	})
 
 	t.Run("RepoDropdownMarksUnread", func(t *testing.T) {
@@ -55,6 +56,9 @@ func TestNotificationFilters(t *testing.T) {
 		})
 		assert.Equal(t, 1, item.Length())
 		assert.Equal(t, 1, item.Find(`[role="img"]`).Length())
+
+		allRepos := doc.doc.Find(`[data-test-id="notification-filter-repo"] .menu a.item`).First()
+		assert.Equal(t, "/notifications", allRepos.AttrOr("href", ""))
 	})
 
 	t.Run("InaccessibleRepoIsNotExposed", func(t *testing.T) {

@@ -4,14 +4,15 @@
 		{{$notificationUnreadCount := .FilteredUnreadCount}}{{/* the navbar badge stays global */}}
 		{{$pageTypeIsRead := eq $.PageType "read"}}
 		{{$filterQuery := QueryBuild "repo" $.FilterRepoID "source" $.FilterSource}}
-		{{$queryLink := QueryBuild "?" "type" $.PageType "repo" $.FilterRepoID "source" $.FilterSource}}
+		{{$notificationsLink := print AppSubUrl "/notifications"}}{{/* a path prefix lets QueryBuild drop the "?" when every param is empty */}}
+		{{$queryLink := QueryBuild $notificationsLink "type" $.PageType "repo" $.FilterRepoID "source" $.FilterSource}}
 		<div class="flex-left-right tw-mb-[--page-spacing]">
 			<div class="small-menu-items ui compact tiny menu">
-				<a class="{{if not $pageTypeIsRead}}active{{end}} item" href="{{AppSubUrl}}/notifications{{QueryBuild "?" "type" "unread" "repo" $.FilterRepoID "source" $.FilterSource}}">
+				<a class="{{if not $pageTypeIsRead}}active{{end}} item" href="{{QueryBuild $notificationsLink "type" "unread" "repo" $.FilterRepoID "source" $.FilterSource}}">
 					{{ctx.Locale.Tr "notification.unread"}}
 					<div class="notifications-unread-count ui label {{if not $notificationUnreadCount}}tw-hidden{{end}}">{{$notificationUnreadCount}}</div>
 				</a>
-				<a class="{{if $pageTypeIsRead}}active{{end}} item" href="{{AppSubUrl}}/notifications{{QueryBuild "?" "type" "read" "repo" $.FilterRepoID "source" $.FilterSource}}">
+				<a class="{{if $pageTypeIsRead}}active{{end}} item" href="{{QueryBuild $notificationsLink "type" "read" "repo" $.FilterRepoID "source" $.FilterSource}}">
 					{{ctx.Locale.Tr "notification.read"}}
 				</a>
 			</div>
@@ -49,7 +50,7 @@
 					</div>
 				</div>
 				{{if $.IsFiltered}}
-					<a class="ui mini basic button" href="{{AppSubUrl}}/notifications{{QueryBuild "?" "type" $.PageType}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
+					<a class="ui mini basic button" href="{{QueryBuild $notificationsLink "type" $.PageType}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
 				{{end}}
 				{{if and (not $pageTypeIsRead) $notificationUnreadCount}}
 					{{$markAllTitle := Iif $.IsFiltered (ctx.Locale.Tr "notification.mark_all_filtered_as_read") (ctx.Locale.Tr "notification.mark_all_as_read")}}
@@ -124,7 +125,7 @@
 					{{svg "octicon-inbox" 56 "tw-mb-4"}}
 					{{if $.IsFiltered}}
 						{{ctx.Locale.Tr "notification.no_filtered"}}
-						<a href="{{AppSubUrl}}/notifications{{QueryBuild "?" "type" $.PageType}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
+						<a href="{{QueryBuild $notificationsLink "type" $.PageType}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
 					{{else if $pageTypeIsRead}}
 						{{ctx.Locale.Tr "notification.no_read"}}
 					{{else}}
