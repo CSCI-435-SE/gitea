@@ -1,7 +1,7 @@
 ---
 source: docs/routers-web.md
-source-hash: 61a9501d987c75ed
-verified-at: 916a29ba28
+source-hash: 6fda398e8fd84713
+verified-at: 32ac0cbb78
 ---
 
 <!-- Derived from docs/routers-web.md. Do not edit by hand: fix the reference doc and regenerate
@@ -157,7 +157,10 @@ whether it happened. Return immediately after anything that writes a response.
 **Your new kind of timeline entry shows up, but its linked data is missing.** The issue page loads
 each comment type's extra data in one long `if … else if` chain in
 `routers/web/repo/issue_view.go`. Your type needs its own branch there — and if an earlier branch
-already matches your type, a later one never runs.
+already matches your type, a later one never runs. The same chain is the place to hide linked data
+from people who may not see it: a close comment's duplicate target is cleared there when the
+viewer can't read that kind of item (`ctx.Repo.Permission.CanReadIssuesOrPulls`), so the
+template simply has nothing to show.
 
 **A form post fails, but the page just reloads as if it worked.** The handler logged the error and
 redirected anyway. `NewComment` in `routers/web/repo/issue_comment.go` only tells the person about

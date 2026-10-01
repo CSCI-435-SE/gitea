@@ -8,6 +8,7 @@ import {createSortable} from '../modules/sortable.ts';
 import {DELETE, POST} from '../modules/fetch.ts';
 import {parseDom} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 import type {SortableEvent} from 'sortablejs';
 
 function initRepoIssueListCheckboxes() {
@@ -82,7 +83,7 @@ function initRepoIssueListCheckboxes() {
       }
 
       try {
-        await updateIssuesMeta(url, action, issueIDs, elementId);
+        await updateIssuesMeta(url, action, issueIDs, elementId, el.getAttribute('data-close-reason')); // only the Close button has one
         window.location.reload();
       } catch (err) {
         // FIXME: this logic (including updateIssuesMeta) is not right, should refactor to our JSONError framework
@@ -91,6 +92,18 @@ function initRepoIssueListCheckboxes() {
       }
     },
   ));
+}
+
+// The bulk Close button names the reason it closes with, and the ▾ beside it changes that reason, like the close button
+// on an item's page. As there, a plain click listener on the menu; its items are js-aria-clickable, so Enter clicks them too.
+export function initIssueListCloseReason(elButtons: HTMLElement) {
+  const closeButton = elButtons.querySelector<HTMLElement>('.issue-action[data-close-reason]')!;
+  elButtons.querySelector('.menu')!.addEventListener('click', (e) => {
+    const elItem = (e.target as Element).closest<HTMLElement>('.item[data-value]');
+    if (!elItem) return;
+    closeButton.setAttribute('data-close-reason', elItem.getAttribute('data-value')!);
+    closeButton.textContent = elItem.getAttribute('data-status');
+  });
 }
 
 function initDropdownUserRemoteSearch(el: Element) {
@@ -225,6 +238,7 @@ async function initIssuePinSort() {
 }
 
 export function initRepoIssueList() {
+  registerGlobalInitFunc('initIssueListCloseReason', initIssueListCloseReason);
   if (document.querySelector('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list')) {
     initRepoIssueListCheckboxes();
     queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));

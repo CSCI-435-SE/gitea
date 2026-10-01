@@ -1,6 +1,6 @@
 ---
 scope: templates, modules/templates
-verified-at: 7075389dd1
+verified-at: 32ac0cbb78
 ---
 
 # templates — the Go HTML templates and their helpers
@@ -34,6 +34,7 @@ every function templates can call.
 | `modules/templates/htmlrenderer.go` | `TplName` and the renderer |
 | `modules/templates/scopedtmpl/` | the scoped-template machinery behind partial rendering |
 | `templates/base/head_script.tmpl` | emits `window.config`, including `pageData` |
+| `templates/shared/close_reason_icon.tmpl` | a closed item's icon, state label and close-event badge by close reason, for `shared/issueicon.tmpl`, `repo/issue/view_title.tmpl` and `repo/issue/view_content/comments.tmpl` |
 
 ## Conventions & invariants
 

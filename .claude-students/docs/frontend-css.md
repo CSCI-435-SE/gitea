@@ -1,6 +1,6 @@
 ---
 scope: web_src/css, tailwind.config.ts
-verified-at: a50a52cbc8
+verified-at: 32ac0cbb78
 ---
 
 # web_src/css — styling conventions
@@ -101,6 +101,12 @@ against the stock theme it extends.
 - A theme file must not introduce a *new* `--color-*` name. `tailwind.config.ts` and
   `stylelint.config.ts` read only `base.css` and the two `theme-gitea-*` files, so an unknown name
   fails `make lint-css` and never gets a `tw-` utility.
+- A Fomantic dropdown's menu is a child of the dropdown, so any ancestor with `overflow: hidden`
+  cuts it off: the menu opens but cannot be seen. Tippy popups (`web_src/js/modules/tippy.ts`) are
+  attached to `document.body` and are never cut off.
+- Below 768px, `repo.css` makes every button in an issue's comment form full-width, buttons inside
+  a `ui buttons` group included. Group buttons cannot shrink, so a group needs its own sizing there,
+  as the close button's group has, or its ▾ spills over the Comment button.
 
 ## Related
 

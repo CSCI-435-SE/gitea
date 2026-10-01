@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -25,6 +27,8 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	issue_service "gitea.dev/services/issue"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -308,6 +312,415 @@ func TestIssueCommentCloseWithReason(t *testing.T) {
 		assert.False(t, issue.IsClosed)
 		assert.Contains(t, body, "Close reason description must contain at most 255 characters.")
 	})
+}
+
+func TestIssueCloseReasonMenu(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+
+	// the button texts each menu item hands to the button when it is picked
+	itemTexts := map[string][2]string{
+		"completed":   {"Close as completed", "Close as completed with comment"},
+		"not_planned": {"Close as not planned", "Close as not planned with comment"},
+		"duplicate":   {"Close as duplicate", "Close as duplicate with comment"},
+		"other":       {"Close with other reason", "Close with other reason and comment"},
+	}
+
+	// closeFromPage checks the close button and its menu, then closes with the reason the page itself sends
+	closeFromPage := func(t *testing.T, link, wantText, wantTextWithComment string, wantReasons, wantLabels []string) {
+		htmlDoc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK).Body)
+		button := htmlDoc.doc.Find("#comment-form .ui.buttons #status-button")
+		assert.Equal(t, wantText, strings.TrimSpace(button.Find(".status-button-text").Text()))
+		assert.Equal(t, wantTextWithComment, button.AttrOr("data-status-and-comment", ""))
+
+		var reasons, labels []string
+		htmlDoc.doc.Find("#comment-form .ui.buttons .menu .item").Each(func(_ int, item *goquery.Selection) {
+			reason := item.AttrOr("data-value", "")
+			reasons = append(reasons, reason)
+			labels = append(labels, strings.TrimSpace(item.Text())) // a missing locale key would show as the key
+			rendered := [2]string{item.AttrOr("data-status", ""), item.AttrOr("data-status-and-comment", "")}
+			assert.Equal(t, itemTexts[reason], rendered, "reason %q", reason)
+			assert.True(t, item.HasClass("js-aria-clickable"), "reason %q: without it, Enter does not pick the item", reason)
+		})
+		assert.Equal(t, wantReasons, reasons)
+		assert.Equal(t, wantLabels, labels)
+		assert.Equal(t, "Choose a close reason", htmlDoc.doc.Find("#comment-form .ui.buttons .ui.dropdown").AttrOr("aria-label", ""))
+
+		// what duplicate and other need is typed in their popups into fields that are switched off, so not sent, until picked
+		assert.Equal(t, 1, htmlDoc.doc.Find(`#comment-form input[type="hidden"][name="close_duplicate_index"][disabled]`).Length())
+		assert.Equal(t, 1, htmlDoc.doc.Find(`#comment-form input[type="hidden"][name="close_reason_text"][disabled]`).Length())
+		duplicatePopup := htmlDoc.doc.Find(`#comment-form [data-close-reason-popup="duplicate"]`)
+		assert.Equal(t, "Close as duplicate of #%s", duplicatePopup.AttrOr("data-locale-status", ""))
+		assert.Equal(t, "Close as duplicate of #%s with comment", duplicatePopup.AttrOr("data-locale-status-and-comment", ""))
+		assert.Equal(t, "Duplicate of #", strings.TrimSpace(duplicatePopup.Find(`label[for="close-duplicate-index"]`).Text()))
+		assert.Equal(t, 1, duplicatePopup.Find(`.field label[for="close-duplicate-index"] + input#close-duplicate-index[type="number"][min="1"]`).Length(), "in a field, so an unusable number can be marked as an error")
+		preview := duplicatePopup.Find(`[data-close-duplicate-preview]`)
+		assert.Equal(t, "close-duplicate-preview", duplicatePopup.Find("#close-duplicate-index").AttrOr("aria-describedby", ""), "its message is read with the box")
+		assert.Equal(t, "close-duplicate-preview", preview.AttrOr("id", ""))
+		assert.Equal(t, "No #%s found in this repository", preview.AttrOr("data-locale-not-found", ""))
+		assert.Equal(t, "Can't be a duplicate of itself", preview.AttrOr("data-locale-self", ""))
+		assert.Equal(t, 1, htmlDoc.doc.Find(`#comment-form [data-close-reason-popup="other"] .field input[type="text"][maxlength="255"]`).Length())
+		assert.Equal(t, "Why is it being closed?", htmlDoc.doc.Find(`#comment-form [data-close-reason-popup="other"] input`).AttrOr("placeholder", ""))
+
+		// the page starts from the item marked selected (initRepoIssueStatusButton resets the hidden field to it), so that is what is sent
+		selected := htmlDoc.doc.Find("#comment-form .ui.buttons .menu .item.selected")
+		require.Equal(t, 1, selected.Length(), "one reason is marked as the one the button starts on")
+		reason := selected.AttrOr("data-value", "")
+		assert.Equal(t, reason, htmlDoc.doc.Find(`#comment-form input[name="close_reason"]`).AttrOr("value", ""))
+		action, exists := htmlDoc.doc.Find("#comment-form").Attr("action")
+		require.True(t, exists, "The template has changed")
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", action, map[string]string{"status": "close", "close_reason": reason}), http.StatusOK)
+	}
+
+	t.Run("an issue starts on completed", func(t *testing.T) {
+		closeFromPage(t, "/user2/repo1/issues/1", "Close as completed", "Close as completed with comment",
+			[]string{"completed", "not_planned", "duplicate", "other"}, []string{"Completed", "Not planned", "Duplicate", "Other"})
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		assert.True(t, issue.IsClosed)
+		assert.Equal(t, issues_model.CloseReasonCompleted, issue.CloseReason)
+	})
+
+	t.Run("a pull request starts on not planned and cannot be completed", func(t *testing.T) {
+		closeFromPage(t, "/user2/repo1/pulls/3", "Close as not planned", "Close as not planned with comment",
+			[]string{"not_planned", "duplicate", "other"}, []string{"Not planned", "Duplicate", "Other"})
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+		assert.True(t, issue.IsClosed)
+		assert.Equal(t, issues_model.CloseReasonNotPlanned, issue.CloseReason)
+	})
+
+	t.Run("a closed issue only offers reopening", func(t *testing.T) {
+		htmlDoc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/issues/4"), http.StatusOK).Body)
+		assert.Equal(t, "Reopen Issue", strings.TrimSpace(htmlDoc.doc.Find("#status-button .status-button-text").Text()))
+		assert.Zero(t, htmlDoc.doc.Find("#comment-form .ui.buttons .ui.dropdown").Length())
+		assert.Zero(t, htmlDoc.doc.Find(`#comment-form input[name="close_reason"]`).Length())
+		assert.Zero(t, htmlDoc.doc.Find(`#comment-form [data-close-reason-popup], #comment-form input[data-close-reason]`).Length())
+	})
+}
+
+func TestIssueTimelineCloseReason(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+
+	// closeWith opens a new issue and closes it through the page's form; closeEntry reads its close event from a fresh page
+	closeWith := func(t *testing.T, fields map[string]string) (issue *issues_model.Issue, closeEntry func() *goquery.Selection) {
+		issueURL := testNewIssue(t, session, "user2", "repo1", "Timeline check", "Description")
+		action, exists := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", issueURL), http.StatusOK).Body).doc.Find("#comment-form").Attr("action")
+		require.True(t, exists, "The template has changed")
+		fields["status"] = "close"
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", action, fields), http.StatusOK)
+
+		index, err := strconv.ParseInt(path.Base(issueURL), 10, 64)
+		require.NoError(t, err)
+		issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: index})
+		require.True(t, issue.IsClosed)
+		comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: issue.ID, Type: issues_model.CommentTypeClose})
+		return issue, func() *goquery.Selection {
+			return NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", issueURL), http.StatusOK).Body).doc.Find("#" + comment.HashTag())
+		}
+	}
+	mainLine := func(entry *goquery.Selection) string {
+		return strings.Join(strings.Fields(entry.Find(".comment-text-line").First().Text()), " ")
+	}
+
+	t.Run("each reason names itself, in bold like a lock reason", func(t *testing.T) {
+		for reason, want := range map[string]string{"completed": "completed", "not_planned": "not planned"} {
+			_, closeEntry := closeWith(t, map[string]string{"close_reason": reason})
+			entry := closeEntry()
+			assert.Contains(t, mainLine(entry), "closed this as "+want)
+			assert.Equal(t, want, entry.Find(".comment-text-line strong").Text())
+			assert.Zero(t, entry.Find(".detail").Length())
+		}
+	})
+
+	t.Run("a close without a reason reads as before", func(t *testing.T) {
+		_, closeEntry := closeWith(t, map[string]string{})
+		entry := closeEntry()
+		assert.Contains(t, mainLine(entry), "closed this issue")
+		assert.Zero(t, entry.Find(".comment-text-line strong, .detail").Length())
+	})
+
+	t.Run("a duplicate links to the original on its own line", func(t *testing.T) {
+		_, closeEntry := closeWith(t, map[string]string{"close_reason": "duplicate", "close_duplicate_index": "1"})
+		entry := closeEntry()
+		assert.Contains(t, mainLine(entry), "closed this as a duplicate")
+		link := entry.Find(".detail a")
+		assert.Equal(t, "/user2/repo1/issues/1", link.AttrOr("href", ""))
+		assert.Equal(t, "#1 issue1", strings.Join(strings.Fields(link.Text()), " "))
+	})
+
+	t.Run("other text is shown as plain text", func(t *testing.T) {
+		text := "<b>not bold</b> **not bold either**"
+		_, closeEntry := closeWith(t, map[string]string{"close_reason": "other", "close_reason_text": text})
+		entry := closeEntry()
+		assert.Contains(t, mainLine(entry), "closed this")
+		assert.NotContains(t, mainLine(entry), "closed this issue", "the wording of a close with no reason")
+		assert.Equal(t, text, entry.Find(".detail .comment-text-line").Text())
+		assert.Zero(t, entry.Find(".detail b, .detail strong").Length(), "neither HTML nor Markdown is rendered")
+	})
+
+	t.Run("reopening keeps the reason on the earlier close", func(t *testing.T) {
+		issue, closeEntry := closeWith(t, map[string]string{"close_reason": "not_planned"})
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/repo1/issues/%d/comments", issue.Index), map[string]string{"status": "reopen"}), http.StatusOK)
+		assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID}).IsClosed)
+		assert.Contains(t, mainLine(closeEntry()), "closed this as not planned")
+	})
+
+	t.Run("a deleted original is left out", func(t *testing.T) {
+		targetURL := testNewIssue(t, session, "user2", "repo1", "Original", "Description")
+		targetIndex := path.Base(targetURL)
+		_, closeEntry := closeWith(t, map[string]string{"close_reason": "duplicate", "close_duplicate_index": targetIndex})
+		index, err := strconv.ParseInt(targetIndex, 10, 64)
+		require.NoError(t, err)
+		target := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: index})
+		require.NoError(t, issue_service.DeleteIssue(t.Context(), unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}), target))
+
+		entry := closeEntry() // the page still loads
+		assert.Contains(t, mainLine(entry), "closed this as a duplicate")
+		assert.Zero(t, entry.Find(".detail").Length())
+	})
+
+	t.Run("an original the viewer can't read is left out", func(t *testing.T) {
+		_, closeEntry := closeWith(t, map[string]string{"close_reason": "duplicate", "close_duplicate_index": "3"}) // #3 is a pull request
+		assert.Equal(t, 1, closeEntry().Find(".detail a").Length())
+		require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit.Type{unit.TypePullRequests}))
+
+		entry := closeEntry()
+		assert.Contains(t, mainLine(entry), "closed this as a duplicate")
+		assert.Zero(t, entry.Find(".detail").Length())
+	})
+}
+
+func TestIssueCloseReasonIcons(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+
+	// the octicon and colour classes of an icon, which are what tell the reasons apart, sorted since their order means nothing
+	iconClasses := func(svg *goquery.Selection) string {
+		var classes []string
+		for class := range strings.FieldsSeq(svg.AttrOr("class", "")) {
+			if strings.HasPrefix(class, "octicon-") || strings.HasPrefix(class, "tw-") {
+				classes = append(classes, class)
+			}
+		}
+		slices.Sort(classes)
+		return strings.Join(classes, " ")
+	}
+	// closeFromPage posts the close form of an issue or pull request page with the given reason fields
+	closeFromPage := func(t *testing.T, link string, fields map[string]string) {
+		action, exists := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK).Body).doc.Find("#comment-form").Attr("action")
+		require.True(t, exists, "The template has changed")
+		fields["status"] = "close"
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", action, fields), http.StatusOK)
+	}
+	type look struct{ listIcon, label, labelIcon, labelColor, badge string }
+	// lookOf reads an item's icon in its list, its state label, and the badge of its latest close event
+	lookOf := func(t *testing.T, kind string, index int64, listState string) look {
+		link := fmt.Sprintf("/user2/repo1/%s/%d", kind, index)
+		list := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/%s?state=%s", kind, listState)), http.StatusOK).Body)
+		row := list.doc.Find(fmt.Sprintf(`a.list-item-large-title[href="%s"]`, link)).Closest(".item")
+		require.Equal(t, 1, row.Length(), "%s is in the %s list", link, listState)
+
+		page := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK).Body)
+		label := page.doc.Find(".issue-title-meta .issue-state-label")
+		labelColor := ""
+		for _, color := range []string{"red", "purple", "grey", "green"} {
+			if label.HasClass(color) {
+				labelColor = color
+			}
+		}
+		var badge string // the last close event's; a merged pull request has none
+		page.doc.Find(".timeline-item.event").Each(func(_ int, event *goquery.Selection) {
+			if strings.Contains(event.Find(".comment-text-line").First().Text(), "closed this") {
+				b := event.Find(".badge")
+				badge = strings.Join(strings.Fields(b.AttrOr("class", "")+" "+iconClasses(b.Find("svg"))), " ") // "badge " when it has no colour
+			}
+		})
+		return look{iconClasses(row.Find(".item-leading svg")), strings.Join(strings.Fields(label.Text()), " "), iconClasses(label.Find("svg")), labelColor, badge}
+	}
+
+	for _, c := range []struct {
+		name   string
+		fields map[string]string
+		want   look
+	}{
+		{
+			"completed is purple, like a merge",
+			map[string]string{"close_reason": "completed"},
+			look{"octicon-issue-closed tw-text-purple", "Closed as completed", "octicon-issue-closed", "purple", "badge tw-bg-purple tw-text-white octicon-issue-closed"},
+		},
+		{
+			"not planned is grey, like a skipped job",
+			map[string]string{"close_reason": "not_planned"},
+			look{"octicon-skip tw-text-text-light", "Closed as not planned", "octicon-skip", "grey", "badge octicon-skip"},
+		},
+		{
+			"duplicate",
+			map[string]string{"close_reason": "duplicate", "close_duplicate_index": "1"},
+			look{"octicon-duplicate tw-text-text-light", "Closed as duplicate", "octicon-duplicate", "grey", "badge octicon-duplicate"},
+		},
+		{
+			"other keeps the plain title, its text is in the timeline",
+			map[string]string{"close_reason": "other", "close_reason_text": "superseded"},
+			look{"octicon-note tw-text-text-light", "Closed", "octicon-note", "grey", "badge octicon-note"},
+		},
+		{
+			"no reason looks as it always did",
+			map[string]string{},
+			look{"octicon-issue-closed tw-text-red", "Closed", "octicon-issue-closed", "red", "badge tw-bg-red tw-text-white octicon-issue-closed"},
+		},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			issueURL := testNewIssue(t, session, "user2", "repo1", "Icon check", "Description")
+			closeFromPage(t, issueURL, c.fields)
+			index, err := strconv.ParseInt(path.Base(issueURL), 10, 64)
+			require.NoError(t, err)
+			assert.Equal(t, c.want, lookOf(t, "issues", index, "closed"))
+		})
+	}
+
+	t.Run("reopening shows the open look again, and the earlier close keeps its badge", func(t *testing.T) {
+		issueURL := testNewIssue(t, session, "user2", "repo1", "Icon check", "Description")
+		closeFromPage(t, issueURL, map[string]string{"close_reason": "not_planned"})
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", issueURL+"/comments", map[string]string{"status": "reopen"}), http.StatusOK)
+		index, err := strconv.ParseInt(path.Base(issueURL), 10, 64)
+		require.NoError(t, err)
+		got := lookOf(t, "issues", index, "open")
+		assert.Equal(t, look{"octicon-issue-opened tw-text-green", "Open", "octicon-issue-opened", "green", "badge octicon-skip"}, got)
+	})
+
+	t.Run("a pull request shows its reason; a merged one still looks merged", func(t *testing.T) {
+		closeFromPage(t, "/user2/repo1/pulls/3", map[string]string{"close_reason": "not_planned"})
+		assert.Equal(t, look{"octicon-skip tw-text-text-light", "Closed as not planned", "octicon-skip", "grey", "badge octicon-skip"}, lookOf(t, "pulls", 3, "closed"))
+		// pull request #2 is merged in the fixtures, but its issue is left open, which a real merge never does
+		mergedIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+		mergedIssue.IsClosed = true
+		require.NoError(t, issues_model.UpdateIssueCols(t.Context(), mergedIssue, "is_closed"))
+		merged := lookOf(t, "pulls", 2, "closed")
+		assert.Equal(t, "octicon-git-merge tw-text-purple", merged.listIcon)
+		assert.Equal(t, "purple", merged.labelColor)
+	})
+
+	t.Run("a pull request closed with no reason looks as it always did", func(t *testing.T) {
+		closeFromPage(t, "/user2/repo1/pulls/5", map[string]string{})
+		want := look{"octicon-git-pull-request-closed tw-text-red", "Closed", "octicon-git-pull-request-closed", "red", "badge tw-bg-red tw-text-white octicon-issue-closed"}
+		assert.Equal(t, want, lookOf(t, "pulls", 5, "closed"))
+	})
+}
+
+func TestIssueBulkCloseReason(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+
+	type closeButton struct {
+		text, reason                 string
+		reasons, labels, statusTexts []string
+	}
+	// buttonOf reads the list's Close button, the reason it starts on, and its menu; and the address it sends to
+	buttonOf := func(t *testing.T, kind string) (closeButton, string) {
+		htmlDoc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/"+kind+"?state=open"), http.StatusOK).Body)
+		buttons := htmlDoc.doc.Find(`#issue-actions [data-global-init="initIssueListCloseReason"]`)
+		button := buttons.Find(`.issue-action[data-action="close"]`)
+		got := closeButton{text: strings.TrimSpace(button.Text()), reason: button.AttrOr("data-close-reason", "")}
+		buttons.Find(".menu .item").Each(func(_ int, item *goquery.Selection) {
+			got.reasons = append(got.reasons, item.AttrOr("data-value", ""))
+			got.labels = append(got.labels, strings.TrimSpace(item.Text())) // a missing locale key would show as the key
+			got.statusTexts = append(got.statusTexts, item.AttrOr("data-status", ""))
+			assert.True(t, item.HasClass("js-aria-clickable"), "without it, Enter does not pick the item")
+		})
+		assert.Equal(t, "Choose a close reason", buttons.Find(".ui.dropdown").AttrOr("aria-label", ""))
+		assert.Equal(t, got.reason, buttons.Find(".menu .item.selected").AttrOr("data-value", ""), "the menu marks the reason the button starts on")
+		return got, button.AttrOr("data-url", "")
+	}
+	newIssue := func(t *testing.T) *issues_model.Issue {
+		index, err := strconv.ParseInt(path.Base(testNewIssue(t, session, "user2", "repo1", "Bulk close check", "Description")), 10, 64)
+		require.NoError(t, err)
+		return unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Index: index})
+	}
+	// bulkClose sends what the Close button sends for the selected items, with no reason when reason is ""
+	bulkClose := func(t *testing.T, url, reason string, wantStatus int, issues ...*issues_model.Issue) *httptest.ResponseRecorder {
+		ids := make([]string, 0, len(issues))
+		for _, issue := range issues {
+			ids = append(ids, strconv.FormatInt(issue.ID, 10))
+		}
+		fields := map[string]string{"action": "close", "issue_ids": strings.Join(ids, ","), "id": ""}
+		if reason != "" {
+			fields["close_reason"] = reason
+		}
+		return session.MakeRequest(t, NewRequestWithValues(t, "POST", url, fields), wantStatus)
+	}
+	reasonOf := func(t *testing.T, issue *issues_model.Issue) (bool, issues_model.CloseReason) {
+		issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID})
+		return issue.IsClosed, issue.CloseReason
+	}
+
+	t.Run("the Issues tab starts on completed and offers not planned", func(t *testing.T) {
+		button, url := buttonOf(t, "issues")
+		assert.Equal(t, closeButton{
+			"Close as completed", "completed",
+			[]string{"completed", "not_planned"},
+			[]string{"Completed", "Not planned"},
+			[]string{"Close as completed", "Close as not planned"},
+		}, button)
+
+		for _, reason := range button.reasons {
+			first, second := newIssue(t), newIssue(t)
+			bulkClose(t, url, reason, http.StatusOK, first, second)
+			for _, issue := range []*issues_model.Issue{first, second} {
+				isClosed, closeReason := reasonOf(t, issue)
+				assert.True(t, isClosed)
+				assert.Equal(t, reason, closeReason.String(), "every selected issue closes with the reason sent")
+			}
+		}
+	})
+
+	t.Run("the Pull Requests tab offers only not planned", func(t *testing.T) {
+		button, url := buttonOf(t, "pulls")
+		assert.Equal(t, closeButton{
+			"Close as not planned", "not_planned",
+			[]string{"not_planned"},
+			[]string{"Not planned"},
+			[]string{"Close as not planned"},
+		}, button)
+
+		pull := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+		bulkClose(t, url, button.reason, http.StatusOK, pull)
+		isClosed, closeReason := reasonOf(t, pull)
+		assert.True(t, isClosed)
+		assert.Equal(t, issues_model.CloseReasonNotPlanned, closeReason)
+	})
+
+	t.Run("no reason closes with none, as before close reasons", func(t *testing.T) {
+		issue := newIssue(t)
+		bulkClose(t, "/user2/repo1/issues/status", "", http.StatusOK, issue)
+		isClosed, closeReason := reasonOf(t, issue)
+		assert.True(t, isClosed)
+		assert.Equal(t, issues_model.CloseReasonNone, closeReason)
+	})
+
+	// only a hand-made request can send these; the list can't send a duplicate's number or an "other" description
+	for _, c := range []struct {
+		name, reason string
+		isPull       bool
+	}{
+		{"completed for a pull request", "completed", true},
+		{"duplicate", "duplicate", false},
+		{"other", "other", false},
+		{"an unknown name", "fixed", false},
+	} {
+		t.Run("refuses "+c.name, func(t *testing.T) {
+			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 11}) // an open pull request
+			if !c.isPull {
+				issue = newIssue(t)
+			}
+			resp := bulkClose(t, "/user2/repo1/issues/status", c.reason, http.StatusBadRequest, issue)
+			var body map[string]string
+			DecodeJSON(t, resp, &body)
+			assert.Equal(t, "This close reason is not available for this issue or pull request.", body["error"], "the same reply as a blocked dependency")
+			isClosed, _ := reasonOf(t, issue)
+			assert.False(t, isClosed)
+		})
+	}
 }
 
 func TestIssueCommentDelete(t *testing.T) {

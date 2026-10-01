@@ -1,7 +1,7 @@
 ---
 source: docs/services-forms-and-convert.md
-source-hash: 021edffca9cb2473
-verified-at: 773c614f56
+source-hash: 6cbd06ad7397f5b1
+verified-at: 32ac0cbb78
 ---
 
 <!-- Derived from docs/services-forms-and-convert.md. Do not edit by hand: fix the reference doc and
@@ -77,9 +77,11 @@ acronyms — `AssigneeIDs` would become `assignee_i_ds` — so that field spells
 
 **A choice arrives as a word, and the form turns it into a number.** When a person picks one of a
 few options, the request carries a name such as `approve` or `not_planned`, and a method on the
-form maps it to the model's integer enum: `SubmitReviewForm.ReviewType` and
-`CreateCommentForm.CloseReasonOptions` in `services/forms/repo_form.go`. Anything unrecognised maps
-to an "unknown" value that is then refused. The numbers stored in the database never travel
+form maps it to the model's integer enum, as `SubmitReviewForm.ReviewType` in
+`services/forms/repo_form.go` does. Anything unrecognised maps to an "unknown" value that is then
+refused. When other code needs the same words, the list lives in the model instead and the form
+just asks it: `CreateCommentForm.CloseReasonOptions` calls `AsCloseReason` in
+`models/issues/issue_close_reason.go`. Either way, the numbers stored in the database never travel
 through the page.
 
 **The `Validate` method is boilerplate — copy it.** A form that wants standard error handling

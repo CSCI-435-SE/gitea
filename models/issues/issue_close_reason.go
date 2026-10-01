@@ -27,6 +27,34 @@ const (
 // CloseReasonUnknown is never stored: it stands for an unrecognised reason name, so that Validate rejects it.
 const CloseReasonUnknown CloseReason = -1
 
+// closeReasonNames are what forms and pages send instead of the stored numbers, so existing names must never change.
+// CloseReasonNone has no name: an empty name means no reason.
+var closeReasonNames = map[CloseReason]string{
+	CloseReasonCompleted:  "completed",
+	CloseReasonNotPlanned: "not_planned",
+	CloseReasonDuplicate:  "duplicate",
+	CloseReasonOther:      "other",
+}
+
+// String returns the reason's name, or "" for no reason.
+func (r CloseReason) String() string {
+	return closeReasonNames[r] // a map rather than CommentType's slice, so CloseReasonUnknown can't index out of range
+}
+
+// AsCloseReason returns the reason with the given name; an empty name means no reason,
+// and an unknown one returns CloseReasonUnknown so that Validate rejects it.
+func AsCloseReason(name string) CloseReason {
+	if name == "" {
+		return CloseReasonNone
+	}
+	for reason, reasonName := range closeReasonNames {
+		if reasonName == name {
+			return reason
+		}
+	}
+	return CloseReasonUnknown
+}
+
 // CloseReasonTextMaxLength matches the VARCHAR(255) close_reason_text column and the close form's MaxSize(255)
 // rule. Validate counts characters the same way MaxSize does, so paths that skip the form get the same limit.
 // MSSQL's NVARCHAR counts UTF-16 units instead, so text with many emoji can pass this limit and still not fit.
@@ -39,6 +67,22 @@ func AllowedCloseReasons(isPull bool) []CloseReason {
 		return []CloseReason{CloseReasonNotPlanned, CloseReasonDuplicate, CloseReasonOther}
 	}
 	return []CloseReason{CloseReasonCompleted, CloseReasonNotPlanned, CloseReasonDuplicate, CloseReasonOther}
+}
+
+// BulkCloseReasons lists the reasons offered when closing several items at once: the allowed ones that need
+// nothing more, as a duplicate's number and an "other" description each belong to a single item.
+func BulkCloseReasons(isPull bool) []CloseReason {
+	return slices.DeleteFunc(AllowedCloseReasons(isPull), func(r CloseReason) bool {
+		return r == CloseReasonDuplicate || r == CloseReasonOther
+	})
+}
+
+// DefaultCloseReason is the reason the close button starts on; consumers may still send any allowed reason, or none.
+func DefaultCloseReason(isPull bool) CloseReason {
+	if isPull {
+		return CloseReasonNotPlanned
+	}
+	return CloseReasonCompleted
 }
 
 // CloseReasonOptions is the reason a person gives when closing an issue or pull request.

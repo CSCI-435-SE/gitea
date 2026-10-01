@@ -1,7 +1,7 @@
 ---
 source: docs/frontend-js.md
-source-hash: 2d8405ac2117ea73
-verified-at: 187c98fee9
+source-hash: aadb1ae155ccf08e
+verified-at: 32ac0cbb78
 ---
 
 <!-- Derived from docs/frontend-js.md. Do not edit by hand: fix the reference doc and regenerate
@@ -132,6 +132,12 @@ milliseconds.
 
 **Run one test file.** `pnpm exec vitest <path-filter>`.
 
+**Show an issue for a number someone typed.** Reuse `matchIssue` (`utils/match.ts`), the search
+behind the `#` list. It puts the issue with that exact number first and leaves out the one you're
+on, as the duplicate close reason's preview does. Only its word matches are limited to what the
+viewer may read: the item with the typed number comes back even when it's a pull request the viewer
+can't open.
+
 ## Traps, and what they look like
 
 **The whole site gets slower after your change.** You added a page-load init without an early
@@ -157,6 +163,31 @@ use its CSS classes, but the two fight over who owns the DOM.
 
 **You put a helper in `utils/` and it breaks in tests.** That folder is for pure helpers. Anything
 reaching for `window` or searching the page belongs in `modules/` or `features/`.
+
+**Your feature crashes when it asks the comment box what was typed.** A feature can follow a
+comment box someone else set up: the box's "content changed" and "upload" events travel up the
+page (`features/comp/EditorMarkdown.ts`, `features/comp/EditorUpload.ts`), and
+`getComboMarkdownEditor` hands you the editor, as `features/repo-issue-status-button.ts` does. The
+catch is timing: the editor is attached to its box *before* it finishes setting up, so asking it
+anything too early throws. Read the box's textarea at start-up, and only ask the editor once one of
+its events arrives — the events come from an editor that is ready.
+
+**Your menu works with the mouse but not with the keyboard.** You listened for clicks on the items
+of a Fomantic dropdown. Pressing Enter on a highlighted item only becomes a real click when the item
+is a link or has the class `js-aria-clickable` — Gitea's own patch in
+`web_src/js/modules/fomantic/dropdown.ts` does that, so everything else is handled inside Fomantic
+and your listener never hears it. Add the class, as the comment menu
+(`templates/repo/issue/view_content/context_menu.tmpl`) and the close reason menu
+(`templates/repo/issue/view_content.tmpl`) do.
+
+**You focus a box after a menu pick, and the focus jumps back.** When an item of a Fomantic dropdown
+is clicked, the dropdown puts the focus back on itself after your click handler has run. Wait one
+tick with `setTimeout(..., 0)` before focusing anything else.
+
+**The values typed in your popup never reach the server.** `createTippy` (`modules/tippy.ts`)
+moves a popup's content to the end of the page while it is shown, so any input inside it is no
+longer inside its `<form>` and the form does not send it. Copy the value into a hidden field that
+stays in the form, as the close reason popups in `features/repo-issue-status-button.ts` do.
 
 ## Where to go next
 

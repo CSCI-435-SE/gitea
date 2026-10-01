@@ -151,9 +151,12 @@ export function initRepoCloneButtons() {
   queryElems(document, '.clone-buttons-combo', initCloneSchemeUrlSelection);
 }
 
-export async function updateIssuesMeta(url: string, action: string, issue_ids: string, id: string) {
+// close_reason goes with a close from the list's Close button
+export async function updateIssuesMeta(url: string, action: string, issue_ids: string, id: string, close_reason: string | null = null) {
   try {
-    const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
+    const data = new URLSearchParams({action, issue_ids, id});
+    if (close_reason) data.set('close_reason', close_reason);
+    const response = await POST(url, {data});
     if (!response.ok) {
       throw new Error('Failed to update issues meta');
     }

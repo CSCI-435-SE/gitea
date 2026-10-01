@@ -569,10 +569,29 @@ td .commit-summary {
   border: none;
 }
 
+/* the close button's group may shrink, wrapping only the close button's text, so the Comment button beside it keeps its width */
+.repository.view.issue .comment-list .comment .content .form .ui.buttons {
+  min-width: 0;
+}
+
+.repository.view.issue .comment-list .comment .content .form .ui.buttons > #status-button {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
 @media (max-width: 767.98px) {
   .repository.view.issue .comment-list .comment .content .form .button {
     width: 100%;
     margin: 0;
+  }
+  /* the group shares the row evenly with the Comment button, as the lone close button did; only the close button in it
+     stretches, or the reason ▾ takes the full width too and spills over the Comment button */
+  .repository.view.issue .comment-list .comment .content .form .ui.buttons,
+  .repository.view.issue .comment-list .comment .content .form .ui.buttons ~ .button {
+    flex: 1 1 50%;
+  }
+  .repository.view.issue .comment-list .comment .content .form .ui.buttons > .button:not(#status-button) {
+    width: auto;
   }
 }
 
@@ -583,10 +602,6 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .comment .ui.form .field:first-child {
   clear: none;
-}
-
-.repository.view.issue .comment-list .comment .ui.form .field.footer {
-  overflow: hidden;
 }
 
 .repository.view.issue .comment-list .comment .ui.form .field .tab.markup {

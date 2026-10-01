@@ -1,7 +1,7 @@
 ---
 source: docs/frontend-css.md
-source-hash: eb30fe81f9572fa0
-verified-at: a50a52cbc8
+source-hash: 941605743b6f483f
+verified-at: 32ac0cbb78
 ---
 
 <!-- Derived from docs/frontend-css.md. Do not edit by hand: fix the reference doc and regenerate
@@ -167,6 +167,17 @@ and `stylelint.config.ts` learn the list of valid colour names by reading `base.
 `theme-gitea-*` files, and nothing else. A name that appears only in your theme is unknown to both:
 `make lint-css` fails, and no `tw-` utility is generated for it. A theme may freely *change* an
 existing colour — it may not add one.
+
+**A dropdown opens, but its menu never appears.** The menu of a `ui dropdown` lives inside the
+dropdown, so any box around it with `overflow: hidden` cuts it off. Nothing errors: the click works,
+the menu is just invisible. Look for an `overflow: hidden` on a parent. The small menus built with
+tippy (`web_src/js/modules/tippy.ts`) are attached to the page itself, so this never happens to them.
+
+**On a phone, a button group spills over the button next to it.** Below 768px, `repo.css` stretches
+every button in an issue's comment form to full width, including both halves of a `ui buttons` group
+such as the close button and its ▾. Buttons in a group are not allowed to shrink, so the group grows
+wider than its space and covers the Comment button. The close button's group has its own rules for
+narrow screens; a new group there needs the same.
 
 ## Where to go next
 

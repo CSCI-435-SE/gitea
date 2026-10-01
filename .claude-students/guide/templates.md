@@ -1,7 +1,7 @@
 ---
 source: docs/templates.md
-source-hash: e31b9c8937e516f1
-verified-at: 7075389dd1
+source-hash: 287080924b69a1ac
+verified-at: 32ac0cbb78
 ---
 
 <!-- Derived from docs/templates.md. Do not edit by hand: fix the reference doc and regenerate
@@ -64,6 +64,7 @@ written in a template.** Every visible string is a key looked up at render time.
 | `modules/templates/htmlrenderer.go` | The renderer, and the template-name type. |
 | `modules/templates/scopedtmpl/` | Rendering a partial on its own. |
 | `templates/base/head_script.tmpl` | Emits the global config object, including the data meant for JavaScript. |
+| `templates/shared/close_reason_icon.tmpl` | How a closed issue or pull request looks by why it was closed: its icon in lists (`shared/issueicon.tmpl`), its label at the top of its page (`repo/issue/view_title.tmpl`), and the badge of its close event (`repo/issue/view_content/comments.tmpl`). One file, so the three always agree. |
 
 ## The rules, and why
 

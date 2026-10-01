@@ -1,6 +1,6 @@
 ---
 scope: web_src/js/index.ts, web_src/js/features, web_src/js/modules, web_src/js/utils, web_src/js/webcomponents, web_src/js/markup, web_src/js/render
-verified-at: 187c98fee9
+verified-at: 32ac0cbb78
 ---
 
 # web_src/js — page features and how they get wired up
@@ -76,6 +76,13 @@ its root element is missing, then add the import and the array entry in `index.t
 **Profile a slow page.** Append `?_ui_performance_trace=1` to the URL to print per-init timings.
 `index.ts` already logs an error when total init exceeds 500ms.
 
+**Look up an issue by its number.** `matchIssue` (`utils/match.ts`) is the `#` list's search: a
+number comes back first (`services/issue/suggestion.go` → `GetSuggestion`), and the current issue
+is left out. Keyword matches are limited to the kinds the viewer may read
+(`routers/web/repo/issue_suggestions.go`), but the match by number (`GetIssueByIndex`) is not, so a
+viewer who can't read pull requests still gets one typed by its number. The duplicate close
+reason's preview in `features/repo-issue-status-button.ts` uses it.
+
 **Run one test file.** `pnpm exec vitest <path-filter>` (`testing.md`).
 
 ## Gotchas
@@ -86,6 +93,20 @@ its root element is missing, then add the import and the array entry in `index.t
   it with Vue — Vue may use its CSS classes but not its JavaScript.
 - `utils/` is for pure helpers. A function that reaches for `window` or a global selector belongs
   in `modules/` or `features/`.
+- A feature can follow a comment box it did not create: the editor's change and upload events
+  bubble (`features/comp/EditorMarkdown.ts`, `features/comp/EditorUpload.ts`), and
+  `getComboMarkdownEditor` finds the editor, as `features/repo-issue-status-button.ts` does. But
+  the editor attaches itself before its async `init` finishes, and calling it before then throws;
+  read its textarea until an event arrives.
+- Enter on a Fomantic dropdown item only fires a `click` when the item is a link or carries
+  `js-aria-clickable` (`web_src/js/modules/fomantic/dropdown.ts`), so a plain click listener on other
+  items never hears a keyboard pick. `templates/repo/issue/view_content/context_menu.tmpl` and the
+  close reason menu in `templates/repo/issue/view_content.tmpl` mark their items.
+- After a click on a Fomantic dropdown item, the dropdown keeps the focus, so focusing something
+  else from your click handler needs `setTimeout(..., 0)`.
+- `createTippy` (`modules/tippy.ts`) moves a popup to `document.body`, so inputs in it leave their
+  `<form>` and are not sent. Keep their values in hidden fields inside the form, as the close reason
+  popups in `features/repo-issue-status-button.ts` do.
 
 ## Related
 

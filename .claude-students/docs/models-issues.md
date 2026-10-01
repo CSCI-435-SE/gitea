@@ -1,6 +1,6 @@
 ---
 scope: models/issues, models/pull
-verified-at: bdfbdbf832
+verified-at: 32ac0cbb78
 ---
 
 # models/issues — issues, pull requests, comments, reviews
@@ -31,7 +31,7 @@ One package for the whole issue domain, because pull requests *are* issues in th
 | `models/issues/issue_list.go` | `IssueList` and its batching `LoadAttributes` |
 | `models/issues/pull.go` | `PullRequest`, `PullRequestType`, `PullRequestStatus` |
 | `models/issues/comment.go` | `Comment` and the `CommentType` enum |
-| `models/issues/issue_close_reason.go` | `CloseReason`, `AllowedCloseReasons`, `CloseReasonOptions.Validate` and its three errors; stored in `Issue.CloseReason`, `CloseReasonText`, `CloseDuplicateIssueID` |
+| `models/issues/issue_close_reason.go` | `CloseReason` and its names (`String`, `AsCloseReason`), `AllowedCloseReasons`, `BulkCloseReasons` (the list's bulk Close), `DefaultCloseReason`, `CloseReasonOptions.Validate` and its three errors; stored in `Issue.CloseReason`, `CloseReasonText`, `CloseDuplicateIssueID` |
 | `models/issues/issue_label.go` | `LoadLabels` — the idempotency pattern in miniature |
 | `models/issues/issue_index.go` | `RecalculateIssueIndexForRepo` |
 | `models/issues/issue_group.go` | `IssueLabelGroup`, `IssueList.GroupByExclusiveLabelScope` — the grouped list view |
@@ -62,6 +62,9 @@ One package for the whole issue domain, because pull requests *are* issues in th
 - New non-index data on a comment goes in the `Comment.CommentMetaData` JSON field, not a new
   column, as its code comment in `comment.go` says. It is written once at insert and never changed,
   and SQL cannot filter or index on it.
+- A close reason leaves the server as its name, never its stored number: `CloseReason.String` and
+  `AsCloseReason` (`models/issues/issue_close_reason.go`) convert both ways, as `CommentType.String`
+  and `AsCommentType` do. Forms and pages send the name, so a name is as fixed as the number.
 - A close comment snapshots the issue's reason in `CommentMetaData`. Read it with
   `Comment.MetaCloseReason()` (`models/issues/comment.go`), which returns no reason when the comment has no metadata, as every
   close comment written before the columns existed does.

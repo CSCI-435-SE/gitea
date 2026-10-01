@@ -421,19 +421,29 @@ func UpdateIssueStatus(ctx *context.Context) {
 		return
 	}
 
+	// no reason given closes with none, as before close reasons
+	closeReason := issues_model.CloseReasonOptions{Reason: issues_model.AsCloseReason(ctx.FormString("close_reason"))}
 	for _, issue := range issues {
 		if issue.IsPull && issue.PullRequest.HasMerged {
 			continue
 		}
 		if action == "close" && !issue.IsClosed {
-			if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
+			if err := issue_service.CloseIssueWithReason(ctx, issue, ctx.Doer, "", closeReason); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
 					ctx.JSON(http.StatusPreconditionFailed, map[string]any{
 						"error": ctx.Tr("repo.issues.dependency.issue_batch_close_blocked", issue.Index),
 					})
 					return
 				}
-				ctx.ServerError("CloseIssue", err)
+				// refused like a blocked dependency, the items before it staying closed; the list sends no number
+				// or text, so any refused reason, Duplicate and Other included, is "not available" here
+				if issues_model.IsErrCloseReasonNotAllowed(err) || issues_model.IsErrInvalidCloseReasonText(err) || issues_model.IsErrInvalidCloseDuplicate(err) {
+					ctx.JSON(http.StatusBadRequest, map[string]any{
+						"error": ctx.Tr("repo.issues.close_reason.not_allowed"),
+					})
+					return
+				}
+				ctx.ServerError("CloseIssueWithReason", err)
 				return
 			}
 		} else if action == "open" && issue.IsClosed {
@@ -787,6 +797,8 @@ func Issues(ctx *context.Context) {
 		ctx.Data["PageIsIssueList"] = true
 		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	}
+	ctx.Data["BulkCloseReasons"] = issues_model.BulkCloseReasons(isPullList)
+	ctx.Data["DefaultCloseReason"] = issues_model.DefaultCloseReason(isPullList)
 
 	projectIDs := parseProjectIDsFromQuery(ctx)
 

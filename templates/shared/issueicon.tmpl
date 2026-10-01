@@ -1,4 +1,4 @@
-{{/* the logic should be kept the same as getIssueIcon/getIssueColorClass in JS code */}}
+{{/* the logic should be kept the same as getIssueIcon/getIssueColorClass in JS code, which doesn't show close reasons yet (see shared/close_reason_icon) */}}
 {{- if .IsPull -}}
 	{{- if not .PullRequest -}}
 		No PullRequest
@@ -7,7 +7,7 @@
 			{{- if .PullRequest.HasMerged -}}
 				{{- svg "octicon-git-merge" 16 "tw-text-purple" -}}
 			{{- else -}}
-				{{- svg "octicon-git-pull-request-closed" 16 "tw-text-red" -}}
+				{{- template "shared/close_reason_icon" dict "Reason" .CloseReason "IsPull" true "For" "list" -}}
 			{{- end -}}
 		{{- else -}}
 			{{- if .PullRequest.IsWorkInProgress ctx -}}
@@ -19,7 +19,7 @@
 	{{- end -}}
 {{- else -}}
 	{{- if .IsClosed -}}
-		{{- svg "octicon-issue-closed" 16 "tw-text-red" -}}
+		{{- template "shared/close_reason_icon" dict "Reason" .CloseReason "IsPull" false "For" "list" -}}
 	{{- else -}}
 		{{- svg "octicon-issue-opened" 16 "tw-text-green" -}}
 	{{- end -}}

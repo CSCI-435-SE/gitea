@@ -57,6 +57,49 @@ func TestAllowedCloseReasons(t *testing.T) {
 	}, issues_model.AllowedCloseReasons(true))
 }
 
+func TestDefaultCloseReason(t *testing.T) {
+	assert.Equal(t, issues_model.CloseReasonCompleted, issues_model.DefaultCloseReason(false))
+	assert.Equal(t, issues_model.CloseReasonNotPlanned, issues_model.DefaultCloseReason(true))
+	for _, isPull := range []bool{false, true} {
+		assert.Contains(t, issues_model.AllowedCloseReasons(isPull), issues_model.DefaultCloseReason(isPull), "isPull %v", isPull)
+	}
+}
+
+func TestBulkCloseReasons(t *testing.T) {
+	assert.Equal(t, []issues_model.CloseReason{issues_model.CloseReasonCompleted, issues_model.CloseReasonNotPlanned}, issues_model.BulkCloseReasons(false))
+	assert.Equal(t, []issues_model.CloseReason{issues_model.CloseReasonNotPlanned}, issues_model.BulkCloseReasons(true))
+	for _, isPull := range []bool{false, true} {
+		assert.Contains(t, issues_model.BulkCloseReasons(isPull), issues_model.DefaultCloseReason(isPull), "isPull %v: the bulk button starts on it", isPull)
+	}
+	// it removes from the list it is built from, which must stay whole for the item page
+	assert.Equal(t, []issues_model.CloseReason{issues_model.CloseReasonCompleted, issues_model.CloseReasonNotPlanned, issues_model.CloseReasonDuplicate, issues_model.CloseReasonOther}, issues_model.AllowedCloseReasons(false))
+}
+
+func TestCloseReasonNames(t *testing.T) {
+	cases := []struct {
+		name string
+		want issues_model.CloseReason
+	}{
+		{name: "", want: issues_model.CloseReasonNone},
+		{name: "completed", want: issues_model.CloseReasonCompleted},
+		{name: "not_planned", want: issues_model.CloseReasonNotPlanned},
+		{name: "duplicate", want: issues_model.CloseReasonDuplicate},
+		{name: "other", want: issues_model.CloseReasonOther},
+		{name: "2", want: issues_model.CloseReasonUnknown}, // the stored number is not accepted
+		{name: "Completed", want: issues_model.CloseReasonUnknown},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.want, issues_model.AsCloseReason(c.name), "name %q", c.name)
+	}
+
+	for _, reason := range issues_model.AllowedCloseReasons(false) { // an issue allows every reason
+		assert.NotEmpty(t, reason.String(), "reason %d", reason)
+		assert.Equal(t, reason, issues_model.AsCloseReason(reason.String()), "reason %d", reason)
+	}
+	assert.Empty(t, issues_model.CloseReasonNone.String())
+	assert.Empty(t, issues_model.CloseReasonUnknown.String())
+}
+
 func TestCloseReasonOptionsValidate(t *testing.T) {
 	cases := []struct {
 		name   string

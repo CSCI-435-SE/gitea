@@ -11,6 +11,7 @@ import {
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
+import {triggerEditorContentChanged} from './comp/EditorMarkdown.ts';
 import {toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
@@ -448,16 +449,11 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
   // pages:
   // * normal new issue/pr page: no status-button, no comment-button (there is only a normal submit button which can submit empty content)
   // * issue/pr view page: with comment form, has status-button and comment-button
+  // the status-button follows the editor on its own, see initRepoIssueStatusButton
   const editor = await initComboMarkdownEditor(commentForm.querySelector('.combo-markdown-editor')!);
-  const statusButton = document.querySelector<HTMLButtonElement>('#status-button');
   const commentButton = document.querySelector<HTMLButtonElement>('#comment-button');
   const syncUiState = () => {
     const editorText = editor.value().trim(), isUploading = editor.isUploading();
-    if (statusButton) {
-      const statusText = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status');
-      statusButton.querySelector<HTMLElement>('.status-button-text')!.textContent = statusText;
-      statusButton.disabled = isUploading;
-    }
     if (commentButton) {
       commentButton.disabled = !editorText || isUploading;
     }
@@ -465,6 +461,8 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
   editor.container.addEventListener(ComboMarkdownEditor.EventUploadStateChanged, syncUiState);
   editor.container.addEventListener(ComboMarkdownEditor.EventEditorContentChanged, syncUiState);
   syncUiState();
+  // Chromium restores a typed comment after going Back while the editor starts, without an event; tell the close button, which follows the editor
+  triggerEditorContentChanged(editor.container);
 }
 
 function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
