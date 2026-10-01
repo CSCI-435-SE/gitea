@@ -12,7 +12,7 @@ import type {Issue} from '../types.ts';
 type ReasonPopup = {reason: string, field: HTMLInputElement, elPopup: HTMLElement, elInput: HTMLInputElement, isUsable: () => boolean, markUnusable: () => void, tippy: Instance};
 
 // Shows the issue with the typed number beside the duplicate box, found by the same search as the comment box's # list,
-// which only returns what the viewer can read. A number is accepted once that issue is found, so a close that would be
+// whose match by number, as in that list, isn't limited to what the viewer can read. A number is accepted once that issue is found, so a close that would be
 // refused (the issue itself, or no such issue) is never sent with its comment; if the search fails, the server decides.
 function initDuplicatePreview(elPreview: HTMLElement, elInput: HTMLInputElement, onResize: () => void, onAccepted: (number: string) => void) {
   const {ownerName, repoName, indexString} = parseIssueHref(window.location.href);

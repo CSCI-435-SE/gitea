@@ -1,6 +1,6 @@
 ---
 scope: templates, modules/templates
-verified-at: 85a296b0ad
+verified-at: 32ac0cbb78
 ---
 
 # templates — the Go HTML templates and their helpers

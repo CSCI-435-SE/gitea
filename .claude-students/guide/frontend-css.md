@@ -1,7 +1,7 @@
 ---
 source: docs/frontend-css.md
-source-hash: f1afa49cd945bc09
-verified-at: 7865650a35
+source-hash: 941605743b6f483f
+verified-at: 32ac0cbb78
 ---
 
 <!-- Derived from docs/frontend-css.md. Do not edit by hand: fix the reference doc and regenerate

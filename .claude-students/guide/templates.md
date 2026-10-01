@@ -1,7 +1,7 @@
 ---
 source: docs/templates.md
-source-hash: fa92a51b555f778c
-verified-at: 85a296b0ad
+source-hash: 287080924b69a1ac
+verified-at: 32ac0cbb78
 ---
 
 <!-- Derived from docs/templates.md. Do not edit by hand: fix the reference doc and regenerate

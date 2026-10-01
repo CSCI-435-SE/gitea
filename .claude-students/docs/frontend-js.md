@@ -1,6 +1,6 @@
 ---
 scope: web_src/js/index.ts, web_src/js/features, web_src/js/modules, web_src/js/utils, web_src/js/webcomponents, web_src/js/markup, web_src/js/render
-verified-at: 85a296b0ad
+verified-at: 32ac0cbb78
 ---
 
 # web_src/js — page features and how they get wired up
@@ -77,9 +77,11 @@ its root element is missing, then add the import and the array entry in `index.t
 `index.ts` already logs an error when total init exceeds 500ms.
 
 **Look up an issue by its number.** `matchIssue` (`utils/match.ts`) is the `#` list's search: a
-number comes back first (`services/issue/suggestion.go` → `GetSuggestion`), the current issue is
-left out, and only what the viewer may read is returned (`routers/web/repo/issue_suggestions.go`).
-The duplicate close reason's preview in `features/repo-issue-status-button.ts` uses it.
+number comes back first (`services/issue/suggestion.go` → `GetSuggestion`), and the current issue
+is left out. Keyword matches are limited to the kinds the viewer may read
+(`routers/web/repo/issue_suggestions.go`), but the match by number (`GetIssueByIndex`) is not, so a
+viewer who can't read pull requests still gets one typed by its number. The duplicate close
+reason's preview in `features/repo-issue-status-button.ts` uses it.
 
 **Run one test file.** `pnpm exec vitest <path-filter>` (`testing.md`).
 

@@ -1,6 +1,6 @@
 ---
 scope: web_src/css, tailwind.config.ts
-verified-at: 7865650a35
+verified-at: 32ac0cbb78
 ---
 
 # web_src/css — styling conventions

@@ -1,7 +1,7 @@
 ---
 source: docs/frontend-js.md
-source-hash: b002a59e74d50273
-verified-at: 85a296b0ad
+source-hash: aadb1ae155ccf08e
+verified-at: 32ac0cbb78
 ---
 
 <!-- Derived from docs/frontend-js.md. Do not edit by hand: fix the reference doc and regenerate
@@ -133,8 +133,10 @@ milliseconds.
 **Run one test file.** `pnpm exec vitest <path-filter>`.
 
 **Show an issue for a number someone typed.** Reuse `matchIssue` (`utils/match.ts`), the search
-behind the `#` list. It puts the issue with that exact number first, leaves out the one you're on,
-and returns only what the viewer may read, as the duplicate close reason's preview does.
+behind the `#` list. It puts the issue with that exact number first and leaves out the one you're
+on, as the duplicate close reason's preview does. Only its word matches are limited to what the
+viewer may read: the item with the typed number comes back even when it's a pull request the viewer
+can't open.
 
 ## Traps, and what they look like
 
