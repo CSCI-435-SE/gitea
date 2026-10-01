@@ -1,7 +1,7 @@
 ---
 source: docs/frontend-css.md
-source-hash: 034331433afc0362
-verified-at: 85a296b0ad
+source-hash: f1afa49cd945bc09
+verified-at: 7865650a35
 ---
 
 <!-- Derived from docs/frontend-css.md. Do not edit by hand: fix the reference doc and regenerate
@@ -172,6 +172,12 @@ existing colour — it may not add one.
 dropdown, so any box around it with `overflow: hidden` cuts it off. Nothing errors: the click works,
 the menu is just invisible. Look for an `overflow: hidden` on a parent. The small menus built with
 tippy (`web_src/js/modules/tippy.ts`) are attached to the page itself, so this never happens to them.
+
+**On a phone, a button group spills over the button next to it.** Below 768px, `repo.css` stretches
+every button in an issue's comment form to full width, including both halves of a `ui buttons` group
+such as the close button and its ▾. Buttons in a group are not allowed to shrink, so the group grows
+wider than its space and covers the Comment button. The close button's group has its own rules for
+narrow screens; a new group there needs the same.
 
 ## Where to go next
 

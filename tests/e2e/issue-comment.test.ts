@@ -24,3 +24,21 @@ test('comment on and close an issue', async ({page, request}) => {
   await page.getByRole('button', {name: 'Close as completed'}).click();
   await expect(page.getByRole('button', {name: 'Reopen Issue'})).toBeVisible();
 });
+
+test('comment on a phone, beside the close button and its reason menu', async ({page, request}) => {
+  const repoName = `e2e-issue-comment-${randomString(8)}`;
+  const owner = env.GITEA_TEST_E2E_USER;
+  await apiCreateRepo(request, {name: repoName, autoInit: false});
+  await Promise.all([
+    apiCreateIssue(request, {owner, repo: repoName, title: 'Phone comment test'}),
+    login(page),
+  ]);
+  await page.setViewportSize({width: 360, height: 800});
+  await page.goto(`/${owner}/${repoName}/issues/1`);
+
+  const body = `e2e-comment-${randomString(8)}`;
+  await page.getByPlaceholder('Leave a comment').fill(body);
+  // the click waits for nothing to cover the button: the reason menu's ▾ used to spill over it on narrow screens
+  await page.getByRole('button', {name: 'Comment', exact: true}).click();
+  await expect(page.locator('.comment-body').filter({hasText: body})).toBeVisible();
+});
