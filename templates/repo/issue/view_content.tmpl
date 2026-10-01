@@ -135,9 +135,9 @@
 														{{/* a field, so Gitea's "error" field style can mark a number that can't be used, or a close tried with none */}}
 														<div class="field flex-text-block">
 															<label class="tw-m-0" for="close-duplicate-index">{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_label"}}</label>
-															<input id="close-duplicate-index" type="number" min="1" step="1" class="tw-w-32" autocomplete="off">
+															<input id="close-duplicate-index" type="number" min="1" step="1" class="tw-w-32" autocomplete="off" aria-describedby="close-duplicate-preview">
 															{{/* the issue with the typed number, looked up as it is typed */}}
-															<span class="flex-text-inline tw-max-w-[260px] tw-hidden" data-close-duplicate-preview
+															<span id="close-duplicate-preview" class="flex-text-inline tw-max-w-[260px] tw-hidden" data-close-duplicate-preview
 																data-locale-not-found="{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_not_found" "%s"}}"
 																data-locale-self="{{ctx.Locale.Tr "repo.issues.close_reason.duplicate_self"}}"
 															></span>

@@ -16,7 +16,11 @@ vi.mock('./comp/ComboMarkdownEditor.ts', async () => {
 vi.mock('../utils/match.ts', () => ({
   matchIssue: async (_owner: string, _repo: string, _index: string, query: string) => {
     if (query === '404') throw new Error('network down');
-    if (query === '7') await new Promise((resolve) => setTimeout(resolve, 50)); // answers late, after a newer number
+    if (query === '405') { // fails late, after the box has changed
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      throw new Error('network down');
+    }
+    if (query === '7') await new Promise((resolve) => setTimeout(resolve, 50)); // answers late, after the box has changed
     const issues = [
       {number: 12, title: 'Login fails', state: 'open'},
       {number: 3, title: '<b>not bold</b>', state: 'closed'},
@@ -25,7 +29,11 @@ vi.mock('../utils/match.ts', () => ({
     return issues.filter((i) => String(i.number).startsWith(query));
   },
 }));
-vi.mock('perfect-debounce', () => ({debounce: (fn: any) => fn})); // no waiting in tests
+// the real debounce without its wait: as on the page, a lookup starts only once the one before it has answered
+vi.mock('perfect-debounce', async (importOriginal) => {
+  const real = await importOriginal<Record<string, any>>();
+  return {debounce: (fn: any) => real.debounce(fn, 0)};
+});
 // the page the preview believes it is on, without changing the location that other test files share
 vi.mock('../utils.ts', async (importOriginal) => ({
   ...await importOriginal<Record<string, unknown>>(),
@@ -138,6 +146,11 @@ function createForm(textareaValue = '', {isClosed = false} = {}) {
         el.disabled = false;
       }
     },
+    attach: () => { // focus only moves within the page
+      document.body.append(elForm);
+      return () => elForm.remove();
+    },
+    popupInput: (reason: string) => elForm.querySelector<HTMLInputElement>(`[data-close-reason-popup="${CSS.escape(reason)}"] input`)!,
     init: () => initRepoIssueStatusButton(elForm.querySelector('.ui.buttons')!),
     finishEditorInit: () => { editor.ready = true },
     typeComment: (content: string) => {
@@ -346,15 +359,51 @@ test('the duplicate popup previews the issue with the typed number', async () =>
   expect(form.preview()).toBeNull();
 });
 
-test('a late answer for an older number does not replace the preview', async () => {
+test('a late answer for a number no longer in the box is dropped', async () => {
   const form = createForm();
   form.init();
   form.pick('Duplicate');
-  form.typeInPopup('duplicate', '7'); // its answer comes after the next one
-  form.typeInPopup('duplicate', '12');
-  await vi.waitFor(() => expect(form.preview()).toBe('#12 Login fails'));
+  form.typeInPopup('duplicate', '7'); // answers late
+  await new Promise((resolve) => setTimeout(resolve, 10)); // its lookup is under way
+  form.typeInPopup('duplicate', '8'); // the item itself, which needs no lookup
+  await new Promise((resolve) => setTimeout(resolve, 80)); // #7's answer has come in by now
+  expect([form.preview(), form.sentField('duplicate')]).toEqual(["Can't be a duplicate of itself", '']);
+});
+
+test('a late failed search for a number no longer in the box is dropped', async () => {
+  const form = createForm();
+  form.init();
+  form.pick('Duplicate');
+  form.typeInPopup('duplicate', '405'); // its search fails late
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  form.typeInPopup('duplicate', '');
   await new Promise((resolve) => setTimeout(resolve, 80));
-  expect(form.preview()).toBe('#12 Login fails');
+  expect([form.preview(), form.sentField('duplicate')]).toEqual([null, '']);
+});
+
+test('a number with leading zeros is the same number', async () => {
+  const form = createForm();
+  form.init();
+  form.pick('Duplicate');
+  form.typeInPopup('duplicate', '012');
+  await vi.waitFor(() => expect(form.preview()).toBe('#12 Login fails'));
+  expect([form.sentField('duplicate'), form.buttonText()]).toEqual(['12', 'Close as duplicate of #12']);
+});
+
+test('the focus moves into a popup when it opens, and back to the button when it is done', async () => {
+  const form = createForm();
+  const detach = form.attach();
+  form.init();
+  const nextTick = () => new Promise((resolve) => setTimeout(resolve, 0));
+  form.pick('Other');
+  await nextTick(); // after the dropdown's own click handling, which keeps the focus
+  expect(document.activeElement).toBe(form.popupInput('other'));
+  form.pressInPopup('other', 'Escape');
+  expect(document.activeElement).toBe(form.statusButton);
+  form.isCloseBlocked(); // nothing typed yet, so the popup opens again
+  await nextTick();
+  expect(document.activeElement).toBe(form.popupInput('other'));
+  detach();
 });
 
 test('a failed search leaves no preview, and closing still works', async () => {

@@ -353,6 +353,8 @@ func TestIssueCloseReasonMenu(t *testing.T) {
 		assert.Equal(t, "Close as duplicate of #%s with comment", duplicatePopup.AttrOr("data-locale-status-and-comment", ""))
 		assert.Equal(t, 1, duplicatePopup.Find(`.field label[for="close-duplicate-index"] + input#close-duplicate-index[type="number"][min="1"]`).Length(), "in a field, so an unusable number can be marked as an error")
 		preview := duplicatePopup.Find(`[data-close-duplicate-preview]`)
+		assert.Equal(t, "close-duplicate-preview", duplicatePopup.Find("#close-duplicate-index").AttrOr("aria-describedby", ""), "its message is read with the box")
+		assert.Equal(t, "close-duplicate-preview", preview.AttrOr("id", ""))
 		assert.Equal(t, "No #%s found in this repository", preview.AttrOr("data-locale-not-found", ""))
 		assert.Equal(t, "Can't be a duplicate of itself", preview.AttrOr("data-locale-self", ""))
 		assert.Equal(t, 1, htmlDoc.doc.Find(`#comment-form [data-close-reason-popup="other"] .field input[type="text"][maxlength="255"]`).Length())

@@ -64,7 +64,7 @@ function initDuplicatePreview(elPreview: HTMLElement, elInput: HTMLInputElement,
   };
   const update = () => {
     const isEmpty = !elInput.value && !elInput.validity.badInput; // text that isn't a number reads as '' too, but is "bad input"
-    const number = /^[1-9]\d*$/.test(elInput.value) ? elInput.value : '';
+    const number = /^0*[1-9]\d*$/.test(elInput.value) ? elInput.value.replace(/^0+/, '') : ''; // "01" is #1, as the server reads it
     wantedNumber = number;
     if (isEmpty) {
       show();
@@ -76,7 +76,7 @@ function initDuplicatePreview(elPreview: HTMLElement, elInput: HTMLInputElement,
       lookUp(number);
     }
   };
-  return {update, showUnusable};
+  return {update, showUnusable, isUsable: () => wantedNumber !== ''}; // a whole number, though maybe not found yet
 }
 
 // The close/reopen button in an issue or pull request's comment form: its text says whether the typed
@@ -138,7 +138,6 @@ export function initRepoIssueStatusButton(elButtons: HTMLElement) {
     const field = Array.from(reasonFields).find((el) => el.getAttribute('data-close-reason') === reason)!;
     const elField = elPopup.querySelector<HTMLElement>('.field')!;
     const elInput = elPopup.querySelector<HTMLInputElement>('input')!;
-    const isUsable = () => elInput.type === 'number' ? /^[1-9]\d*$/.test(elInput.value) : Boolean(elInput.value.trim());
     const tippy = createTippy(elPopup, {
       content: elPopup,
       trigger: 'manual',
@@ -152,6 +151,7 @@ export function initRepoIssueStatusButton(elButtons: HTMLElement) {
       field.value = number;
       applyStatusTexts();
     }) : null;
+    const isUsable = preview ? preview.isUsable : () => Boolean(elInput.value.trim());
     // the popup lives outside the form while shown, so its input fills the form's hidden field, only with a usable value
     elInput.addEventListener('input', () => {
       elField.classList.remove('error'); // typing answers the error; the preview marks a number it can't use again
