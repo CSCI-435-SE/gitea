@@ -126,10 +126,17 @@ function createForm(textareaValue = '', {isClosed = false} = {}) {
       statusButton.dispatchEvent(event);
       return event.defaultPrevented;
     },
-    pressInPopup: (reason: string, key: string) => {
-      const event = new KeyboardEvent('keydown', {key, bubbles: true, cancelable: true});
+    pressInPopup: (reason: string, key: string, {isComposing = false} = {}) => {
+      const event = new KeyboardEvent('keydown', {key, isComposing, bubbles: true, cancelable: true});
       elForm.querySelector(`[data-close-reason-popup="${CSS.escape(reason)}"] input`)!.dispatchEvent(event);
       return event;
+    },
+    restoreFields: (values: Record<string, string>) => { // what a browser may put back into the form on a reload
+      for (const [name, value] of Object.entries(values)) {
+        const el = elForm.querySelector<HTMLInputElement>(`input[name="${CSS.escape(name)}"]`)!;
+        el.value = value;
+        el.disabled = false;
+      }
     },
     init: () => initRepoIssueStatusButton(elForm.querySelector('.ui.buttons')!),
     finishEditorInit: () => { editor.ready = true },
@@ -297,6 +304,26 @@ test('Enter or Escape in a popup only closes the popup', () => {
     expect(form.pressInPopup('duplicate', key).defaultPrevented).toBe(true); // Enter does not submit the form
     expect(form.popupShown('duplicate')).toBe(false);
   }
+});
+
+test('Enter or Escape for an input method stays in the popup', () => {
+  const form = createForm();
+  form.init();
+  form.pick('Other');
+  for (const key of ['Enter', 'Escape']) { // confirming or cancelling a conversion, as when typing Japanese or Chinese
+    expect(form.pressInPopup('other', key, {isComposing: true}).defaultPrevented).toBe(false);
+    expect(form.popupShown('other')).toBe(true);
+  }
+});
+
+test('a reload starts again from the reason the page shows, whatever the browser restored', () => {
+  const form = createForm();
+  form.restoreFields({close_reason: 'other', close_reason_text: 'from before the reload'}); // as Firefox does
+  form.init();
+  expect(form.buttonText()).toBe('Close as completed');
+  expect(form.sentReason()).toBe('completed');
+  expect(form.sentField('other')).toBeNull();
+  expect(form.sentField('duplicate')).toBeNull();
 });
 
 test('the duplicate popup previews the issue with the typed number', async () => {

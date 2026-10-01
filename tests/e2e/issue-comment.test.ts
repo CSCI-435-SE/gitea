@@ -42,3 +42,22 @@ test('comment on a phone, beside the close button and its reason menu', async ({
   await page.getByRole('button', {name: 'Comment', exact: true}).click();
   await expect(page.locator('.comment-body').filter({hasText: body})).toBeVisible();
 });
+
+test('a comment the browser restores on Back is still named on the close button', async ({page, request}) => {
+  const repoName = `e2e-issue-comment-${randomString(8)}`;
+  const owner = env.GITEA_TEST_E2E_USER;
+  await apiCreateRepo(request, {name: repoName, autoInit: false});
+  await Promise.all([
+    apiCreateIssue(request, {owner, repo: repoName, title: 'Back test'}),
+    login(page),
+  ]);
+  await page.goto(`/${owner}/${repoName}/issues/1`);
+
+  const body = `e2e-comment-${randomString(8)}`;
+  await page.getByPlaceholder('Leave a comment').fill(body);
+  await page.goto(`/${owner}/${repoName}/issues`);
+  await page.goBack();
+  // Chromium puts the comment back after the page has started, without an event; the button must still say it will be posted
+  await expect(page.getByPlaceholder('Leave a comment')).toHaveValue(body);
+  await expect(page.getByRole('button', {name: 'Close as completed with comment'})).toBeVisible();
+});

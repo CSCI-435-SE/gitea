@@ -11,6 +11,7 @@ import {
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
+import {triggerEditorContentChanged} from './comp/EditorMarkdown.ts';
 import {toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
@@ -460,6 +461,8 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
   editor.container.addEventListener(ComboMarkdownEditor.EventUploadStateChanged, syncUiState);
   editor.container.addEventListener(ComboMarkdownEditor.EventEditorContentChanged, syncUiState);
   syncUiState();
+  // Chromium restores a typed comment after going Back while the editor starts, without an event; tell the close button, which follows the editor
+  triggerEditorContentChanged(editor.container);
 }
 
 function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {

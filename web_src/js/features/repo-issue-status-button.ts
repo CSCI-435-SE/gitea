@@ -89,7 +89,8 @@ export function initRepoIssueStatusButton(elButtons: HTMLElement) {
   const elEditor = elForm.querySelector<HTMLElement>('.combo-markdown-editor')!;
   // hidden fields filled from the popups; none on a closed item
   const reasonFields = elForm.querySelectorAll<HTMLInputElement>('input[type="hidden"][data-close-reason]');
-  // the editor attaches itself before its async init finishes, so start from the textarea, which holds any comment the browser restored
+  // the editor attaches itself before its async init finishes, so start from the textarea, which holds any comment the browser restored;
+  // Chromium may restore one later (going Back), which initSingleCommentEditor announces once the editor is ready
   let content = elEditor.querySelector<HTMLTextAreaElement>('textarea.markdown-text-editor')!.value;
   let isUploading = false;
   const syncStatusButton = () => {
@@ -111,6 +112,12 @@ export function initRepoIssueStatusButton(elButtons: HTMLElement) {
   if (!elReasonMenu) return; // a closed item only offers reopening
   const reasonInput = elForm.querySelector<HTMLInputElement>('input[name="close_reason"]')!;
   let elPickedItem = elReasonMenu.querySelector<HTMLElement>('.item.selected')!;
+  // Firefox restores these hidden fields on a reload as the last pick left them, while the menu and button are drawn anew
+  reasonInput.value = elPickedItem.getAttribute('data-value')!;
+  for (const field of reasonFields) {
+    field.value = '';
+    field.disabled = true;
+  }
   const popups: ReasonPopup[] = [];
 
   // the button reads the picked item's texts, or a popup's own texts once it is filled in ("Close as duplicate of #12")
@@ -155,6 +162,7 @@ export function initRepoIssueStatusButton(elButtons: HTMLElement) {
     // a duplicate says what it needs; the description box's own placeholder already asks for it
     const markUnusable = preview ? preview.showUnusable : () => elField.classList.add('error');
     elInput.addEventListener('keydown', (e) => {
+      if (e.isComposing) return; // the input method's own Enter (confirm) or Escape (cancel)
       if (e.key === 'Enter' || e.key === 'Escape') {
         e.preventDefault(); // Enter only confirms the value; closing stays a deliberate click on the button
         tippy.hide();
