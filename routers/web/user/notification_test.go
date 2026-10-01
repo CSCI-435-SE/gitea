@@ -10,6 +10,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,4 +35,33 @@ func TestFilterNotificationsByRepoAccess(t *testing.T) {
 	assert.Equal(t, []int{0}, failures)
 	require.Len(t, filtered, 1)
 	assert.EqualValues(t, 2, filtered[0].ID)
+}
+
+func TestParseNotificationFilter(t *testing.T) {
+	cases := []struct {
+		query    string
+		expected notificationFilter
+		active   bool
+		qs       string
+	}{
+		{"", notificationFilter{}, false, ""},
+		{"?repo=2&source=pull", notificationFilter{RepoID: 2, Source: "pull"}, true, "repo=2&source=pull"},
+		{"?source=unknown", notificationFilter{}, false, ""},
+		{"?repo=abc", notificationFilter{}, false, ""},
+		{"?repo=-5&source=commit", notificationFilter{Source: "commit"}, true, "source=commit"},
+	}
+	for _, c := range cases {
+		t.Run(c.query, func(t *testing.T) {
+			ctx, _ := contexttest.MockContext(t, "notifications"+c.query)
+			filter := parseNotificationFilter(ctx)
+			assert.Equal(t, c.expected, filter)
+			assert.Equal(t, c.active, filter.IsActive())
+			assert.Equal(t, c.qs, filter.queryString())
+		})
+	}
+
+	opts := notificationFilter{RepoID: 2, Source: "pull"}.findOptions(7)
+	assert.EqualValues(t, 7, opts.UserID)
+	assert.EqualValues(t, 2, opts.RepoID)
+	assert.Equal(t, []activities_model.NotificationSource{activities_model.NotificationSourcePullRequest}, opts.Source)
 }
