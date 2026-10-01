@@ -344,6 +344,7 @@ func TestIssueCloseReasonMenu(t *testing.T) {
 		})
 		assert.Equal(t, wantReasons, reasons)
 		assert.Equal(t, wantLabels, labels)
+		assert.Equal(t, "Choose a close reason", htmlDoc.doc.Find("#comment-form .ui.buttons .ui.dropdown").AttrOr("aria-label", ""))
 
 		// what duplicate and other need is typed in their popups into fields that are switched off, so not sent, until picked
 		assert.Equal(t, 1, htmlDoc.doc.Find(`#comment-form input[type="hidden"][name="close_duplicate_index"][disabled]`).Length())
@@ -351,6 +352,7 @@ func TestIssueCloseReasonMenu(t *testing.T) {
 		duplicatePopup := htmlDoc.doc.Find(`#comment-form [data-close-reason-popup="duplicate"]`)
 		assert.Equal(t, "Close as duplicate of #%s", duplicatePopup.AttrOr("data-locale-status", ""))
 		assert.Equal(t, "Close as duplicate of #%s with comment", duplicatePopup.AttrOr("data-locale-status-and-comment", ""))
+		assert.Equal(t, "Duplicate of #", strings.TrimSpace(duplicatePopup.Find(`label[for="close-duplicate-index"]`).Text()))
 		assert.Equal(t, 1, duplicatePopup.Find(`.field label[for="close-duplicate-index"] + input#close-duplicate-index[type="number"][min="1"]`).Length(), "in a field, so an unusable number can be marked as an error")
 		preview := duplicatePopup.Find(`[data-close-duplicate-preview]`)
 		assert.Equal(t, "close-duplicate-preview", duplicatePopup.Find("#close-duplicate-index").AttrOr("aria-describedby", ""), "its message is read with the box")
@@ -358,9 +360,13 @@ func TestIssueCloseReasonMenu(t *testing.T) {
 		assert.Equal(t, "No #%s found in this repository", preview.AttrOr("data-locale-not-found", ""))
 		assert.Equal(t, "Can't be a duplicate of itself", preview.AttrOr("data-locale-self", ""))
 		assert.Equal(t, 1, htmlDoc.doc.Find(`#comment-form [data-close-reason-popup="other"] .field input[type="text"][maxlength="255"]`).Length())
+		assert.Equal(t, "Why is it being closed?", htmlDoc.doc.Find(`#comment-form [data-close-reason-popup="other"] input`).AttrOr("placeholder", ""))
 
-		reason, exists := htmlDoc.doc.Find(`#comment-form input[name="close_reason"]`).Attr("value")
-		require.True(t, exists, "The template has changed")
+		// the page starts from the item marked selected (initRepoIssueStatusButton resets the hidden field to it), so that is what is sent
+		selected := htmlDoc.doc.Find("#comment-form .ui.buttons .menu .item.selected")
+		require.Equal(t, 1, selected.Length(), "one reason is marked as the one the button starts on")
+		reason := selected.AttrOr("data-value", "")
+		assert.Equal(t, reason, htmlDoc.doc.Find(`#comment-form input[name="close_reason"]`).AttrOr("value", ""))
 		action, exists := htmlDoc.doc.Find("#comment-form").Attr("action")
 		require.True(t, exists, "The template has changed")
 		session.MakeRequest(t, NewRequestWithValues(t, "POST", action, map[string]string{"status": "close", "close_reason": reason}), http.StatusOK)
@@ -448,6 +454,7 @@ func TestIssueTimelineCloseReason(t *testing.T) {
 		_, closeEntry := closeWith(t, map[string]string{"close_reason": "other", "close_reason_text": text})
 		entry := closeEntry()
 		assert.Contains(t, mainLine(entry), "closed this")
+		assert.NotContains(t, mainLine(entry), "closed this issue", "the wording of a close with no reason")
 		assert.Equal(t, text, entry.Find(".detail .comment-text-line").Text())
 		assert.Zero(t, entry.Find(".detail b, .detail strong").Length(), "neither HTML nor Markdown is rendered")
 	})
@@ -506,7 +513,7 @@ func TestIssueCloseReasonIcons(t *testing.T) {
 		fields["status"] = "close"
 		session.MakeRequest(t, NewRequestWithValues(t, "POST", action, fields), http.StatusOK)
 	}
-	type look struct{ listIcon, label, labelColor, badge string }
+	type look struct{ listIcon, label, labelIcon, labelColor, badge string }
 	// lookOf reads an item's icon in its list, its state label, and the badge of its latest close event
 	lookOf := func(t *testing.T, kind string, index int64, listState string) look {
 		link := fmt.Sprintf("/user2/repo1/%s/%d", kind, index)
@@ -529,7 +536,7 @@ func TestIssueCloseReasonIcons(t *testing.T) {
 				badge = strings.Join(strings.Fields(b.AttrOr("class", "")+" "+iconClasses(b.Find("svg"))), " ") // "badge " when it has no colour
 			}
 		})
-		return look{iconClasses(row.Find(".item-leading svg")), strings.Join(strings.Fields(label.Text()), " "), labelColor, badge}
+		return look{iconClasses(row.Find(".item-leading svg")), strings.Join(strings.Fields(label.Text()), " "), iconClasses(label.Find("svg")), labelColor, badge}
 	}
 
 	for _, c := range []struct {
@@ -540,27 +547,27 @@ func TestIssueCloseReasonIcons(t *testing.T) {
 		{
 			"completed is purple, like a merge",
 			map[string]string{"close_reason": "completed"},
-			look{"octicon-issue-closed tw-text-purple", "Closed as completed", "purple", "badge tw-bg-purple tw-text-white octicon-issue-closed"},
+			look{"octicon-issue-closed tw-text-purple", "Closed as completed", "octicon-issue-closed", "purple", "badge tw-bg-purple tw-text-white octicon-issue-closed"},
 		},
 		{
 			"not planned is grey, like a skipped job",
 			map[string]string{"close_reason": "not_planned"},
-			look{"octicon-skip tw-text-text-light", "Closed as not planned", "grey", "badge octicon-skip"},
+			look{"octicon-skip tw-text-text-light", "Closed as not planned", "octicon-skip", "grey", "badge octicon-skip"},
 		},
 		{
 			"duplicate",
 			map[string]string{"close_reason": "duplicate", "close_duplicate_index": "1"},
-			look{"octicon-duplicate tw-text-text-light", "Closed as duplicate", "grey", "badge octicon-duplicate"},
+			look{"octicon-duplicate tw-text-text-light", "Closed as duplicate", "octicon-duplicate", "grey", "badge octicon-duplicate"},
 		},
 		{
 			"other keeps the plain title, its text is in the timeline",
 			map[string]string{"close_reason": "other", "close_reason_text": "superseded"},
-			look{"octicon-note tw-text-text-light", "Closed", "grey", "badge octicon-note"},
+			look{"octicon-note tw-text-text-light", "Closed", "octicon-note", "grey", "badge octicon-note"},
 		},
 		{
 			"no reason looks as it always did",
 			map[string]string{},
-			look{"octicon-issue-closed tw-text-red", "Closed", "red", "badge tw-bg-red tw-text-white octicon-issue-closed"},
+			look{"octicon-issue-closed tw-text-red", "Closed", "octicon-issue-closed", "red", "badge tw-bg-red tw-text-white octicon-issue-closed"},
 		},
 	} {
 		t.Run(c.name, func(t *testing.T) {
@@ -579,12 +586,12 @@ func TestIssueCloseReasonIcons(t *testing.T) {
 		index, err := strconv.ParseInt(path.Base(issueURL), 10, 64)
 		require.NoError(t, err)
 		got := lookOf(t, "issues", index, "open")
-		assert.Equal(t, look{"octicon-issue-opened tw-text-green", "Open", "green", "badge octicon-skip"}, got)
+		assert.Equal(t, look{"octicon-issue-opened tw-text-green", "Open", "octicon-issue-opened", "green", "badge octicon-skip"}, got)
 	})
 
 	t.Run("a pull request shows its reason; a merged one still looks merged", func(t *testing.T) {
 		closeFromPage(t, "/user2/repo1/pulls/3", map[string]string{"close_reason": "not_planned"})
-		assert.Equal(t, look{"octicon-skip tw-text-text-light", "Closed as not planned", "grey", "badge octicon-skip"}, lookOf(t, "pulls", 3, "closed"))
+		assert.Equal(t, look{"octicon-skip tw-text-text-light", "Closed as not planned", "octicon-skip", "grey", "badge octicon-skip"}, lookOf(t, "pulls", 3, "closed"))
 		// pull request #2 is merged in the fixtures, but its issue is left open, which a real merge never does
 		mergedIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
 		mergedIssue.IsClosed = true
@@ -592,6 +599,12 @@ func TestIssueCloseReasonIcons(t *testing.T) {
 		merged := lookOf(t, "pulls", 2, "closed")
 		assert.Equal(t, "octicon-git-merge tw-text-purple", merged.listIcon)
 		assert.Equal(t, "purple", merged.labelColor)
+	})
+
+	t.Run("a pull request closed with no reason looks as it always did", func(t *testing.T) {
+		closeFromPage(t, "/user2/repo1/pulls/5", map[string]string{})
+		want := look{"octicon-git-pull-request-closed tw-text-red", "Closed", "octicon-git-pull-request-closed", "red", "badge tw-bg-red tw-text-white octicon-issue-closed"}
+		assert.Equal(t, want, lookOf(t, "pulls", 5, "closed"))
 	})
 }
 
@@ -615,6 +628,8 @@ func TestIssueBulkCloseReason(t *testing.T) {
 			got.statusTexts = append(got.statusTexts, item.AttrOr("data-status", ""))
 			assert.True(t, item.HasClass("js-aria-clickable"), "without it, Enter does not pick the item")
 		})
+		assert.Equal(t, "Choose a close reason", buttons.Find(".ui.dropdown").AttrOr("aria-label", ""))
+		assert.Equal(t, got.reason, buttons.Find(".menu .item.selected").AttrOr("data-value", ""), "the menu marks the reason the button starts on")
 		return got, button.AttrOr("data-url", "")
 	}
 	newIssue := func(t *testing.T) *issues_model.Issue {
