@@ -5,14 +5,14 @@
 			<button class="ui primary basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status">{{ctx.Locale.Tr "repo.issues.action_open"}}</button>
 		{{else if and .IsShowClosed.Has (not .IsShowClosed.Value)}}
 			{{/* like the close button on an item's page, it names its reason and the ▾ changes it, see initIssueListCloseReason */}}
-			<div class="ui red basic buttons js-issue-list-close-reason">
+			<div class="ui red basic buttons" data-global-init="initIssueListCloseReason">
 				<button class="ui button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status" data-close-reason="{{.DefaultCloseReason.String}}">{{ctx.Locale.Tr (printf "repo.issues.close_as.%s" .DefaultCloseReason.String)}}</button>
 				<div class="ui dropdown icon button" aria-label="{{ctx.Locale.Tr "repo.issues.close_reason.choose"}}">
 					{{svg "octicon-triangle-down"}}
 					<div class="menu">
 						{{range .BulkCloseReasons}}
 							{{/* js-aria-clickable: Enter on the item is a click too, see modules/fomantic/dropdown.ts */}}
-							<div class="item js-aria-clickable{{if eq . $.DefaultCloseReason}} selected{{end}}" data-value="{{.String}}"
+							<div class="item js-aria-clickable {{if eq . $.DefaultCloseReason}}selected{{end}}" data-value="{{.String}}"
 								data-status="{{ctx.Locale.Tr (printf "repo.issues.close_as.%s" .String)}}"
 							>{{ctx.Locale.Tr (printf "repo.issues.close_reason.%s" .String)}}</div>
 						{{end}}

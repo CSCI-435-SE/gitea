@@ -58,7 +58,7 @@ const reasonFieldsHtml = `
 const reasonPopupsHtml = `
   <div class="tippy-target" data-close-reason-popup="duplicate"
     data-locale-status="Close as duplicate of #%s" data-locale-status-and-comment="Close as duplicate of #%s with comment">
-    <div class="inline field">
+    <div class="field flex-text-block">
       <input type="number" min="1" step="1">
       <span class="tw-hidden" data-close-duplicate-preview data-locale-not-found="No #%s found in this repository" data-locale-self="Can't be a duplicate of itself"></span>
     </div>

@@ -28,5 +28,5 @@ The hover popup on issue links (getIssueIcon in web_src/js/features/issue.ts) do
 {{- else if eq .For "label" -}}
 	<div class="ui {{$labelColor}} label issue-state-label">{{svg $icon}} {{if and $reason (ne $reason "other")}}{{ctx.Locale.Tr (printf "repo.issues.closed_title_as.%s" $reason)}}{{else}}{{ctx.Locale.Tr "repo.issues.closed_title"}}{{end}}</div>
 {{- else -}}
-	<span class="badge{{if $badgeClass}} {{$badgeClass}}{{end}}">{{svg $icon}}</span>
+	<span class="badge {{$badgeClass}}">{{svg $icon}}</span>
 {{- end -}}

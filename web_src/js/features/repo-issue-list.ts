@@ -8,6 +8,7 @@ import {createSortable} from '../modules/sortable.ts';
 import {DELETE, POST} from '../modules/fetch.ts';
 import {parseDom} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 import type {SortableEvent} from 'sortablejs';
 
 function initRepoIssueListCheckboxes() {
@@ -237,9 +238,9 @@ async function initIssuePinSort() {
 }
 
 export function initRepoIssueList() {
+  registerGlobalInitFunc('initIssueListCloseReason', initIssueListCloseReason);
   if (document.querySelector('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list')) {
     initRepoIssueListCheckboxes();
-    queryElems(document, '.js-issue-list-close-reason', initIssueListCloseReason);
     queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
     initIssuePinSort();
   } else if (document.querySelector('.page-content.dashboard.issues')) {

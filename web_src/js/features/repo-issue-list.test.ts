@@ -4,7 +4,7 @@ import {createElementFromHTML} from '../utils/dom.ts';
 // the markup the Issues tab's toolbar gets while open issues are listed
 function createCloseButtons() {
   const elButtons = createElementFromHTML<HTMLElement>(`
-    <div class="ui red basic buttons js-issue-list-close-reason">
+    <div class="ui red basic buttons" data-global-init="initIssueListCloseReason">
       <button class="ui button issue-action" data-action="close" data-url="/user2/repo1/issues/status" data-close-reason="completed">Close as completed</button>
       <div class="ui dropdown icon button">
         <div class="menu">

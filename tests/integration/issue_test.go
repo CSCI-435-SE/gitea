@@ -524,7 +524,7 @@ func TestIssueCloseReasonIcons(t *testing.T) {
 		page.doc.Find(".timeline-item.event").Each(func(_ int, event *goquery.Selection) {
 			if strings.Contains(event.Find(".comment-text-line").First().Text(), "closed this") {
 				b := event.Find(".badge")
-				badge = strings.TrimSpace(b.AttrOr("class", "") + " " + iconClasses(b.Find("svg")))
+				badge = strings.Join(strings.Fields(b.AttrOr("class", "")+" "+iconClasses(b.Find("svg"))), " ") // "badge " when it has no colour
 			}
 		})
 		return look{iconClasses(row.Find(".item-leading svg")), strings.Join(strings.Fields(label.Text()), " "), labelColor, badge}
@@ -604,7 +604,7 @@ func TestIssueBulkCloseReason(t *testing.T) {
 	// buttonOf reads the list's Close button, the reason it starts on, and its menu; and the address it sends to
 	buttonOf := func(t *testing.T, kind string) (closeButton, string) {
 		htmlDoc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/"+kind+"?state=open"), http.StatusOK).Body)
-		buttons := htmlDoc.doc.Find("#issue-actions .js-issue-list-close-reason")
+		buttons := htmlDoc.doc.Find(`#issue-actions [data-global-init="initIssueListCloseReason"]`)
 		button := buttons.Find(`.issue-action[data-action="close"]`)
 		got := closeButton{text: strings.TrimSpace(button.Text()), reason: button.AttrOr("data-close-reason", "")}
 		buttons.Find(".menu .item").Each(func(_ int, item *goquery.Selection) {
