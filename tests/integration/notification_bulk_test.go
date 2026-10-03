@@ -14,6 +14,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNotificationBulkActions(t *testing.T) {
@@ -22,12 +23,17 @@ func TestNotificationBulkActions(t *testing.T) {
 	// user2 fixtures: #2 read (repo 1), #3 pinned (repo 1), #4 unread (repo 1), #5 unread (repo 2); #1 is user1's
 	session := loginUser(t, "user2")
 
-	bulk := func(t *testing.T, query string, values map[string]string, status int) string {
-		resp := session.MakeRequest(t, NewRequestWithValues(t, "POST", "/notifications/bulk"+query, values), status)
+	bulkAs := func(t *testing.T, s *TestSession, query string, values map[string]string, status int) string {
+		resp := s.MakeRequest(t, NewRequestWithValues(t, "POST", "/notifications/bulk"+query, values), status)
 		if status != http.StatusOK {
 			return ""
 		}
-		return test.ParseJSONRedirect(resp.Body.Bytes()).Redirect
+		redirect := test.ParseJSONRedirect(resp.Body.Bytes()).Redirect
+		require.NotNil(t, redirect)
+		return *redirect
+	}
+	bulk := func(t *testing.T, query string, values map[string]string, status int) string {
+		return bulkAs(t, session, query, values, status)
 	}
 	flashAt := func(t *testing.T, link string) string {
 		resp := session.MakeRequest(t, NewRequest(t, "GET", link), http.StatusOK)
@@ -66,8 +72,8 @@ func TestNotificationBulkActions(t *testing.T) {
 
 	t.Run("OtherUsersNotificationsAreUntouched", func(t *testing.T) {
 		other := loginUser(t, "user5")
-		resp := other.MakeRequest(t, NewRequestWithValues(t, "POST", "/notifications/bulk", map[string]string{"action": "delete", "notification_ids": "5"}), http.StatusOK)
-		assert.Equal(t, "/notifications", test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
+		link := bulkAs(t, other, "", map[string]string{"action": "delete", "notification_ids": "5"}, http.StatusOK)
+		assert.Equal(t, "/notifications", link)
 		unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
 	})
 
