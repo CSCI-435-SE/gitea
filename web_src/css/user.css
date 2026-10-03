@@ -130,6 +130,11 @@
   border-radius: var(--border-radius);
 }
 
+.notification-bulk-bar {
+  min-height: 30px; /* keeps the list from jumping when the actions show */
+  padding: 0 calc(1em + 1px); /* lines the page checkbox up with the row checkboxes inside the bordered table */
+}
+
 .notifications-item {
   display: flex;
   align-items: center;
