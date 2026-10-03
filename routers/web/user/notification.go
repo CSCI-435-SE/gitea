@@ -56,7 +56,7 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	pageType := ctx.FormString("type", ctx.FormString("q")) // "q" is the legacy query parameter for "page type"
 	page := max(1, ctx.FormInt("page"))
 	perPage := util.IfZero(ctx.FormInt("perPage"), 20) // this value is never used or exposed ....
-	queryStatus := util.Iif(pageType == "read", activities_model.NotificationStatusRead, activities_model.NotificationStatusUnread)
+	queryStatus := notificationViewStatus(pageType)
 	filter := parseNotificationFilter(ctx)
 
 	countOpts := filter.findOptions(ctx.Doer.ID)
@@ -70,6 +70,14 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	unreadOpts := filter.findOptions(ctx.Doer.ID)
 	unreadOpts.Status = []activities_model.NotificationStatus{activities_model.NotificationStatusUnread}
 	filteredUnreadCount, err := db.Count[activities_model.Notification](ctx, unreadOpts) // the navbar badge stays global
+	if err != nil {
+		ctx.ServerError("ErrGetNotificationCount", err)
+		return
+	}
+
+	viewOpts := filter.findOptions(ctx.Doer.ID)
+	viewOpts.Status = []activities_model.NotificationStatus{queryStatus, activities_model.NotificationStatusPinned}
+	viewCount, err := db.Count[activities_model.Notification](ctx, viewOpts) // what "select all in this view" acts on
 	if err != nil {
 		ctx.ServerError("ErrGetNotificationCount", err)
 		return
@@ -159,6 +167,8 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	ctx.Data["FilterRepos"] = filterRepos
 	ctx.Data["FilterRepoUnread"] = unreadRepoIDs
 	ctx.Data["FilteredUnreadCount"] = filteredUnreadCount
+	ctx.Data["ViewCount"] = viewCount
+	ctx.Data["ViewKey"] = notificationViewLink(pageType, 1, filter) // selections are kept per view, across its pages
 	for _, repo := range filterRepos {
 		if repo.ID == filter.RepoID {
 			ctx.Data["FilterRepo"] = repo // only accessible repos are named, a guessed ID shows the generic label
@@ -222,8 +232,8 @@ func (f notificationFilter) findOptions(userID int64) activities_model.FindNotif
 	return opts
 }
 
-// queryString is built from the parsed values, never the raw request, so redirects only carry validated input
-func (f notificationFilter) queryString() string {
+// queryValues is built from the parsed values, never the raw request, so redirects only carry validated input
+func (f notificationFilter) queryValues() url.Values {
 	q := url.Values{}
 	if f.RepoID != 0 {
 		q.Set("repo", strconv.FormatInt(f.RepoID, 10))
@@ -231,7 +241,32 @@ func (f notificationFilter) queryString() string {
 	if f.Source != "" {
 		q.Set("source", f.Source)
 	}
-	return q.Encode()
+	return q
+}
+
+func (f notificationFilter) queryString() string {
+	return f.queryValues().Encode()
+}
+
+// notificationViewStatus is the status a tab lists; pinned notifications are listed on both tabs
+func notificationViewStatus(pageType string) activities_model.NotificationStatus {
+	return util.Iif(pageType == "read", activities_model.NotificationStatusRead, activities_model.NotificationStatusUnread)
+}
+
+// notificationViewLink links to a page of a tab with its filter, normalising the tab so equal views get equal links
+func notificationViewLink(pageType string, page int, filter notificationFilter) string {
+	q := filter.queryValues()
+	if notificationViewStatus(pageType) == activities_model.NotificationStatusRead {
+		q.Set("type", "read")
+	}
+	if page > 1 {
+		q.Set("page", strconv.Itoa(page))
+	}
+	link := setting.AppSubURL + "/notifications"
+	if len(q) > 0 {
+		link += "?" + q.Encode()
+	}
+	return link
 }
 
 // loadNotificationFilterRepos returns the repositories offered by the repository filter, sorted by full name,
@@ -323,6 +358,64 @@ func NotificationPurgePost(ctx *context.Context) {
 		redirect += "?" + q
 	}
 	ctx.Redirect(redirect, http.StatusSeeOther)
+}
+
+// notificationBulkAction is the status a bulk action sets, and the flash keys reporting how many changed
+type notificationBulkAction struct {
+	status              activities_model.NotificationStatus // 0 deletes the notifications
+	flashOne, flashMany string
+}
+
+var notificationBulkActions = map[string]notificationBulkAction{
+	"mark_as_read":   {activities_model.NotificationStatusRead, "notification.bulk_marked_read_1", "notification.bulk_marked_read_n"},
+	"mark_as_unread": {activities_model.NotificationStatusUnread, "notification.bulk_marked_unread_1", "notification.bulk_marked_unread_n"},
+	"pin":            {activities_model.NotificationStatusPinned, "notification.bulk_pinned_1", "notification.bulk_pinned_n"},
+	"delete":         {0, "notification.bulk_deleted_1", "notification.bulk_deleted_n"},
+}
+
+// parseNotificationBulkTarget returns the notifications a bulk request acts on: the listed IDs,
+// or with all=true every notification in the view, re-applied here instead of trusting IDs from the browser
+func parseNotificationBulkTarget(ctx *context.Context, filter notificationFilter) (activities_model.FindNotificationOptions, bool) {
+	if ctx.FormBool("all") {
+		opts := filter.findOptions(ctx.Doer.ID)
+		opts.Status = []activities_model.NotificationStatus{notificationViewStatus(ctx.FormString("type")), activities_model.NotificationStatusPinned}
+		return opts, true
+	}
+	ids, err := base.StringsToInt64s(strings.Split(ctx.FormString("notification_ids"), ","))
+	if err != nil || len(ids) == 0 {
+		return activities_model.FindNotificationOptions{}, false
+	}
+	return activities_model.FindNotificationOptions{IDs: ids}, true // the model limits them to the doer's own
+}
+
+// NotificationBulkPost applies one action to several notifications and redirects back to the view
+func NotificationBulkPost(ctx *context.Context) {
+	action, ok := notificationBulkActions[ctx.FormString("action")]
+	if !ok {
+		ctx.JSONError("unknown notification action")
+		return
+	}
+	filter := parseNotificationFilter(ctx)
+	opts, ok := parseNotificationBulkTarget(ctx, filter)
+	if !ok {
+		ctx.JSONError("no valid notifications selected")
+		return
+	}
+
+	var changed int64
+	var err error
+	if action.status == 0 {
+		changed, err = activities_model.DeleteNotifications(ctx, ctx.Doer, opts)
+	} else {
+		changed, err = activities_model.SetNotificationsStatus(ctx, ctx.Doer, opts, action.status)
+	}
+	if err != nil {
+		ctx.ServerError("NotificationBulkPost", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Locale.TrN(changed, action.flashOne, action.flashMany, changed))
+	ctx.JSONRedirect(notificationViewLink(ctx.FormString("type"), ctx.FormInt("page"), filter)) // the list page clamps a page left empty
 }
 
 // NotificationSubscriptions returns the list of subscribed issues
