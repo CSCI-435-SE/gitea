@@ -1768,6 +1768,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/watching", user.NotificationWatching)
 		m.Post("/status", user.NotificationStatusPost)
 		m.Post("/purge", user.NotificationPurgePost)
+		m.Post("/bulk", user.NotificationBulkPost)
 		m.Get("/new", user.NewAvailable)
 	}, reqSignIn)
 

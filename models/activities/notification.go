@@ -16,6 +16,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm/schemas"
@@ -418,6 +419,33 @@ func UpdateNotificationStatuses(ctx context.Context, user *user_model.User, curr
 		Cols("status", "updated_by", "updated_unix").
 		Update(n)
 	return err
+}
+
+// errEmptyBulkFilter stops a bulk change with no IDs or status from reaching every notification of the user
+var errEmptyBulkFilter = util.NewInvalidArgumentErrorf("a bulk notification change needs IDs or a status")
+
+// SetNotificationsStatus sets the status of the user's notifications matching opts and returns how many changed.
+// opts must set IDs or Status; its UserID is always overwritten.
+func SetNotificationsStatus(ctx context.Context, user *user_model.User, opts FindNotificationOptions, status NotificationStatus) (int64, error) {
+	if len(opts.IDs) == 0 && len(opts.Status) == 0 {
+		return 0, errEmptyBulkFilter
+	}
+	opts.UserID = user.ID // never let a caller widen the change to another user
+	return db.GetEngine(ctx).
+		Where(opts.ToConds().And(builder.Neq{"notification.status": status})). // count only rows that change
+		Cols("status").
+		Update(&Notification{Status: status})
+}
+
+// DeleteNotifications deletes the user's notifications matching opts and returns how many were deleted.
+// opts must set IDs or Status; its UserID is always overwritten. Watches and subscriptions are left alone,
+// so new activity creates a fresh notification.
+func DeleteNotifications(ctx context.Context, user *user_model.User, opts FindNotificationOptions) (int64, error) {
+	if len(opts.IDs) == 0 && len(opts.Status) == 0 {
+		return 0, errEmptyBulkFilter
+	}
+	opts.UserID = user.ID
+	return db.GetEngine(ctx).Where(opts.ToConds()).Delete(&Notification{})
 }
 
 // FindNotificationRepoIDs returns the distinct repository IDs of the notifications matching opts

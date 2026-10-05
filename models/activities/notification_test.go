@@ -12,6 +12,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -181,4 +182,75 @@ func TestSetIssueReadBy(t *testing.T) {
 	nt, err := activities_model.GetIssueNotification(t.Context(), user.ID, issue.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, activities_model.NotificationStatusRead, nt.Status)
+}
+
+func TestSetNotificationsStatus(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// 3 is pinned, 4 is unread, 1 belongs to user 1 and must be skipped
+	n, err := activities_model.SetNotificationsStatus(t.Context(), user, activities_model.FindNotificationOptions{IDs: []int64{1, 3, 4}}, activities_model.NotificationStatusRead)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, n)
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 3, Status: activities_model.NotificationStatusRead})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 4, Status: activities_model.NotificationStatusRead})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 1, Status: activities_model.NotificationStatusUnread})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5, Status: activities_model.NotificationStatusUnread})
+
+	// rows already in the target status are not counted
+	n, err = activities_model.SetNotificationsStatus(t.Context(), user, activities_model.FindNotificationOptions{IDs: []int64{2}}, activities_model.NotificationStatusRead)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, n)
+
+	// a view filter without IDs works too
+	n, err = activities_model.SetNotificationsStatus(t.Context(), user, activities_model.FindNotificationOptions{
+		RepoID: 2,
+		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread, activities_model.NotificationStatusPinned},
+	}, activities_model.NotificationStatusPinned)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, n)
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5, Status: activities_model.NotificationStatusPinned})
+
+	_, err = activities_model.SetNotificationsStatus(t.Context(), user, activities_model.FindNotificationOptions{RepoID: 1}, activities_model.NotificationStatusRead)
+	assert.ErrorIs(t, err, util.ErrInvalidArgument)
+}
+
+func TestDeleteNotifications(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	n, err := activities_model.DeleteNotifications(t.Context(), user, activities_model.FindNotificationOptions{IDs: []int64{1, 2, 4}})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, n)
+	unittest.AssertNotExistsBean(t, &activities_model.Notification{ID: 2})
+	unittest.AssertNotExistsBean(t, &activities_model.Notification{ID: 4})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 1})
+
+	// the unread view of repo 1 still holds pinned 3, but not repo 2's 5
+	n, err = activities_model.DeleteNotifications(t.Context(), user, activities_model.FindNotificationOptions{
+		RepoID: 1,
+		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread, activities_model.NotificationStatusPinned},
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, n)
+	unittest.AssertNotExistsBean(t, &activities_model.Notification{ID: 3})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
+
+	_, err = activities_model.DeleteNotifications(t.Context(), user, activities_model.FindNotificationOptions{})
+	assert.ErrorIs(t, err, util.ErrInvalidArgument)
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
+}
+
+func TestDeletedNotificationReturnsOnNewActivity(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	_, err := activities_model.DeleteNotifications(t.Context(), user, activities_model.FindNotificationOptions{IDs: []int64{1}})
+	assert.NoError(t, err)
+	unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: user.ID, IssueID: 1})
+
+	// delete must not unsubscribe, so new activity on issue 1 notifies user 1 again
+	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), 1, 0, 2, 0))
+	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: user.ID, IssueID: 1})
+	assert.Equal(t, activities_model.NotificationStatusUnread, notf.Status)
 }

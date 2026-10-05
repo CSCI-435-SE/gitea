@@ -92,7 +92,11 @@ async function updateNotificationTable() {
     const data = await response.text();
     const el = createElementFromHTML(data);
     if (parseInt(el.getAttribute('data-sequence-number')!) === notificationSequenceNumber) {
+      const flash = notificationDiv.querySelector('.flash-message');
       notificationDiv.outerHTML = data;
+      // the page load already consumed the flash, so the refreshed list would drop e.g. a bulk action's confirmation
+      const container = document.querySelector('#notification_div > .ui.container')!;
+      if (flash && !container.querySelector('.flash-message')) container.prepend(flash);
     }
   } catch (error) {
     console.error(error);
