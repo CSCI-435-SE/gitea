@@ -72,10 +72,10 @@ if [ "$CMD" = "install" ]; then
     # on GitHub Actions VMs, playwright's system deps are pre-installed
     if [ -z "${GITHUB_ACTIONS:-}" ]; then
       # shellcheck disable=SC2086 # flag string
-      pnpm exec playwright install --with-deps chromium firefox ${PLAYWRIGHT_FLAGS:-}
+      pnpm exec playwright install --with-deps chromium firefox webkit ${PLAYWRIGHT_FLAGS:-}
     else
       # shellcheck disable=SC2086 # flag string
-      pnpm exec playwright install chromium firefox ${PLAYWRIGHT_FLAGS:-}
+      pnpm exec playwright install chromium firefox webkit ${PLAYWRIGHT_FLAGS:-}
     fi
   else
     echo "Running playwright in container as host distro is not supported by playwright directly"
