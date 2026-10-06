@@ -169,12 +169,13 @@ export async function createProject(
 
 export async function apiCreateIssue(
   requestContext: APIRequestContext,
-  {owner, repo, title, body, projects, headers}: {
+  {owner, repo, title, body, projects, milestone, headers}: {
     owner: string;
     repo: string;
     title: string;
     body?: string;
     projects?: number[];
+    milestone?: number;
     headers?: Record<string, string>;
   },
 ): Promise<{index: number}> {
@@ -182,7 +183,7 @@ export async function apiCreateIssue(
   await apiRetry(async () => {
     const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues`, {
       headers: headers || apiHeaders(),
-      data: {title, body: body || '', projects: projects || []},
+      data: {title, body: body || '', projects: projects || [], ...(milestone && {milestone})},
     });
     if (response.ok()) {
       const json = await response.json();
@@ -191,6 +192,22 @@ export async function apiCreateIssue(
     }
     return response;
   }, 'apiCreateIssue');
+  return result;
+}
+
+export async function apiCreateMilestone(
+  requestContext: APIRequestContext,
+  {owner, repo, title, dueOn, headers}: {owner: string; repo: string; title: string; dueOn?: Date; headers?: Record<string, string>},
+): Promise<{id: number}> {
+  let result: {id: number} = {id: 0};
+  await apiRetry(async () => {
+    const response = await requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/milestones`, {
+      headers: headers || apiHeaders(),
+      data: {title, ...(dueOn && {due_on: dueOn.toISOString()})},
+    });
+    if (response.ok()) result = {id: (await response.json()).id};
+    return response;
+  }, 'apiCreateMilestone');
   return result;
 }
 
