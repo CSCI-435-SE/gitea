@@ -69,13 +69,15 @@ fi
 
 if [ "$CMD" = "install" ]; then
   if [ "$PLAYWRIGHT_MODE" = "local" ]; then
-    # on GitHub Actions VMs, playwright's system deps are pre-installed
+    # on GitHub Actions VMs, playwright's system deps are pre-installed for chromium and firefox
     if [ -z "${GITHUB_ACTIONS:-}" ]; then
       # shellcheck disable=SC2086 # flag string
       pnpm exec playwright install --with-deps chromium firefox webkit ${PLAYWRIGHT_FLAGS:-}
     else
       # shellcheck disable=SC2086 # flag string
-      pnpm exec playwright install chromium firefox webkit ${PLAYWRIGHT_FLAGS:-}
+      pnpm exec playwright install chromium firefox ${PLAYWRIGHT_FLAGS:-}
+      # shellcheck disable=SC2086 # flag string
+      pnpm exec playwright install --with-deps webkit ${PLAYWRIGHT_FLAGS:-} # the runner image lacks webkit's gtk4/gstreamer libs
     fi
   else
     echo "Running playwright in container as host distro is not supported by playwright directly"
