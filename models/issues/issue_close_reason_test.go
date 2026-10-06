@@ -272,3 +272,27 @@ func TestReopenIssueClearsReason(t *testing.T) {
 		})
 	}
 }
+
+func TestCloseReasonOptionsDuplicateIssueID(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	target := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1, Index: 4})
+
+	id, err := issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonCompleted}.DuplicateIssueID(t.Context(), 1, 1)
+	require.NoError(t, err)
+	assert.Zero(t, id) // only the duplicate reason names a target
+
+	dup := issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonDuplicate, DuplicateIndex: 4}
+	id, err = dup.DuplicateIssueID(t.Context(), 1, 1)
+	require.NoError(t, err)
+	assert.Equal(t, target.ID, id) // the global ID, not the number
+
+	id, err = dup.DuplicateIssueID(t.Context(), 1, 0) // an item not created yet has no number of its own
+	require.NoError(t, err)
+	assert.Equal(t, target.ID, id)
+
+	_, err = dup.DuplicateIssueID(t.Context(), 1, 4)
+	assert.True(t, issues_model.IsErrInvalidCloseDuplicate(err), "an item cannot duplicate itself")
+
+	_, err = dup.DuplicateIssueID(t.Context(), 2, 1) // repo 2 has no #4
+	assert.True(t, issues_model.IsErrInvalidCloseDuplicate(err), "the target must be in the same repository")
+}

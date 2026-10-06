@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUpdateIssuesCommit(t *testing.T) {
@@ -353,4 +354,24 @@ func TestUpdateIssuesCommit_SelfReference(t *testing.T) {
 	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits2, repo.DefaultBranch))
 	unittest.AssertExistsAndLoadBean(t, otherRefCommentBean)
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
+}
+
+func TestUpdateIssuesCommitClosesAsCompleted(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repo.Owner = user
+	pushCommits := []*repository.PushCommit{{
+		Sha1:           "abcdef9",
+		CommitterEmail: "user2@example.com",
+		CommitterName:  "User Two",
+		AuthorEmail:    "user2@example.com",
+		AuthorName:     "User Two",
+		Message:        "fixes #1",
+	}}
+
+	require.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 1})
+	assert.True(t, issue.IsClosed)
+	assert.Equal(t, issues_model.CloseReasonCompleted, issue.CloseReason)
 }

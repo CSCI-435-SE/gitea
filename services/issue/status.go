@@ -13,12 +13,11 @@ import (
 	notify_service "gitea.dev/services/notify"
 )
 
-// CloseIssue close an issue.
-// It records no reason and is kept for backwards compatibility: callers with no reason to give keep using it,
-// such as commit keywords, merged pull requests closing the issues they reference, and the API.
-// Callers with a reason use CloseIssueWithReason.
+// CloseIssue closes an issue with the default reason for its kind: completed for an issue, not planned for a
+// pull request. It is for closes that give no reason: commit keywords, merged pull requests closing the issues
+// they reference, deleted branches, and API requests without one. Callers with a reason use CloseIssueWithReason.
 func CloseIssue(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, commitID string) error {
-	return CloseIssueWithReason(ctx, issue, doer, commitID, issues_model.CloseReasonOptions{})
+	return CloseIssueWithReason(ctx, issue, doer, commitID, issues_model.CloseReasonOptions{Reason: issues_model.DefaultCloseReason(issue.IsPull)})
 }
 
 // CloseIssueWithReason closes an issue and records why; an invalid reason leaves the issue open.
