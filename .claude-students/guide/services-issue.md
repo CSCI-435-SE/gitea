@@ -1,7 +1,7 @@
 ---
 source: docs/services-issue.md
-source-hash: 9023a251f907cbe5
-verified-at: 32ac0cbb78
+source-hash: d99faef1b64012cc
+verified-at: 94dfae067e
 ---
 
 <!-- Derived from docs/services-issue.md. Do not edit by hand: fix the reference doc and regenerate
@@ -59,6 +59,7 @@ timeline entry and the notification.
 | `services/issue/content.go` | Editing the issue body. |
 | `services/issue/status.go` | Opening and closing: `CloseIssueWithReason` records why, `CloseIssue` is the older no-reason form. |
 | `services/issue/comments.go`, `reaction.go`, `milestone.go` | Comments, reactions, milestones. |
+| `services/issue/milestone_burndown.go` | The milestone page's burndown chart. `CalcMilestoneBurndown` is handed the time and zone instead of reading the clock, so tests can pin both. |
 | `services/issue/review_request.go` | Requesting a review from a person or a team. |
 | `services/issue/commit.go` | Acting on `fixes #123` in a pushed commit message. |
 | `services/issue/template.go` | Issue templates. |

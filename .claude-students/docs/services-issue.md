@@ -1,6 +1,6 @@
 ---
 scope: services/issue
-verified-at: 32ac0cbb78
+verified-at: 94dfae067e
 ---
 
 # services/issue — issue business logic
@@ -25,6 +25,7 @@ call this package; they must not call `models/issues` directly.
 | `services/issue/content.go` | `ChangeContent` |
 | `services/issue/status.go` | `CloseIssueWithReason`, `CloseIssue` (the no-reason wrapper), `ReopenIssue` |
 | `services/issue/comments.go`, `reaction.go`, `milestone.go` | comment, reaction and milestone operations |
+| `services/issue/milestone_burndown.go` | `CalcMilestoneBurndown` (pure: takes `now` and a zone), `GetMilestoneBurndown` — the milestone page's chart |
 | `services/issue/review_request.go` | `ReviewRequest`, `TeamReviewRequest`, `CanDoerChangeReviewRequests` |
 | `services/issue/commit.go` | `UpdateIssuesCommit` — acts on `fixes #123` in pushed commit messages |
 | `services/issue/template.go` | issue template parsing |

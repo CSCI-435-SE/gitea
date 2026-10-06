@@ -1,7 +1,7 @@
 ---
 source: docs/models-issues.md
-source-hash: 716e2123188b7826
-verified-at: 32ac0cbb78
+source-hash: b4495e444e20beb3
+verified-at: 94dfae067e
 ---
 
 <!-- Derived from docs/models-issues.md. Do not edit by hand: fix the reference doc and regenerate
@@ -66,6 +66,7 @@ nobody loaded and getting an empty value rather than an error.**
 | `models/issues/issue_label.go` | Labels on issues — and the clearest small example of the loader pattern. |
 | `models/issues/issue_index.go` | Recalculating per-repository numbering. |
 | `models/issues/issue_group.go` | Splitting a list of issues into category groups, for the grouped ("folder") list view. |
+| `models/issues/milestone_history.go` | A milestone's past — what joined, left, closed and reopened when — read back from comments. |
 
 The rest divide by area: `review.go` and `review_list.go`, `label.go`, `milestone.go`,
 `assignees.go`, `stopwatch.go` and `tracked_time.go`, and the relationship files `dependency.go`,
@@ -179,6 +180,11 @@ divided by the number of columns. One more column changes the page size, the req
 different `limit`, and the recorded response in
 `tests/integration/_mock_data/Test_MigrateFromGiteaToGitea/` no longer matches its name. Rename that
 file to the new `limit`; its contents stay valid while the repository has fewer issues than the page size.
+
+**A milestone chart misses an issue, or counts more than the issues tab.** A milestone keeps no
+history of its own: it lives in "changed the milestone" comments, which imported issues and
+deleting a milestone never write. Read it through `models/issues/milestone_history.go` and fill the
+gaps from the issue row. Milestone counts include pull requests as well as issues.
 
 **Building an issue's link crashes with a nil pointer.** `Issue.Link()` reads `issue.Repo`, and
 `GetIssueByID` does not fill it in. Call `LoadRepo(ctx)` first.

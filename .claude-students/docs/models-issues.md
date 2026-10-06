@@ -1,6 +1,6 @@
 ---
 scope: models/issues, models/pull
-verified-at: 32ac0cbb78
+verified-at: 94dfae067e
 ---
 
 # models/issues — issues, pull requests, comments, reviews
@@ -35,6 +35,7 @@ One package for the whole issue domain, because pull requests *are* issues in th
 | `models/issues/issue_label.go` | `LoadLabels` — the idempotency pattern in miniature |
 | `models/issues/issue_index.go` | `RecalculateIssueIndexForRepo` |
 | `models/issues/issue_group.go` | `IssueLabelGroup`, `IssueList.GroupByExclusiveLabelScope` — the grouped list view |
+| `models/issues/milestone_history.go` | `GetMilestoneScopeEvents`, `GetMilestoneStateEvents`, `GetMilestoneItems` — a milestone's past, read back from comments |
 
 ## Conventions & invariants
 
@@ -99,6 +100,10 @@ direction, `pr.Issue` after the PR's own loader.
 - `Issue.Index` and `PullRequest.Index` are both present. They agree, but write through the issue.
 - `Issue.Link()` dereferences `issue.Repo`, so an issue fetched with `GetIssueByID` panics there
   until `LoadRepo(ctx)` has run.
+- A milestone's history exists only as `CommentTypeMilestone` comments (`OldMilestoneID` to
+  `MilestoneID`): migrated issues have none and `DeleteMilestoneByRepoID` writes none. Those columns
+  are unindexed and `comment` has no `repo_id`, so `milestone_history.go` joins `issue`. Milestone
+  counters (`UpdateMilestoneCounters`) count pull requests as well as issues.
 - `models/pull` is not "pull requests" — those are here in `models/issues/pull.go`. `models/pull`
   is only automerge and review state.
 - `GroupByExclusiveLabelScope` and `applyGroupByLabelScope` (`models/issues/issue_search.go`, driven
