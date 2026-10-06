@@ -31,6 +31,7 @@ func TestAPICloseReasonCheck(t *testing.T) {
 		{"new item duplicate", newAPICloseReason("duplicate", "", 4), true, false, 0, true},
 		{"not closing", newAPICloseReason("completed", "", 0), false, false, 1, false},
 		{"text alone, not closing", newAPICloseReason("", "why", 0), false, false, 1, false},
+		{"whitespace text alone, not closing", newAPICloseReason("", "  ", 0), false, false, 1, true}, // no reason given, so a close records the default
 		{"unknown name", newAPICloseReason("wontfix", "", 0), true, false, 1, false},
 		{"completed on a pull request", newAPICloseReason("completed", "", 0), true, true, 2, false},
 		{"other without text", newAPICloseReason("other", "  ", 0), true, false, 1, false},

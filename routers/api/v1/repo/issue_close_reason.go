@@ -27,7 +27,7 @@ func newAPICloseReason(name, text string, duplicateOf int64) apiCloseReason {
 	return apiCloseReason{
 		name:  name,
 		opts:  issues_model.CloseReasonOptions{Reason: issues_model.AsCloseReason(name), Text: text, DuplicateIndex: duplicateOf},
-		given: name != "" || text != "" || duplicateOf != 0,
+		given: name != "" || strings.TrimSpace(text) != "" || duplicateOf != 0, // Validate treats whitespace-only text as none
 	}
 }
 
