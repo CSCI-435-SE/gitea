@@ -694,7 +694,7 @@ func TestPullDontRetargetChildOnWrongRepo(t *testing.T) {
 		prStatus := strings.TrimSpace(htmlDoc.doc.Find(".issue-title-meta>.issue-state-label").Text())
 
 		assert.Equal(t, "base-pr", targetBranch)
-		assert.Equal(t, "Closed", prStatus)
+		assert.Equal(t, "Closed as not planned", prStatus) // closed by its base branch's deletion, which records not planned
 	})
 }
 
