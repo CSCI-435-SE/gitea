@@ -8828,3 +8828,834 @@ https://github.com/CSCI-435-SE/gitea/pull/71
 <
 ```
 </details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 13:32:27Z)**_
+
+The PR body is updated; the only difference from my file is the same trailing newline as before. Syncing the log.
+
+_**Agent (claude-opus-5-5 2026-10-06 13:32:30Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Re-sync the transcript and re-file the log
+
+`specstory sync claude -s 101aa71d-f93a-467e-af0a-1edd5e312777 --no-cloud-sync 2>&1 | grep -i "session"; F=".specstory/history/2026-10-06_12-21-42Z-you-are-reviewing-uncommitted.md"; D=ai-logs/sprint1/controlled-opposition/2026-10-06_claude-code_issue-61-impl.md; cp "$F" $D && cmp "$F" $D && echo identical; grep -c "update the PR and sync the log" $D; git status --short`
+
+```text
+Processing session 101aa71d-f93a-467e-af0a-1edd5e312777... updated
+identical
+1
+ M ai-logs/sprint1/controlled-opposition/2026-10-06_claude-code_issue-61-impl.md
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 13:32:35Z)**_
+
+I've updated the PR description and synced the log. The refreshed log is filed but not committed.
+
+**PR #71**
+- **What changed:** notes that CI also installs WebKit's system libraries.
+- **How it was tested:** Firefox is now marked as checked in CI only, where every test passed.
+- **CI / manual verification:** has the per-browser table, plus a note that the first CI run failed only in WebKit and why.
+- **Merge danger:** the WebKit risk is replaced by the actual 43 s install cost. I also fixed a broken sentence there from my earlier edit.
+
+**Log:** `ai-logs/sprint1/controlled-opposition/2026-10-06_claude-code_issue-61-impl.md` now runs through your "update the PR and sync the log". It is a copy of the SpecStory export, only renamed. As before, Git's line-ending rule will store it with LF endings.
+
+Proposed commit:
+```
+chore(ai-log): update AI log for #61 implementation (#61)
+
+Assisted-by: Claude Code:claude-opus-5-5
+```
+Should I commit it and push it to the PR?
+
+---
+
+_**User (2026-10-06 13:32:44Z)**_
+
+yes, commit and push
+
+---
+
+_**Agent (claude-opus-5-5 2026-10-06 13:32:49Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Commit the refreshed log and push
+
+```bash
+git add ai-logs/sprint1/controlled-opposition/2026-10-06_claude-code_issue-61-impl.md && git commit -q -F - <<'EOF'
+chore(ai-log): update AI log for #61 implementation (#61)
+
+Assisted-by: Claude Code:claude-opus-5-5
+EOF
+git push 2>&1 | tail -1; git log --oneline -1; git status --short
+```
+
+```text
+warning: in the working copy of 'ai-logs/sprint1/controlled-opposition/2026-10-06_claude-code_issue-61-impl.md', CRLF will be replaced by LF the next time Git touches it
+   ba29d4443b..314a8dd392  feat/issue-61-accessible-menu -> feat/issue-61-accessible-menu
+314a8dd392 chore(ai-log): update AI log for #61 implementation (#61)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 13:32:53Z)**_
+
+The refreshed log is committed as `314a8dd392` and pushed to PR #71. The CRLF warning is Git converting line endings, as before. The push starts a new CI run; only the log changed, so I expect the same results.
+
+Left for you:
+1. Post the AI Assistance comment on #61 if you haven't yet; the text is in my earlier message.
+2. Ask a teammate to review. They post the course rubric on the PR.
+3. After merge, change the comment's log link from `blob/feat/issue-61-accessible-menu/` to `blob/main/`. Also re-sync and re-file the log once more at sprint end, since this reply isn't in it.
+
+---
+
+_**User (2026-10-06 14:09:46Z)**_
+
+check the CI status on PR 71
+
+---
+
+_**Agent (claude-opus-5-5 2026-10-06 14:09:52Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Show current CI check status for PR 71
+
+`gh pr view 71 --json headRefOid --jq .headRefOid; gh pr checks 71 2>&1 | grep -v skipping | awk -F'\t' '{print $2"\t"$1"\t"$3}' | sort`
+
+```text
+314a8dd392818b58ac4892d748731888af3a64a6
+pass	backend	8m2s
+pass	checks-backend	7m13s
+pass	files-changed / detect	10s
+pass	files-changed / detect	11s
+pass	files-changed / detect	8s
+pass	files-changed / detect	9s
+pass	frontend	1m14s
+pass	labeler	6s
+pass	lint-backend	12m9s
+pass	lint-on-demand	2m31s
+pass	pr-title	16s
+pass	test-e2e	8m22s
+pass	test-mssql	19m59s
+pass	test-mysql	20m9s
+pass	test-pgsql-shard-1	13m13s
+pass	test-pgsql-shard-2	13m11s
+pass	test-sqlite	16m37s
+pass	test-unit	23m12s
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 14:09:54Z)**_
+
+Every check on PR #71 passes, on the latest commit `314a8dd392`. That covers e2e, the four database test jobs, unit tests, lint, frontend and backend; the rest show as skipped, which is normal for this PR. The PR is ready for a teammate's review.
+
+---
+
+_**User (2026-10-06 14:11:21Z)**_
+
+after this PR is merged, what are the next steps?
+
+---
+
+_**Agent (claude-opus-5-5 2026-10-06 14:11:30Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Check sprint deliverables and remaining user obligations
+
+`sed -n '/^## Sprint/,/^## Issue/p' .claude-students/COURSE-WORKFLOW.md | head -60; ls ai-logs/sprint1/controlled-opposition/; gh issue view 62 --json comments --jq '.comments[] | .author.login + ": " + (.body|.[0:80])'; gh pr list --state all --search "review-requested:controlled-opposition OR reviewed-by:controlled-opposition" --json number,title,state --jq '.[] | "\(.number) \(.state) \(.title)"'; ls docs/sprint1/ 2>/dev/null; git tag -l 'v1.27.3-csci435-*'`
+
+```text
+## Sprint report (D6) sections
+
+`docs/sprint<N>/report.md`, following `docs/sprint0/report.md`:
+
+- Team: names, GitHub usernames, project name, repository link.
+- Sprint overview.
+- Backlog: milestone link, plus a table of title, owner, points, scope and status.
+- Requirements and design: when specs were done, what surprised you, design rationale.
+- Completed issues: title, owner, PR link, author, reviewer, what changed.
+- Test strategy, including untestable changes and why.
+- AI tool usage per member: tools, session count, AI log folder link, and 2–3 sentences on lessons
+  learned.
+- Release: tag and release link.
+- Risks and retrospective: what worked, what slowed the team down, Sprint 2 changes.
+- Sprint 2 plan: initial ideas and carryover issues.
+2026-10-06_claude-code_issue-61-impl.md
+vvchopra: Spec looks good, continue with implementation
+45 MERGED chore(ai-logs): add Carson's sprint 0 session logs
+images
+test-output
+v1.27.3-csci435-s0
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 14:11:34Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Read the deliverable list and open PRs
+
+`grep -n "D[1-8]" .claude-students/COURSE-WORKFLOW.md | head -20; gh pr list --state open --json number,title,author --jq '.[] | "\(.number) @\(.author.login) \(.title)"'`
+
+```text
+14:- **Zero rule:** no merged PR (D4), no sprint report (D6) or no release (D7) means **0 for the
+20:| D1 | Sprint backlog: a `Sprint 1` milestone with every selected issue on it | 10 | Team | GitHub milestone |
+21:| D2 | Requirements spec for each issue (formats below), peer-reviewed by a teammate | 20 | Individual | Issue body |
+22:| D3 | At least one non-trivial design decision per issue | 7 | Individual | Issue body |
+23:| D4 | Code changes and PRs | 36 | Individual | PRs |
+24:| D5 | AI logs | 7 | Individual | `ai-logs/sprint1/<github-username>/` |
+25:| D6 | Sprint report | 10 | Team | `docs/sprint1/report.md` |
+26:| D7 | Release: tag `v1.27.3-csci435-s1` plus a GitHub release | 2 | Team | Tags / Releases |
+27:| D8 | Reflection survey | 8 | Individual | Blackboard/Zulip link |
+29:- **D1 load:** each CSCI 435 student owns at least 2 medium issues; each CSCI 535 student owns at
+32:- **D5:** conventions are in `ai-logs/README.md`. The folder must exist even if no AI was used. In
+35:- **D7:** keep Sprint 0's base version (`v1.27.3-csci435-s0` → `v1.27.3-csci435-s1`), push the tag
+135:- **Design Decision (D3):** fill it in once you've picked an approach, before opening the PR. Put
+138:- **Peer review (D2):** a teammate reads the spec and comments `Spec reviewed — <notes>` on the
+182:## Sprint report (D6) sections
+71 @controlled-opposition feat(webcomponents): add accessible aria-menu web component (#61)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 14:11:45Z)**_
+
+Sprint 1 ends **Thursday 2026-10-08 at 11:59 PM**, two days from now. Once PR #71 is merged, this is what's left.
+
+**Wrapping up #61**
+1. **Fix the comment's log link.** In your AI Assistance comment on #61, change `blob/feat/issue-61-accessible-menu/` to `blob/main/`, so the link survives the branch being deleted.
+2. **Final log sync.** Run `specstory sync` once more and re-file the log; it currently stops before my last few replies. That needs one more small PR, since `main` is protected.
+
+**Your own deliverables**
+3. **Review a teammate's PR.** Each student must review at least one PR per sprint, and I can't find a Sprint 1 review by you. There are no other open PRs right now, so watch for the next one. Post the rubric from `COURSE-WORKFLOW.md` as a PR comment, and log that session too.
+4. **Spec peer review (D2, 20 points).** The course asks for the issue owner to write or significantly refine the spec, then a teammate comments `Spec reviewed — <notes>`. Both #61 and #62 were drafted by Jack-Donohue, and their review comments ("This spec is clear…", "Spec looks good…") don't use that wording. Check with your team or instructor whether that counts. If not, refine both specs and ask for a review comment in the right format.
+5. **Decide on #62.** It's P2, "only if capacity allows", and builds on this component. With two days left, either start it now, or tell the team it carries over to Sprint 2 so it appears under carryover issues in the report.
+6. **Reflection survey (D8, 8 points).** Fill it in on Blackboard/Zulip.
+
+**Team deliverables (zero rule)**
+7. **Sprint report (D6).** It goes in `docs/sprint1/report.md`, which doesn't exist yet. Your parts:
+   - your row in the completed-issues table: #61, PR #71, reviewer, what changed;
+   - the test strategy, including that Firefox was verified in CI only and WebKit was added to the e2e suite;
+   - your AI usage: tools, session count, log folder link, and 2–3 sentences of lessons.
+8. **Release (D7).** After the last Sprint 1 merge, push the tag `v1.27.3-csci435-s1` (only `-s0` exists so far) and create the GitHub release.
+
+Missing D6 or D7, or having no merged PR, zeroes the whole sprint for everyone. So items 7 and 8 matter most, and #71 merging covers the "no merged PR" part for you.
+
+---
+
+_**User (2026-10-06 14:58:12Z)**_
+
+I want you to complete these steps and give a final commit.
+1. Run a final sync and commit the logs.
+2. Create a handoff for the second issue to be completed.
+3. Update your memory of this repo.
+
+---
+
+_**Agent (claude-opus-5-5 2026-10-06 14:58:24Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Check PR merge state and docs layout
+
+`gh pr view 71 --json state,mergedAt,reviews --jq '{state,mergedAt,reviews:[.reviews[].author.login]}'; git fetch -q && git status -sb | head -1; ls docs/sprint1/ docs/sprint1/*/ | head; ls docs/ | head -30`
+
+```text
+{"mergedAt":null,"reviews":[],"state":"OPEN"}
+## feat/issue-61-accessible-menu...origin/feat/issue-61-accessible-menu
+docs/sprint1/:
+images
+test-output
+
+docs/sprint1/images/:
+
+docs/sprint1/test-output/:
+build-setup.md
+build-source.md
+community-governance.md
+development.md
+guidelines-backend.md
+guidelines-frontend.md
+guidelines-refactoring.md
+release-management.md
+sprint0
+sprint1
+sprint2
+sprint3
+sprint4
+superpowers
+testing.md
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 14:58:30Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Look for an existing handoff or plan convention
+
+`find docs/superpowers docs/sprint0 docs/sprint2 -maxdepth 2 | head -20; git log --oneline --all -- 'docs/superpowers/*' | head -5; grep -rli "handoff" docs .claude-students --include=*.md | head`
+
+```text
+docs/superpowers
+docs/sprint0
+docs/sprint2
+docs/sprint2/.gitkeep
+docs/superpowers/plans
+docs/superpowers/specs
+docs/sprint0/images
+docs/sprint0/report.md
+docs/sprint0/.gitkeep
+docs/sprint0/test-output
+docs/sprint0/standards.md
+docs/superpowers/plans/2026-09-16-similar-issue-suggestions.md
+docs/superpowers/plans/2026-09-15-issue-hover-preview-coverage.md
+docs/superpowers/specs/2026-09-16-similar-issue-suggestions-design.md
+docs/superpowers/specs/2026-09-15-issue-hover-preview-coverage-design.md
+docs/sprint0/images/tests-backend.png
+docs/sprint0/images/tests-frontend.png
+docs/sprint0/images/app-running.png
+docs/sprint0/test-output/test-backend.md
+docs/sprint0/test-output/test-integration.md
+cb72f378b5 docs: correct routers-web guidance on JSON handlers
+f42c054470 Semantic search design docs
+43a7db67fd docs: add same-origin guard to hover preview predicate
+06664bee7c docs(plan): implementation plan for issue hover preview coverage
+d1bbd035f0 docs(spec): broaden issue/PR hover preview coverage
+(eval):1: no matches found: --include=*.md
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 14:58:35Z)**_
+
+Precedent for this kind of doc is `docs/superpowers/plans/`. Since PR #71 is still open, the final commit goes on its branch. Gathering concrete facts about the #62 menus for the handoff.
+
+_**Agent (claude-opus-5-5 2026-10-06 14:58:36Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Read plan format, footer menu, common-page wiring
+
+`head -25 docs/superpowers/plans/2026-09-16-similar-issue-suggestions.md; echo ----FOOTER; grep -n "dropdown\|language-menu" templates/base/footer_content.tmpl; echo ----COMMONPAGE; sed -n 20,70p web_src/js/features/common-page.ts`
+
+```text
+# Similar Issue Suggestions Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Show the 5 most similar existing issues under the title input while someone writes a new issue (or pull request), so duplicates are noticed before they are filed.
+
+**Architecture:** A new `services/issue/similar.go` turns the typed title into tokens, asks the existing issue indexer for candidates one token at a time, unions them, and re-ranks by a pure Dice-coefficient title similarity. A new web route `GET /{owner}/{repo}/issues/similar` exposes it as JSON. A small TypeScript module debounces keystrokes on `#issue_title` and renders the results into a panel declared in `new_form.tmpl`.
+
+**Tech Stack:** Go 1.x, XORM, Gitea's issue indexer (`modules/indexer/issues`, bleve by default), Go templates, TypeScript with Vite, Vitest, Playwright.
+
+**Spec:** `docs/superpowers/specs/2026-09-16-similar-issue-suggestions-design.md`
+
+---
+
+## Background the engineer needs
+
+Read these before starting. They are short.
+
+- `.claude-students/docs/services-issue.md` — what belongs in `services/issue` vs `models/issues`.
+- `.claude-students/docs/routers-web.md` — how web routes and their guard chains are declared.
+- `.claude-students/docs/frontend-js.md` — the `data-global-init` pattern used to attach behaviour to DOM.
+
+Three facts that shape the whole design:
+
+1. **The indexer's keyword match is AND, not OR.** The default bleve backend sets
+----FOOTER
+25:		<div class="ui dropdown custom" id="footer-theme-selector">
+29:		<div class="ui dropdown upward">
+31:			<div class="menu language-menu">
+----COMMONPAGE
+    const isExpanded = btn.classList.contains('active');
+    navbar.classList.toggle('navbar-menu-open', !isExpanded);
+    btn.classList.toggle('active', !isExpanded);
+  });
+}
+
+function initFooterLanguageMenu() {
+  document.querySelector('.ui.dropdown .menu.language-menu')?.addEventListener('click', async (e) => {
+    const item = (e.target as HTMLElement).closest('.item');
+    if (!item) return;
+    e.preventDefault();
+    await GET(item.getAttribute('data-url')!);
+    window.location.reload();
+  });
+}
+
+function initFooterThemeSelector() {
+  const elDropdown = document.querySelector('#footer-theme-selector');
+  if (!elDropdown) return; // some pages don't have footer, for example: 500.tmpl
+  const $dropdown = fomanticQuery(elDropdown);
+  $dropdown.dropdown({
+    direction: 'upward',
+    apiSettings: {url: `${appSubUrl}/-/web-theme/list`, cache: false},
+  });
+  addDelegatedEventListener(elDropdown, 'click', '.menu > .item', async (el) => {
+    const themeName = el.getAttribute('data-value')!;
+    await POST(`${appSubUrl}/-/web-theme/apply?theme=${encodeURIComponent(themeName)}`);
+    window.location.reload();
+  });
+}
+
+export function initCommmPageComponents() {
+  initHeadNavbarContentToggle();
+  initFooterLanguageMenu();
+  initFooterThemeSelector();
+}
+
+export function initGlobalDropdown() {
+  // do not init "custom" dropdowns, "custom" dropdowns are managed by their own code.
+  registerGlobalSelectorFunc('.ui.dropdown:not(.custom)', (el) => {
+    const $dropdown = fomanticQuery(el);
+    if ($dropdown.data('module-dropdown')) return; // do not re-init if other code has already initialized it.
+
+    $dropdown.dropdown('setting', {hideDividers: 'empty'});
+
+    if (el.classList.contains('jump')) {
+      // The "jump" means this dropdown is mainly used for "menu" purpose,
+      // clicking an item will jump to somewhere else or trigger an action/function.
+      // When a dropdown is used for non-refresh actions with tippy,
+      // it must have this "jump" class to hide the tippy when dropdown is closed.
+      $dropdown.dropdown('setting', {
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 14:58:41Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Find consumers of the three menus to migrate
+
+`sed -n 70,95p web_src/js/features/common-page.ts; echo ----FOOTERTMPL; sed -n 24,40p templates/base/footer_content.tmpl; echo ----CTX-JS; grep -rn "context-dropdown\|quote-reply\|reference-issue\|edit-content\|delete-comment\|data-clipboard" web_src/js --include=*.ts | grep -v test | head -20; echo ----E2E; grep -n "clickDropdownItem" -r tests/e2e | head; grep -n "export async function clickDropdownItem" -A12 tests/e2e/utils.ts`
+
+```text
+      $dropdown.dropdown('setting', {
+        action: 'hide',
+        onShow() {
+          // hide associated tooltip while dropdown is open
+          this._tippy?.hide();
+          this._tippy?.disable();
+        },
+        onHide() {
+          this._tippy?.enable();
+          // eslint-disable-next-line unicorn/no-this-assignment
+          const elDropdown = this;
+
+          // hide all tippy elements of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
+          setTimeout(() => {
+            const $dropdown = fomanticQuery(elDropdown);
+            if ($dropdown.dropdown('is hidden')) {
+              queryElems(elDropdown, '.menu > .item', (el) => el._tippy?.hide());
+            }
+          }, 2000);
+        },
+      });
+    }
+
+    // Special popup-directions, prevent Fomantic from guessing the popup direction.
+    // With default "direction: auto", if the viewport height is small, Fomantic would show the popup upward,
+    //   if the dropdown is at the beginning of the page, then the top part would be clipped by the window view.
+----FOOTERTMPL
+	<div class="right-links" role="group" aria-label="{{ctx.Locale.Tr "aria.footer.links"}}">
+		<div class="ui dropdown custom" id="footer-theme-selector">
+			<span class="default-text">{{ctx.RenderUtils.RenderThemeItem ctx.CurrentWebTheme 16}}</span>
+			<div class="menu theme-menu"></div>
+		</div>
+		<div class="ui dropdown upward">
+			<span class="flex-text-inline">{{svg "octicon-globe" 14}} {{ctx.Locale.LangName}}</span>
+			<div class="menu language-menu">
+				{{range .AllLangs -}}
+				<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq ctx.Locale.Lang .Lang}}selected{{end}}">{{.Name}}</a>
+				{{end -}}
+			</div>
+		</div>
+		<a href="{{AssetUrlPrefix}}/licenses.txt">{{ctx.Locale.Tr "licenses"}}</a>
+		{{if .EnableSwagger}}<a href="{{AppSubUrl}}/api/swagger">API</a>{{end}}
+		{{template "custom/extra_links_footer" .}}
+	</div>
+----CTX-JS
+(eval):1: no matches found: --include=*.ts
+----E2E
+tests/e2e/utils.ts:197:export async function clickDropdownItem(page: Page, trigger: Locator, itemText: string) {
+197:export async function clickDropdownItem(page: Page, trigger: Locator, itemText: string) {
+198-  await trigger.click();
+199-  await page.getByText(itemText).click();
+200-}
+201-
+202-export async function loginUser(page: Page, username: string) {
+203-  return login(page, username, testUserPassword);
+204-}
+205-
+206-export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, [REDACTED:generic-password] = env.GITEA_TEST_E2E_PASSWORD) {
+207-  const response = await page.request.post('/user/login', {
+208-    form: {user_name: username, [REDACTED:generic-password]},
+209-    maxRedirects: 0,
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 14:58:46Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Find JS/CSS and tests tied to the three menus
+
+`grep -rn "context-dropdown\|\.quote-reply\|reference-issue\|\.edit-content\|delete-comment\|context-menu" web_src/js web_src/css --include='*.ts' --include='*.css' | grep -v "\.test\." | head -20; echo ----NAVCSS; grep -n "dropdown" web_src/css/modules/navbar.css | head; echo ----E2E-navbar; grep -rln "user-menu\|navbar\|context-menu\|Copy link\|language" tests/e2e/*.ts; echo ----OTHER-TEMPLATES-context_menu; grep -rln "view_content/context_menu" templates | head`
+
+```text
+web_src/js/features/repo-issue.ts:100:    if (!(e.target as HTMLElement).matches('.delete-comment')) return;
+web_src/js/features/repo-issue.ts:328:  addDelegatedEventListener(document, 'click', '.reference-issue', (el, e) => {
+web_src/js/features/repo-issue-edit.ts:12:  const clickTarget = (e.target as HTMLElement).closest('.edit-content');
+web_src/js/features/repo-issue-edit.ts:17:  const editContentZone = commentContent.querySelector('.edit-content-zone')!;
+web_src/js/features/repo-issue-edit.ts:124:  const clickTarget = (e.target as HTMLElement).closest('.quote-reply');
+web_src/js/markup/tasklist.ts:66:        const editContentZone = container.querySelector<HTMLDivElement>('.edit-content-zone')!;
+web_src/js/modules/codeeditor/main.ts:7:import {contextMenu, collectSymbols, selectAllOccurrences} from './context-menu.ts';
+web_src/js/modules/codeeditor/context-menu.ts:121:  menu.className = 'cm-context-menu';
+web_src/js/modules/codeeditor/context-menu.ts:126:      sep.className = 'cm-context-menu-separator';
+web_src/js/modules/codeeditor/context-menu.ts:134:    label.className = 'cm-context-menu-label';
+web_src/js/modules/codeeditor/context-menu.ts:139:      keysEl.className = 'cm-context-menu-keys';
+web_src/css/modules/codeeditor.css:523:.cm-context-menu {
+web_src/css/modules/codeeditor.css:529:.cm-context-menu .item {
+web_src/css/modules/codeeditor.css:535:.cm-context-menu .item.disabled {
+web_src/css/modules/codeeditor.css:541:.cm-context-menu-keys {
+web_src/css/modules/codeeditor.css:549:.cm-context-menu-separator {
+web_src/css/modules/comment.css:26:.edit-content-zone .comment {
+----NAVCSS
+47:#navbar .item.ui.dropdown {
+----E2E-navbar
+----OTHER-TEMPLATES-context_menu
+templates/repo/diff/comments.tmpl
+templates/repo/issue/view_content.tmpl
+templates/repo/issue/view_content/conversation.tmpl
+templates/repo/issue/view_content/comments.tmpl
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 14:58:51Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Check CSS hooks, clipboard wiring and comment e2e
+
+`grep -rn "context-dropdown\|context-menu\b" web_src/css templates --include='*.css' --include='*.tmpl' | grep -v "cm-context" | head; grep -rn "data-clipboard-text\|data-clipboard-target" web_src/js/features/clipboard.ts web_src/js/modules/*.ts 2>/dev/null | head -3; grep -rln "data-clipboard" web_src/js | head -3; sed -n 40,60p web_src/css/modules/navbar.css; grep -n "Comment\b\|\.comment" tests/e2e/issue-comment.test.ts | head -5`
+
+```text
+templates/repo/issue/view_content/context_menu.tmpl:1:<div class="item action ui dropdown jump pointing top right context-dropdown">
+templates/repo/issue/view_content/context_menu.tmpl:2:	<a class="context-menu muted">
+web_src/js/modules/clipboard.ts:66:// - data-clipboard-text: Direct text to copy
+web_src/js/modules/clipboard.ts:67:// - data-clipboard-target: Holds a selector for an element. "value" of <input> or <textarea>, or "textContent" of <div> will be copied
+web_src/js/modules/clipboard.ts:70:    const target = (e.target as HTMLElement).closest<HTMLElement>('[data-clipboard-text], [data-clipboard-target]');
+web_src/js/features/repo-code.ts
+web_src/js/markup/codecopy.ts
+web_src/js/modules/clipboard.ts
+}
+
+#navbar a.item:hover,
+#navbar button.item:hover {
+  background: var(--color-nav-hover-bg);
+}
+
+#navbar .item.ui.dropdown {
+  padding-right: 5px;
+}
+
+@media (max-width: 767.98px) {
+  #navbar {
+    align-items: stretch;
+  }
+  /* hide all items */
+  #navbar .navbar-left > .item,
+  #navbar .navbar-right > .item {
+    display: none;
+  }
+  #navbar #navbar-logo {
+10:    apiCreateIssue(request, {owner, repo: repoName, title: 'Comment test'}),
+17:  // exact match: the status button reads "Close as completed with comment" while the box has content, which substring-matches "Comment"
+18:  await page.getByRole('button', {name: 'Comment', exact: true}).click();
+19:  await expect(page.locator('.comment-body').filter({hasText: body})).toBeVisible();
+23:  await expect(page.getByRole('button', {name: 'Comment', exact: true})).toBeDisabled();
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 14:59:02Z)**_
+
+I have enough to write the handoff.
+
+---
+
+_**User (2026-10-06 14:59:29Z)**_
+
+[Request interrupted by user]
+
+---
+
+_**User (2026-10-06 15:00:18Z)**_
+
+I want you to complete these steps and give a final commit.
+1. Run a final sync and commit the logs. (do this last actually)
+2. Create a handoff for the second issue to be completed. Put it in a temporary *.md file in my home directory.
+3. Update your memory of this repo.
+
+---
+
+_**Agent (claude-opus-5-5 2026-10-06 15:00:21Z)**_
+
+Got it: the handoff goes in your home directory (not committed), then memory, then the log sync and commit last.
+
+_**Agent (claude-opus-5-5 2026-10-06 15:00:51Z)**_
+
+<tool-use data-tool-type="write" data-tool-name="Write"><details>
+<summary>Tool use: **Write**</summary>
+
+````markdown
+# Handoff: issue #62, migrate the navbar, footer and comment menus to `<aria-menu>`
+
+Written 2026-10-06, at the end of the #61 session. Temporary file; delete it once #62 is underway.
+
+## Where things stand
+
+- **#61 is done** in PR #71 (`feat/issue-61-accessible-menu`). All CI checks pass, but it is **not merged** and has no review yet.
+  - #62 is "blocked by #61". Cut the #62 branch from `main` only **after** #71 merges; never merge the #61 branch into it (`course-pr-workflow`).
+- **#62 is P2, "only if capacity allows"**, and Sprint 1 ends **2026-10-08 23:59**. Decide with the team whether it starts now or carries over to Sprint 2. If it carries over, list it under "carryover issues" in `docs/sprint1/report.md`.
+- **Spec review (D2):** #62 has a teammate comment, "Spec looks good, continue with implementation" (@vvchopra). The course asks for `Spec reviewed — <notes>` after the owner has refined the spec. The spec was drafted by @Jack-Donohue and the owner is @controlled-opposition. Check that this counts before coding.
+
+## The component you are migrating to
+
+The component lives in `web_src/js/webcomponents/aria-menu.ts`, styled by `web_src/css/modules/aria-menu.css`, with a demo at `/devtest/aria-menu`. Usage notes are in `web_src/js/modules/fomantic/aria.md` under "The `<aria-menu>` Web Component".
+
+```html
+<aria-menu>
+  <button type="button">trigger</button>   <!-- first non-.menu child; a non-button gets role=button + tabindex=0 -->
+  <div class="menu">                       <!-- direct children only: .item → menuitem, .divider → separator, others → role=none -->
+    <a class="item" href="…">…</a>
+  </div>
+</aria-menu>
+```
+
+- **Activation:** Enter, Space and mouse all fire the item's own `click`. A delegated `click` listener therefore hears keyboard picks too; no `js-aria-clickable` is needed.
+- **Focus:** after a pick, focus returns to the trigger, unless the item's handler already moved it elsewhere.
+- **Hidden state:** the popup is hidden with `tw-hidden`. Before the element sets itself up, the CSS hides `aria-menu > .menu:not([role="menu"])`.
+- **No positioning options yet.** The popup is always placed by `position: absolute; top: 100%; left: 0`. A `.right` modifier was removed as unused in #61. #62 needs both of these:
+  - **right alignment**, for the navbar menus and the comment `…` menu, which is currently `pointing top right`;
+  - **upward**, for the footer language menu, which is currently `ui dropdown upward`.
+
+  Add them as CSS modifiers in `aria-menu.css`, document them in `aria.md`, and add a variant to `templates/devtest/aria-menu.tmpl`.
+- **Tests to copy from:** `web_src/js/webcomponents/aria-menu.test.ts` (vitest) and `tests/e2e/aria-menu.test.ts` (Playwright).
+
+## The three menus: what each one depends on
+
+### 1. Navbar profile and create-new menus, `templates/base/head_navbar.tmpl` (AC1)
+
+- There are **three** `ui dropdown jump item` blocks:
+  - the avatar menu when `.MustChangePassword`;
+  - the create-new menu;
+  - the full avatar menu.
+
+  All three carry `data-tooltip-content`.
+- **Tooltips:** `initGlobalDropdown` in `web_src/js/features/common-page.ts` hides and disables the tippy while a `jump` dropdown is open. `<aria-menu>` has no such hook, so the tooltip may overlap the open menu. Handle it, for example by hiding `this._tippy` on open, and check it by hand.
+- **Navbar CSS** in `web_src/css/modules/navbar.css`:
+  - `#navbar .item.ui.dropdown { padding-right: 5px; }`
+  - the mobile rule `#navbar .navbar-right > .item { display: none; }`
+
+  Keep the `item` class on the host (`<aria-menu class="item">`) so the mobile layout still applies. `aria-menu { display: inline-block }` may fight the navbar's flex layout, so take before/after screenshots at desktop and phone widths.
+- The avatar menu has a `.header` ("Signed in as …") and `.divider`s; both are supported.
+
+### 2. Footer language menu, `templates/base/footer_content.tmpl` (AC2)
+
+- The markup is `<div class="ui dropdown upward">` with `<div class="menu language-menu">` of `<a data-url=… class="item">`.
+- **The click handler will stop working.** `initFooterLanguageMenu` in `web_src/js/features/common-page.ts` uses the selector `.ui.dropdown .menu.language-menu`, so it must change to match the new markup, for example `.menu.language-menu` or `aria-menu .language-menu`. It calls `preventDefault`, `GET`s `data-url`, then reloads.
+- It needs the upward variant, because the footer sits at the page bottom.
+- `#footer-theme-selector` is **out of scope** and stays on Fomantic.
+
+### 3. Comment "…" menu, `templates/repo/issue/view_content/context_menu.tmpl` (AC3)
+
+- The host is `<div class="item action ui dropdown jump pointing top right context-dropdown">`, with an `<a class="context-menu muted">` kebab as trigger.
+  - Make the trigger a `<button type="button" aria-label=…>`, as in the devtest "More actions" sample.
+  - Drop `js-aria-clickable` from the items, since `<aria-menu>` makes it unnecessary.
+- The template is included from four places: `repo/diff/comments.tmpl`, `repo/issue/view_content.tmpl`, `.../conversation.tmpl` and `.../comments.tmpl`. Check the menu on the issue page **and** in PR diff review comments.
+- Every item works through a delegated listener, so it should keep working, but verify each one:
+  - **copy link / copy source:** `data-clipboard-text` / `data-clipboard-target`, handled by `web_src/js/modules/clipboard.ts`, delegated on `document`;
+  - **quote reply:** `.quote-reply`, in `web_src/js/features/repo-issue-edit.ts`;
+  - **edit:** `.edit-content`, same file. The old Fomantic quirk meant focusing the editor needed `setTimeout`; `<aria-menu>` keeps focus moved by the handler;
+  - **reference issue:** `.reference-issue`, in `web_src/js/features/repo-issue.ts`, which opens a modal;
+  - **delete:** `.delete-comment`, same file. It uses `e.target.matches('.delete-comment')`, so the click must land on the item itself; `<aria-menu>` calls `item.click()`, which satisfies that;
+  - **block user**, further down the template. Check what it uses.
+- Fomantic's `hideDividers: 'empty'` setting is lost. The template inserts a `.divider` conditionally, so check that no doubled or trailing divider appears for a signed-out viewer or on an archived repo.
+
+## Tests (AC6, AC7)
+
+- `clickDropdownItem` in `tests/e2e/utils.ts` (`trigger.click()` then `getByText(item).click()`) works unchanged with `<aria-menu>`. No existing e2e test drives the navbar, footer language menu or comment menu by name, but run the whole suite.
+- **AC7** needs new Playwright tests: keyboard operation of the profile menu and of the comment "…" menu. Sign in with `loginUser` from `tests/e2e/utils.ts`; see `issue-comment.test.ts` for creating an issue with a comment.
+- **e2e browsers:** CI runs the e2e tests in Chromium, Firefox and **WebKit** (added in #71), and CI installs WebKit's system libraries.
+  - On macOS WebKit, Tab skips buttons. Guard such assertions with `test.skip(browserName === 'webkit', …) // eslint-disable-line playwright/no-skipped-test`.
+  - Firefox does not launch on this Mac (macOS 27), so it is checked in CI only. Run locally with `GITEA_TEST_E2E_FLAGS='<file> --project=chromium --project=webkit' make test-e2e`, with Claude's sandbox disabled.
+- **AC5** needs before/after screenshots in light and dark themes for each migrated menu. To get images into a PR, commit them under the AI-log attachments folder and link them by full commit SHA (`commit-and-pr-conventions` memory).
+
+## Checklist
+
+- [ ] #71 merged; branch `feat/issue-62-menu-migration` cut from fresh `main`
+- [ ] D2 spec refinement and review confirmed
+- [ ] Right and upward variants added to `aria-menu.css`, `aria.md` and the devtest page
+- [ ] Navbar: three menus migrated, tooltip overlap handled, mobile layout checked
+- [ ] Footer: language menu migrated, `initFooterLanguageMenu` selector updated
+- [ ] Comment menu: migrated; all items checked on the issue page and in PR review comments
+- [ ] Vitest for any new component behaviour; Playwright AC7 tests
+- [ ] `make lint-js lint-css lint-templates`, `pnpm exec vitest`, the full e2e suite, `./.claude-students/check.sh`
+- [ ] Screenshots before and after, light and dark (AC5)
+- [ ] PR in the `COURSE-WORKFLOW.md` format with an AI assistance section (no log link); AI Assistance comment on #62; log under `ai-logs/sprint<N>/controlled-opposition/` per the session start date
+
+````
+
+```text
+File created successfully at: /Users/everick/handoff-issue-62.md (file state is current in your context — no need to Read it back)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 15:00:54Z)**_
+
+Handoff written. Now updating memory.
+
+_**Agent (claude-opus-5-5 2026-10-06 15:00:56Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Read memories that mention e2e testing
+
+`cd ~/.claude/projects/-Users-everick-Projects-CSCI435-gitea/memory && cat gitea-testing-tiers.md | sed -n 1,40p; grep -n "e2e\|playwright\|Playwright" gitea-tooling-commands.md course-pr-workflow.md`
+
+```text
+---
+name: gitea-testing-tiers
+description: The five Gitea test tiers and the fixtures/context helpers DB-backed Go tests use.
+metadata:
+  type: reference
+---
+
+Test tiers: Go unit tests beside the code (`make test-backend`), frontend Vitest (`make test-frontend`), integration (`make test-integration`), Playwright E2E (`make test-e2e`), and migration tests (`make test-migration`).
+
+Prefer unit tests. DB-backed Go tests use `unittest.PrepareTestDatabase()` with fixtures; handler tests use `services/contexttest`.
+
+See [[gitea-tooling-commands]]; `.claude-students/docs/testing.md` is the in-repo source.
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 15:01:13Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Update memory files and index
+
+```bash
+cd ~/.claude/projects/-Users-everick-Projects-CSCI435-gitea/memory && python3 - <<'EOF'
+import re
+# 1. sprint1-deliverables: refresh status
+p='sprint1-deliverables.md'
+s=open(p).read()
+a="Sprint 0 (due 2026-09-17) is finished"
+assert a in s
+s=s.replace(a,"""Status as of 2026-10-06:
+
+- **#61 is implemented** in PR #71 (`feat/issue-61-accessible-menu`). All CI checks are green, it has no review yet, and it is not merged. The user did a VoiceOver check by hand.
+- **The #61 AI Assistance comment** was drafted for the user to post. Its log link points at the branch; after merge it must be switched to `blob/main/`.
+- **#62 has not started.** Its handoff is `~/handoff-issue-62.md`, a temporary file outside the repo.
+- **Spec reviews:** the review comments on #61 and #62 ("This spec is clear…", "Spec looks good…", both by vvchopra) don't use the `Spec reviewed — <notes>` wording, and neither spec was refined by the owner. This is an open D2 risk.
+- **PR review:** no Sprint 1 PR review by the user has been found yet.
+- **Team items:** `docs/sprint1/report.md` doesn't exist yet, and the `v1.27.3-csci435-s1` tag hasn't been pushed.
+
+"""+a,1)
+open(p,'w').write(s)
+
+# 2. testing tiers: e2e browsers
+p='gitea-testing-tiers.md'
+s=open(p).read()
+a="See [[gitea-tooling-commands]]"
+s=s.replace(a,"""Playwright E2E runs three projects: chromium, firefox, and webkit. WebKit was added by the #61 work, PR #71; until that PR merges, only chromium and firefox exist on `main`. Each test should stay under 2 s. On GitHub Actions, `tools/test-e2e.sh` installs WebKit with `--with-deps`, because the runner image lacks its gtk4/gstreamer libraries. Local quirks of this Mac are in [[driving-local-gitea-ui]].
+
+"""+a,1)
+open(p,'w').write(s)
+EOF
+cat > aria-menu-component.md <<'EOF'
+---
+name: aria-menu-component
+description: "The <aria-menu> web component from #61 (PR #71): its markup contract, design choices and known gaps that #62 must fill."
+metadata:
+  type: project
+---
+
+`<aria-menu>` (`web_src/js/webcomponents/aria-menu.ts`, `web_src/css/modules/aria-menu.css`, demo at `/devtest/aria-menu`) is the course fork's Fomantic-free menu button. It moves real focus onto the items with a roving `tabindex`. It does not use `aria-activedescendant`, which is what breaks VoiceOver in Fomantic dropdowns. The markup contract and the choice between it and a Fomantic dropdown are documented in `web_src/js/modules/fomantic/aria.md`.
+
+Decisions made during #61:
+
+- **Positioning:** plain CSS (`position: absolute; top: 100%`). Anchor positioning and JS measurement were rejected.
+- **No right or upward variants yet.** #62 needs both, for the navbar, the comment menu and the footer.
+- **Setup timing:** the component sets itself up at `DOMContentLoaded`, because web components load in `<head>`, before the body is parsed. CSS hides the popup until then.
+
+Known gaps:
+
+- Fomantic's tooltip hiding on `jump` dropdowns (`initGlobalDropdown`) and its `hideDividers: 'empty'` behaviour are not replicated.
+- Items must be direct children of `.menu`.
+
+**Why:** #62 migrates real menus onto this component and depends on these choices.
+**How to apply:** Read `~/handoff-issue-62.md` before #62 work, and check the code is still as described. See [[sprint1-deliverables]], [[gitea-testing-tiers]].
+EOF
+python3 - <<'EOF'
+p='MEMORY.md'
+s=open(p).read()
+s=s.replace("- [Sprint 1 deliverables](sprint1-deliverables.md) — due 2026-10-08, zero rule on D4/D6/D7; user owns #61 and #62.","- [Sprint 1 deliverables](sprint1-deliverables.md) — due 2026-10-08, zero rule on D4/D6/D7; #61 in PR #71, #62 not started (handoff in ~).")
+s=s.replace("- [Gitea testing tiers](gitea-testing-tiers.md) — five test tiers, fixtures, contexttest.","- [Gitea testing tiers](gitea-testing-tiers.md) — five test tiers, fixtures, contexttest; e2e in chromium/firefox/webkit.")
+s=s.rstrip('\n')+"\n- [aria-menu component](aria-menu-component.md) — #61's Fomantic-free menu button; decisions and gaps #62 must fill.\n"
+open(p,'w').write(s)
+EOF
+cat MEMORY.md
+```
+
+```text
+# Memory index
+
+- [Course repo and identity](course-repo-and-identity.md) — CSCI-435-SE/gitea fork; handle `controlled-opposition`.
+- [Sprint 1 deliverables](sprint1-deliverables.md) — due 2026-10-08, zero rule on D4/D6/D7; #61 in PR #71, #62 not started (handoff in ~).
+- [Course PR workflow](course-pr-workflow.md) — branch naming, merge not rebase, `v1.27.3-csci435-s<N>` tags.
+- [AI log policy](ai-log-policy.md) — logs under `ai-logs/sprint<N>/controlled-opposition/`; links in issue comments only.
+- [Commit and PR conventions](commit-and-pr-conventions.md) — `Assisted-by:` only; never commit unapproved; how to get screenshots into a PR.
+- [Gitea architecture](gitea-architecture.md) — layer order, key files, `gitea.dev` module path.
+- [Gitea tooling commands](gitea-tooling-commands.md) — toolchain minimums and make targets.
+- [Gitea testing tiers](gitea-testing-tiers.md) — five test tiers, fixtures, contexttest; e2e in chromium/firefox/webkit.
+- [SpecStory transcripts](specstory-transcripts.md) — `.specstory/` is gitignored; copy logs out by hand.
+- [Asking versus doing](asking-versus-doing.md) — answer capability questions; let the user set their own credentials.
+- [Local Gitea dev account](local-gitea-dev-account.md) — `claude-dev`; credentials in `~/.zshenv`, never print them.
+- [Driving the local Gitea UI](driving-local-gitea-ui.md) — dev-mode config, `/devtest`, Playwright browsers (Firefox broken on this Mac) and traps.
+- [Drafts inline in chat](drafts-inline-in-chat.md) — text the user must paste goes in the reply, not only a scratchpad file.
+- [aria-menu component](aria-menu-component.md) — #61's Fomantic-free menu button; decisions and gaps #62 must fill.
+Shell cwd was reset to /Users/everick/Projects/CSCI435/gitea
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-06 15:01:19Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Add SpecStory export quirks to memory
+
+```bash
+cd ~/.claude/projects/-Users-everick-Projects-CSCI435-gitea/memory && python3 - <<'EOF'
+p='specstory-transcripts.md'
+s=open(p).read()
+a="A transcript exported mid-session stops at the export command itself."
+assert a in s
+s=s.replace(a,"""The slug can come from a subagent's prompt instead of the user's. For example, the #61 session exported as `…-you-are-reviewing-uncommitted.md`. Confirm the session ID comment at the top of the file, not the filename. The exports contain some CRLF lines, and `.gitattributes` (`text=auto eol=lf`) normalises them on commit. Git does that conversion, not an edit, so ignore the warning.
+
+"""+a,1)
+open(p,'w').write(s)
+EOF
+grep -c "subagent" specstory-transcripts.md
+```
+
+```text
+1
+Shell cwd was reset to /Users/everick/Projects/CSCI435/gitea
+```
+</details></tool-use>
