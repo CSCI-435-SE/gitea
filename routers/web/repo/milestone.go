@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -259,6 +260,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
+	ctx.PageData["milestoneBurndownLink"] = fmt.Sprintf("%s/milestone/%d/burndown", ctx.Repo.RepoLink, milestone.ID)
 
 	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, optional.None[bool]())
 
@@ -269,4 +271,24 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["CanWritePulls"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(true)
 
 	ctx.HTML(http.StatusOK, tplMilestoneIssues)
+}
+
+// MilestoneBurndownData returns the milestone's burndown as JSON for the chart on its page
+func MilestoneBurndownData(ctx *context.Context) {
+	milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	if err != nil {
+		if issues_model.IsErrMilestoneNotExist(err) {
+			ctx.NotFound(err)
+			return
+		}
+		ctx.ServerError("GetMilestoneByRepoID", err)
+		return
+	}
+
+	burndown, err := issue.GetMilestoneBurndown(ctx, milestone)
+	if err != nil {
+		ctx.ServerError("GetMilestoneBurndown", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, burndown)
 }
