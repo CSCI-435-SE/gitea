@@ -55,6 +55,26 @@ label etc. work. There is still a problem: These checkboxes are not friendly to 
 so we add IDs to all the Fomantic UI checkboxes automatically by JS. If the `label` part is empty,
 then the checkbox needs to get the `aria-label` attribute manually.
 
+# The `<aria-menu>` Web Component
+
+New action menus (a button that opens a list of choices, with no search input and no selection state)
+should use `<aria-menu>` from `web_src/js/webcomponents/aria-menu.ts` instead of a Fomantic dropdown.
+It follows the ARIA menu button pattern and moves real focus onto the items (roving `tabindex`),
+so the VoiceOver arrow key problem above cannot happen. Try it on the `/devtest/aria-menu` page.
+
+```html
+<aria-menu>
+  <button type="button">Actions</button> <!-- first non-.menu child is the trigger -->
+  <div class="menu">
+    <a class="item" href="...">...</a>
+    <div class="divider"></div>
+    <div class="item">...</div> <!-- Enter, Space and click all fire the item's "click" -->
+  </div>
+</aria-menu>
+```
+
+Comboboxes, searchable and multiple-selection dropdowns still use Fomantic Dropdown below.
+
 # Fomantic Dropdown
 
 Fomantic Dropdown is designed to be used for many purposes:

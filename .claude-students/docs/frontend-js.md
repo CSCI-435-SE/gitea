@@ -1,6 +1,6 @@
 ---
 scope: web_src/js/index.ts, web_src/js/features, web_src/js/modules, web_src/js/utils, web_src/js/webcomponents, web_src/js/markup, web_src/js/render
-verified-at: 32ac0cbb78
+verified-at: 94dfae067e
 ---
 
 # web_src/js — page features and how they get wired up
@@ -16,7 +16,7 @@ verified-at: 32ac0cbb78
 | `modules/` | cross-cutting infrastructure: `fetch.ts`, `init.ts`, `observer.ts`, `i18n.ts`, `toast.ts`, `tippy.ts`, `fomantic.ts`, `clipboard.ts`, `codeeditor/` |
 | `utils/` | pure helpers with no DOM assumptions: `dom.ts`, `html.ts`, `url.ts`, `time.ts`, `color.ts`, `string.ts` |
 | `markup/`, `render/` | enhancing already-rendered content (anchors, mermaid, math) |
-| `webcomponents/` | custom elements such as `relative-time`, `overflow-menu` |
+| `webcomponents/` | custom elements such as `relative-time`, `overflow-menu`, `aria-menu` |
 
 ## Key files
 
@@ -91,6 +91,8 @@ reason's preview in `features/repo-issue-status-button.ts` uses it.
   in Gitea, which is what the 500ms warning is there to catch.
 - Fomantic-UI (jQuery) is vendored and deprecated. Do not build new features on it, and do not mix
   it with Vue — Vue may use its CSS classes but not its JavaScript.
+- Which menu to build on, Fomantic dropdown or `<aria-menu>` (`web_src/js/webcomponents/aria-menu.ts`),
+  is decided in `web_src/js/modules/fomantic/aria.md`.
 - `utils/` is for pure helpers. A function that reaches for `window` or a global selector belongs
   in `modules/` or `features/`.
 - A feature can follow a comment box it did not create: the editor's change and upload events

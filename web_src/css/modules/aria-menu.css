@@ -1,0 +1,60 @@
+/* the <aria-menu> web component, styled to match ".ui.dropdown .menu" so migrated menus look the same */
+aria-menu {
+  display: inline-block;
+  position: relative;
+}
+
+aria-menu > .menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 11;
+  min-width: max-content;
+  margin-top: 4px;
+  padding: 0;
+  background: var(--color-menu);
+  color: var(--color-text);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  box-shadow: 0 6px 18px var(--color-shadow);
+  text-align: left;
+}
+
+/* the element upgrades in <head> but only sets up its children at DOMContentLoaded, keep the popup hidden until then */
+aria-menu > .menu:not([role="menu"]) {
+  display: none;
+}
+
+aria-menu > .menu > .item {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.78571429rem 1.14285714rem;
+  color: var(--color-text);
+  line-height: var(--line-height-default);
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+aria-menu > .menu > .item:hover,
+aria-menu > .menu > .item:focus {
+  background: var(--color-hover);
+  outline: none;
+}
+
+aria-menu > .menu > .item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+aria-menu > .menu > .divider {
+  border-top: 1px solid var(--color-secondary);
+  margin: 4px 0;
+}
+
+aria-menu > .menu > .header {
+  margin: 1rem 0 0.75rem;
+  padding: 0 1.14285714rem;
+  font-weight: var(--font-weight-medium);
+}
