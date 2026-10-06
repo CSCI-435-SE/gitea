@@ -1,6 +1,6 @@
 {{/* The look of a closed issue or pull request by why it was closed: its icon in lists, its state label on its page,
-and the badge of its close event in the timeline. A close without a reason (from before close reasons, a merge,
-an automatic close) keeps the red closed look it always had. Purple means done, as for a merged pull request;
+and the badge of its close event in the timeline. A close without a reason (from before close reasons, or a merge)
+keeps the red closed look it always had. Purple means done, as for a merged pull request;
 grey means set aside, as for a draft or a skipped job.
 
 Template Attributes:
@@ -8,7 +8,7 @@ Template Attributes:
 * IsPull: whether the item is a pull request
 * For: "list" (the icon alone), "label" (the state label with its text) or "badge" (the timeline badge)
 
-The hover popup on issue links (getIssueIcon in web_src/js/features/issue.ts) doesn't show reasons yet: it reads the API.
+The hover popup and the # suggestions draw the "list" look in JS: keep closeReasonLooks in web_src/js/features/issue.ts in step.
 */}}
 {{- $reason := .Reason.String -}}
 {{- $icon := Iif .IsPull "octicon-git-pull-request-closed" "octicon-issue-closed" -}}
