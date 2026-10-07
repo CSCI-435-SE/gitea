@@ -35,6 +35,12 @@ type PullRequest struct {
 	RequestedReviewersTeams []*Team `json:"requested_reviewers_teams"`
 	// The current state of the pull request
 	State StateType `json:"state"`
+	// Why it was closed: not_planned, duplicate or other; empty when open, merged or closed without a reason
+	CloseReason string `json:"close_reason"`
+	// The close reason's description, only for other
+	CloseReasonText string `json:"close_reason_text"`
+	// The number of the issue or pull request it duplicates, in the same repository, only for duplicate; 0 otherwise
+	CloseDuplicateOf int64 `json:"close_duplicate_of"`
 	// Whether the pull request is a draft
 	Draft bool `json:"draft"`
 	// Whether the pull request conversation is locked
@@ -164,6 +170,12 @@ type EditPullRequestOption struct {
 	Labels []int64 `json:"labels"`
 	// The new state for the pull request
 	State *string `json:"state"`
+	// Why the pull request is closed, only when state closes it: not_planned, duplicate or other; defaults to not_planned
+	CloseReason string `json:"close_reason"`
+	// Required with the other close reason, up to 255 characters
+	CloseReasonText string `json:"close_reason_text"`
+	// Required with the duplicate close reason: the number of an issue or pull request in the same repository
+	CloseDuplicateOf int64 `json:"close_duplicate_of"`
 	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
 	// Whether to remove the current deadline

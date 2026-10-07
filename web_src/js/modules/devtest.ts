@@ -33,6 +33,14 @@ function initDevtestPage() {
     }
   }
 
+  const ariaMenuOutput = document.querySelector('#devtest-aria-menu-output');
+  if (ariaMenuOutput) {
+    document.querySelector('#devtest-aria-menu-samples')!.addEventListener('click', (e) => {
+      const item = (e.target as Element).closest('aria-menu .item');
+      if (item) ariaMenuOutput.textContent = item.textContent.trim();
+    });
+  }
+
   const sampleButtons = document.querySelectorAll('#devtest-button-samples button.ui.button');
   if (sampleButtons.length) {
     const buttonStyles = document.querySelectorAll<HTMLInputElement>('input[name*="button-style"]');

@@ -93,11 +93,12 @@ func FindSimilarIssues(ctx context.Context, repo *repo_model.Repository, isPull 
 	results := make([]*structs.Issue, 0, len(ranked))
 	for _, issue := range ranked {
 		result := &structs.Issue{
-			ID:      issue.ID,
-			Index:   issue.Index,
-			Title:   issue.Title,
-			State:   issue.State(),
-			HTMLURL: issue.HTMLURL(ctx),
+			ID:          issue.ID,
+			Index:       issue.Index,
+			Title:       issue.Title,
+			State:       issue.State(),
+			CloseReason: issue.CloseReason.String(),
+			HTMLURL:     issue.HTMLURL(ctx),
 		}
 		if issue.IsPull && issue.PullRequest != nil {
 			result.PullRequest = &structs.PullRequestMeta{

@@ -22,6 +22,7 @@
 @import "./modules/tab.css";
 @import "./modules/form.css";
 @import "./modules/dropdown.css";
+@import "./modules/aria-menu.css";
 @import "./modules/transition.css";
 
 @import "./modules/shortcut.css";

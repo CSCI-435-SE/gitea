@@ -1,6 +1,7 @@
 import './polyfills.ts';
 import './relative-time.ts';
 import './overflow-menu.ts';
+import './aria-menu.ts';
 import {isDarkTheme} from '../utils.ts';
 
 function initPageThemeDarkLight() {

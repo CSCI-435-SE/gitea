@@ -624,6 +624,8 @@ func CreateIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/error"
 	//   "412":
 	//     "$ref": "#/responses/error"
 	//   "422":
@@ -632,6 +634,10 @@ func CreateIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/repoArchivedError"
 
 	form := web.GetForm(ctx).(*api.CreateIssueOption)
+	closeReason := newAPICloseReason(form.CloseReason, form.CloseReasonText, form.CloseDuplicateOf)
+	if !closeReason.check(ctx, form.Closed, false, 0) { // before NewIssue, so a rejected reason creates nothing
+		return
+	}
 	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil && ctx.Repo.Permission.CanWrite(unit.TypeIssues) {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
@@ -696,15 +702,8 @@ func CreateIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if form.Closed {
-		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
-			if issues_model.IsErrDependenciesLeft(err) {
-				ctx.APIError(http.StatusPreconditionFailed, "cannot close this issue because it still has open dependencies")
-				return
-			}
-			ctx.APIErrorInternal(err)
-			return
-		}
+	if form.Closed && !closeReason.closeIssue(ctx, issue) {
+		return
 	}
 
 	// Refetch from database to assign some automatic values
@@ -756,8 +755,12 @@ func EditIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/error"
 	//   "412":
 	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm(ctx).(*api.EditIssueOption)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
@@ -789,6 +792,11 @@ func EditIssue(ctx *context.APIContext) {
 	// TODO: wrap all mutations in a transaction to fully prevent partial writes.
 	if form.ContentVersion != nil && *form.ContentVersion != issue.ContentVersion {
 		ctx.APIError(http.StatusConflict, issues_model.ErrIssueAlreadyChanged.Error())
+		return
+	}
+
+	closeReason := newAPICloseReason(form.CloseReason, form.CloseReasonText, form.CloseDuplicateOf)
+	if !closeReason.check(ctx, editCloses(form.State, issue), issue.IsPull, issue.Index) {
 		return
 	}
 
@@ -902,7 +910,7 @@ func EditIssue(ctx *context.APIContext) {
 		}
 
 		state := api.StateType(*form.State)
-		closeOrReopenIssue(ctx, issue, state)
+		closeOrReopenIssue(ctx, issue, state, closeReason)
 		if ctx.Written() {
 			return
 		}
@@ -1037,21 +1045,14 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: deadlineUnix.AsTimePtr()})
 }
 
-func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType) {
+func closeOrReopenIssue(ctx *context.APIContext, issue *issues_model.Issue, state api.StateType, closeReason apiCloseReason) {
 	if state != api.StateOpen && state != api.StateClosed {
 		ctx.APIError(http.StatusPreconditionFailed, fmt.Sprintf("unknown state: %s", state))
 		return
 	}
 
 	if state == api.StateClosed && !issue.IsClosed {
-		if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
-			if issues_model.IsErrDependenciesLeft(err) {
-				ctx.APIError(http.StatusPreconditionFailed, "cannot close this issue or pull request because it still has open dependencies")
-				return
-			}
-			ctx.APIErrorInternal(err)
-			return
-		}
+		closeReason.closeIssue(ctx, issue) // it answers errors itself; callers check ctx.Written()
 	} else if state == api.StateOpen && issue.IsClosed {
 		if err := issue_service.ReopenIssue(ctx, issue, ctx.Doer, ""); err != nil {
 			ctx.APIErrorInternal(err)

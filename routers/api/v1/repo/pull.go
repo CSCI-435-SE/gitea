@@ -667,6 +667,11 @@ func EditPullRequest(ctx *context.APIContext) {
 		return
 	}
 
+	closeReason := newAPICloseReason(form.CloseReason, form.CloseReasonText, form.CloseDuplicateOf)
+	if !closeReason.check(ctx, editCloses(form.State, issue), true, issue.Index) {
+		return
+	}
+
 	if len(form.Title) > 0 {
 		err = issue_service.ChangeTitle(ctx, issue, ctx.Doer, form.Title)
 		if err != nil {
@@ -774,7 +779,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 
 		state := api.StateType(*form.State)
-		closeOrReopenIssue(ctx, issue, state)
+		closeOrReopenIssue(ctx, issue, state, closeReason)
 		if ctx.Written() {
 			return
 		}

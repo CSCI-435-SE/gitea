@@ -1,0 +1,50 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container">
+	<h1>aria-menu</h1>
+	<p>The accessible menu button web component. Operate it with the keyboard and a screen reader: Enter, Space or ArrowDown opens with the first item focused, ArrowUp opens with the last; arrows, Home, End and type-ahead move; Escape or Tab closes.</p>
+	<p>Last picked: <output id="devtest-aria-menu-output" aria-live="polite">nothing yet</output></p>
+	<div class="flex-text-block tw-flex-wrap tw-items-start" id="devtest-aria-menu-samples">
+		<aria-menu>
+			<button type="button" class="ui button">Text items {{svg "octicon-triangle-down" 14}}</button>
+			<div class="menu">
+				<div class="item">Apple</div>
+				<div class="item">Banana</div>
+				<div class="item">Blueberry</div>
+				<div class="item">Cherry</div>
+				<div class="item">Grape</div>
+			</div>
+		</aria-menu>
+
+		<aria-menu>
+			<button type="button" class="ui button">Items with icons {{svg "octicon-triangle-down" 14}}</button>
+			<div class="menu">
+				<div class="item">{{svg "octicon-repo"}} New repository</div>
+				<div class="item">{{svg "octicon-repo-push"}} New migration</div>
+				<div class="item">{{svg "octicon-organization"}} New organization</div>
+			</div>
+		</aria-menu>
+
+		<aria-menu>
+			<button type="button" class="ui button">With a divider and header {{svg "octicon-triangle-down" 14}}</button>
+			<div class="menu">
+				<div class="header">Signed in as <strong>user1</strong></div>
+				<div class="divider"></div>
+				<div class="item">{{svg "octicon-person"}} Profile</div>
+				<div class="item">{{svg "octicon-star"}} Stars</div>
+				<div class="divider"></div>
+				<div class="item">{{svg "octicon-tools"}} Settings</div>
+				<a class="item" href="#devtest-aria-menu-samples">{{svg "octicon-link"}} A link item</a>
+			</div>
+		</aria-menu>
+
+		<aria-menu>
+			<button type="button" class="ui basic icon button" aria-label="More actions">{{svg "octicon-kebab-horizontal"}}</button>
+			<div class="menu">
+				<div class="item">Copy link</div>
+				<div class="item">Quote reply</div>
+				<div class="item">Edit</div>
+			</div>
+		</aria-menu>
+	</div>
+</div>
+{{template "devtest/devtest-footer"}}
