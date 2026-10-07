@@ -92,11 +92,14 @@ func TestGetMilestoneStateEvents(t *testing.T) {
 func TestGetMilestoneItems(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	// issue 2 is a pull request in milestone 1 and is kept, as the milestone's counters keep it
+	// issue 2 is a pull request in milestone 1; it is returned, and marked, so the caller can choose
 	items, err := issues_model.GetMilestoneItems(t.Context(), 1, 1, nil)
 	require.NoError(t, err)
 	require.Len(t, items, 1)
 	assert.EqualValues(t, 2, items[0].ID)
+	assert.EqualValues(t, 2, items[0].Index)
+	assert.Equal(t, "issue2", items[0].Title, "read from the name column")
+	assert.True(t, items[0].IsPull)
 	assert.EqualValues(t, 1, items[0].MilestoneID)
 	assert.False(t, items[0].IsClosed)
 

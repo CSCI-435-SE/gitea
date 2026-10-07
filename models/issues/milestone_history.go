@@ -15,9 +15,12 @@ import (
 )
 
 // MilestoneItem is the current state of an issue or pull request that is, or once was, in a milestone.
-// Pull requests are kept because the milestone's own counters and progress bar count them too.
+// Pull requests are returned too; whether they count is the caller's choice.
 type MilestoneItem struct {
 	ID          int64
+	Index       int64  // the number in the item's URL, for listing what changed
+	Title       string `xorm:"name"`
+	IsPull      bool
 	MilestoneID int64
 	IsClosed    bool
 	CreatedUnix timeutil.TimeStamp
@@ -81,7 +84,7 @@ func CompareMilestoneEvents(a, b MilestoneEvent) int {
 // are the items that have left it since. Items from another repository are never returned.
 func GetMilestoneItems(ctx context.Context, repoID, milestoneID int64, extraIssueIDs []int64) ([]MilestoneItem, error) {
 	items := make([]MilestoneItem, 0, 16)
-	cols := "id, milestone_id, is_closed, created_unix, closed_unix"
+	cols := "id, `index`, name, is_pull, milestone_id, is_closed, created_unix, closed_unix"
 	if err := db.GetEngine(ctx).Table("issue").Select(cols).
 		Where(builder.Eq{"repo_id": repoID, "milestone_id": milestoneID}).
 		Find(&items); err != nil {
