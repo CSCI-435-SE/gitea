@@ -34,6 +34,8 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       return onDestroy?.(instance);
     },
     onShow: (instance: Instance) => {
+      const isMenuButton = target.getAttribute('aria-haspopup') === 'menu';
+      if (isMenuButton && target.getAttribute('aria-expanded') === 'true') return false;
       // hide other tooltip instances so only one tooltip shows at a time
       for (const visibleInstance of visibleInstances) {
         if (visibleInstance.props.role === 'tooltip') {
@@ -41,7 +43,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
         }
       }
       visibleInstances.add(instance);
-      target.setAttribute('aria-controls', instance.popper.id);
+      if (!isMenuButton) target.setAttribute('aria-controls', instance.popper.id);
       return onShow?.(instance);
     },
     arrow: arrow ?? (theme === 'bare' ? false : arrowSvg),
@@ -187,7 +189,7 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
     refClientRect = refClientRect ?? new DOMRect(0, 0, 0, 0); // fallback to empty rect if not found, tippy doesn't accept null
   } else {
     // for example, the "Copy Link" button in the issue header dropdown menu
-    target = target.closest('.ui.dropdown') ?? target;
+    target = target.closest('.ui.dropdown, aria-menu') ?? target;
     refClientRect = target.getBoundingClientRect();
   }
   const tooltipTippy = target._tippy ?? attachTooltip(target, content);

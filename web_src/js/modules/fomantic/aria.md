@@ -73,13 +73,22 @@ so the VoiceOver arrow key problem above cannot happen. Try it on the `/devtest/
 </aria-menu>
 ```
 
+The popup opens below the trigger, aligned to its start. Two optional host attributes, read only by CSS, move it:
+
+* `placement="bottom-start|bottom-end|top-start|top-end"`, the same words as `data-tooltip-placement`.
+  The template knows where the menu sits, so there is no automatic flip: a menu at the right edge needs `bottom-end`.
+* `pointing` draws Fomantic's small arrow on a bottom placement.
+
+Put `data-tooltip-content` on the trigger, not the host, so the tooltip text also becomes the trigger's `aria-label`.
+The tooltip will not show while the menu is open.
+
 Comboboxes, searchable and multiple-selection dropdowns still use Fomantic Dropdown below.
 
 # Fomantic Dropdown
 
 Fomantic Dropdown is designed to be used for many purposes:
 
-* Menu (the profile menu in navbar, the language menu in footer)
+* Menu (the theme menu in footer)
 * Popup (the branch/tag panel, the review box)
 * Simple `<select>` , used in many forms
 * Searchable option-list with static items (used in many forms)
@@ -109,7 +118,7 @@ Multiple selection dropdown is not well-supported yet, it needs more work.
 
 Some important pages for dropdown testing:
 
-* Home(dashboard) page, the "Create Repo" / "Profile" / "Language" menu.
+* Home(dashboard) page, the "Theme" menu in footer.
 * Create New Repo page, a lot of dropdowns as combobox.
 * Collaborators page, the "permission" dropdown (the old behavior was not quite good, it just works).
 
