@@ -122,6 +122,7 @@ function delegateDropdownModule($dropdown: any) {
       const ret = callbackOld.call(this, value, text, $item);
       if ($dropdown[0].classList.contains('multiple')) {
         // a value typed by the user and removed by its label has no menu item
+        $item?.[0]?.setAttribute('aria-selected', selected ? 'true' : 'false'); // the changed item is exact now, before Fomantic updates its classes
         announceSelectionChange($item?.[0]?.textContent.trim() || value, selected);
         setTimeout(() => refreshAriaSelected($dropdown[0]), 0); // Fomantic updates the "active" classes after the callback
       }

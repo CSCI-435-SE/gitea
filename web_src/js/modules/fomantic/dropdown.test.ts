@@ -149,8 +149,9 @@ describe('multiple selection aria', {concurrent: false}, () => {
     const el = createMultipleDropdown('2');
     $(el).dropdown('set selected', '1');
     $(el).dropdown('remove selected', '2');
+    expect(ariaSelected(el)).toEqual(['true', 'false']); // in the same interaction, not a task later
     vi.advanceTimersByTime(0);
-    expect(ariaSelected(el)).toEqual(['true', 'false']);
+    expect(ariaSelected(el)).toEqual(['true', 'false']); // and the deferred refresh agrees
   });
 
   test('AC3: changes are announced by name, the initial selection is not', () => {
