@@ -58,6 +58,19 @@ describe('AC5 ARIA attributes', () => {
     cleanup();
   });
 
+  test('the popup is named by its trigger unless it already has a name', () => {
+    const {trigger, popup, cleanup} = renderMenu();
+    expect(trigger.id).not.toBe('');
+    expect(popup.getAttribute('aria-labelledby')).toBe(trigger.id);
+    cleanup();
+
+    const root = document.createElement('div');
+    root.innerHTML = `<aria-menu><button type="button">x</button><div class="menu" aria-label="Own name"><div class="item">y</div></div></aria-menu>`;
+    document.body.append(root);
+    expect(root.querySelector('.menu')!.hasAttribute('aria-labelledby')).toBe(false);
+    root.remove();
+  });
+
   test('a non-button trigger becomes a focusable button', () => {
     const root = document.createElement('div');
     root.innerHTML = `<aria-menu><span>more</span><div class="menu"><div class="item">x</div></div></aria-menu>`;
@@ -101,6 +114,20 @@ describe('AC2 arrow navigation', () => {
     expect(document.activeElement).toBe(items.at(-1));
     press(items.at(-1)!, 'ArrowUp');
     expect(document.activeElement).toBe(items.at(-2));
+    cleanup();
+  });
+
+  test('hidden items are skipped when opening and navigating', () => {
+    const {trigger, items, cleanup} = renderMenu();
+    items[0].classList.add('tw-hidden');
+    items[2].classList.add('tw-hidden');
+    press(trigger, 'Enter');
+    expect(document.activeElement).toBe(items[1]);
+    press(items[1], 'ArrowDown');
+    expect(document.activeElement).toBe(items[3]);
+    press(items[3], 'End');
+    press(items.at(-1)!, 'ArrowDown');
+    expect(document.activeElement).toBe(items[1]);
     cleanup();
   });
 

@@ -40,6 +40,10 @@ window.customElements.define('aria-menu', class extends HTMLElement {
     trigger.setAttribute('aria-expanded', 'false');
     trigger.setAttribute('aria-controls', popup.id);
     popup.setAttribute('role', 'menu');
+    if (!popup.hasAttribute('aria-label') && !popup.hasAttribute('aria-labelledby')) {
+      if (!trigger.id) trigger.id = generateElemId('aria-menu-trigger-');
+      popup.setAttribute('aria-labelledby', trigger.id); // keeps the menu's name once focus is on an item
+    }
     hideElem(popup);
     this.updateItemRoles();
 
@@ -69,7 +73,8 @@ window.customElements.define('aria-menu', class extends HTMLElement {
   }
 
   items(): HTMLElement[] {
-    return Array.from(this.popup.querySelectorAll<HTMLElement>(':scope > [role="menuitem"]'));
+    // hidden items can't take focus, so leaving them in would stall opening and arrow keys
+    return Array.from(this.popup.querySelectorAll<HTMLElement>(':scope > [role="menuitem"]:not(.tw-hidden)'));
   }
 
   isOpen() {
