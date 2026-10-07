@@ -9993,6 +9993,9 @@
           "404": {
             "$ref": "#/responses/notFound"
           },
+          "409": {
+            "$ref": "#/responses/error"
+          },
           "412": {
             "$ref": "#/responses/error"
           },
@@ -10849,8 +10852,14 @@
           "404": {
             "$ref": "#/responses/notFound"
           },
+          "409": {
+            "$ref": "#/responses/error"
+          },
           "412": {
             "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -24326,6 +24335,22 @@
           "type": "string",
           "x-go-name": "Body"
         },
+        "close_duplicate_of": {
+          "description": "Required with the duplicate close reason: the number of an issue or pull request in the same repository",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CloseDuplicateOf"
+        },
+        "close_reason": {
+          "description": "Why the issue is closed, only with closed: completed, not_planned, duplicate or other; defaults to completed",
+          "type": "string",
+          "x-go-name": "CloseReason"
+        },
+        "close_reason_text": {
+          "description": "Required with the other close reason, up to 255 characters",
+          "type": "string",
+          "x-go-name": "CloseReasonText"
+        },
         "closed": {
           "type": "boolean",
           "x-go-name": "Closed"
@@ -25688,6 +25713,22 @@
           "type": "string",
           "x-go-name": "Body"
         },
+        "close_duplicate_of": {
+          "description": "Required with the duplicate close reason: the number of an issue or pull request in the same repository",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CloseDuplicateOf"
+        },
+        "close_reason": {
+          "description": "Why the item is closed, only when state closes it: completed (issues only), not_planned, duplicate or other;\ndefaults to completed for an issue and not_planned for a pull request",
+          "type": "string",
+          "x-go-name": "CloseReason"
+        },
+        "close_reason_text": {
+          "description": "Required with the other close reason, up to 255 characters",
+          "type": "string",
+          "x-go-name": "CloseReasonText"
+        },
         "content_version": {
           "description": "The current version of the issue content to detect conflicts during editing",
           "type": "integer",
@@ -25875,6 +25916,22 @@
           "description": "The new description body for the pull request",
           "type": "string",
           "x-go-name": "Body"
+        },
+        "close_duplicate_of": {
+          "description": "Required with the duplicate close reason: the number of an issue or pull request in the same repository",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CloseDuplicateOf"
+        },
+        "close_reason": {
+          "description": "Why the pull request is closed, only when state closes it: not_planned, duplicate or other; defaults to not_planned",
+          "type": "string",
+          "x-go-name": "CloseReason"
+        },
+        "close_reason_text": {
+          "description": "Required with the other close reason, up to 255 characters",
+          "type": "string",
+          "x-go-name": "CloseReasonText"
         },
         "content_version": {
           "description": "The current version of the pull request content to detect conflicts during editing",
@@ -27215,6 +27272,22 @@
         "body": {
           "type": "string",
           "x-go-name": "Body"
+        },
+        "close_duplicate_of": {
+          "description": "The number of the issue or pull request it duplicates, in the same repository, only for duplicate; 0 otherwise",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CloseDuplicateOf"
+        },
+        "close_reason": {
+          "description": "Why it was closed: completed, not_planned, duplicate or other; empty when open or closed without a reason",
+          "type": "string",
+          "x-go-name": "CloseReason"
+        },
+        "close_reason_text": {
+          "description": "The close reason's description, only for other",
+          "type": "string",
+          "x-go-name": "CloseReasonText"
         },
         "closed_at": {
           "type": "string",
@@ -28683,6 +28756,22 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ChangedFiles"
+        },
+        "close_duplicate_of": {
+          "description": "The number of the issue or pull request it duplicates, in the same repository, only for duplicate; 0 otherwise",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CloseDuplicateOf"
+        },
+        "close_reason": {
+          "description": "Why it was closed: not_planned, duplicate or other; empty when open, merged or closed without a reason",
+          "type": "string",
+          "x-go-name": "CloseReason"
+        },
+        "close_reason_text": {
+          "description": "The close reason's description, only for other",
+          "type": "string",
+          "x-go-name": "CloseReasonText"
         },
         "closed_at": {
           "type": "string",

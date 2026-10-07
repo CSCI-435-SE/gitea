@@ -17,6 +17,7 @@ function makeIssue(overrides: Partial<Issue>): Issue {
     title: 'title',
     body: '',
     state: 'open',
+    close_reason: '',
     created_at: '',
     html_url: '',
     repository: {full_name: '', html_url: ''},

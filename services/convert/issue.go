@@ -87,6 +87,16 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	if issue.ClosedUnix != 0 {
 		apiIssue.Closed = issue.ClosedUnix.AsTimePtr()
 	}
+	apiIssue.CloseReason = issue.CloseReason.String()
+	apiIssue.CloseReasonText = issue.CloseReasonText
+	if issue.CloseDuplicateIssueID != 0 {
+		target, err := issues_model.GetIssueByID(ctx, issue.CloseDuplicateIssueID)
+		if err == nil {
+			apiIssue.CloseDuplicateOf = target.Index
+		} else if !issues_model.IsErrIssueNotExist(err) { // a deleted target leaves 0
+			return &api.Issue{}
+		}
+	}
 
 	if err := issue.LoadMilestone(ctx); err != nil {
 		return &api.Issue{}

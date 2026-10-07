@@ -62,18 +62,9 @@ func SetIssueAsClosed(ctx context.Context, issue *Issue, doer *user_model.User, 
 		return nil, err
 	}
 
-	var duplicateID int64
-	if reason.Reason == CloseReasonDuplicate {
-		if reason.DuplicateIndex == issue.Index {
-			return nil, ErrInvalidCloseDuplicate{Index: reason.DuplicateIndex, Detail: "an issue cannot duplicate itself"}
-		}
-		target, err := GetIssueByIndex(ctx, issue.RepoID, reason.DuplicateIndex) // the repo ID keeps the target in the same repository
-		if IsErrIssueNotExist(err) {
-			return nil, ErrInvalidCloseDuplicate{Index: reason.DuplicateIndex, Detail: "no issue with this number in the repository"}
-		} else if err != nil {
-			return nil, err
-		}
-		duplicateID = target.ID
+	duplicateID, err := reason.DuplicateIssueID(ctx, issue.RepoID, issue.Index)
+	if err != nil {
+		return nil, err
 	}
 
 	// Check for open dependencies

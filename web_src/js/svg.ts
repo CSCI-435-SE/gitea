@@ -29,6 +29,7 @@ import octiconDiffRemoved from '../../public/assets/img/svg/octicon-diff-removed
 import octiconDiffRenamed from '../../public/assets/img/svg/octicon-diff-renamed.svg';
 import octiconDotFill from '../../public/assets/img/svg/octicon-dot-fill.svg';
 import octiconDownload from '../../public/assets/img/svg/octicon-download.svg';
+import octiconDuplicate from '../../public/assets/img/svg/octicon-duplicate.svg';
 import octiconEye from '../../public/assets/img/svg/octicon-eye.svg';
 import octiconFile from '../../public/assets/img/svg/octicon-file.svg';
 import octiconFileCode from '../../public/assets/img/svg/octicon-file-code.svg';
@@ -62,6 +63,7 @@ import octiconLock from '../../public/assets/img/svg/octicon-lock.svg';
 import octiconMeter from '../../public/assets/img/svg/octicon-meter.svg';
 import octiconMilestone from '../../public/assets/img/svg/octicon-milestone.svg';
 import octiconMirror from '../../public/assets/img/svg/octicon-mirror.svg';
+import octiconNote from '../../public/assets/img/svg/octicon-note.svg';
 import octiconOrganization from '../../public/assets/img/svg/octicon-organization.svg';
 import octiconPlay from '../../public/assets/img/svg/octicon-play.svg';
 import octiconPlus from '../../public/assets/img/svg/octicon-plus.svg';
@@ -118,6 +120,7 @@ const svgs = {
   'octicon-diff-renamed': octiconDiffRenamed,
   'octicon-dot-fill': octiconDotFill,
   'octicon-download': octiconDownload,
+  'octicon-duplicate': octiconDuplicate,
   'octicon-eye': octiconEye,
   'octicon-file': octiconFile,
   'octicon-file-code': octiconFileCode,
@@ -151,6 +154,7 @@ const svgs = {
   'octicon-meter': octiconMeter,
   'octicon-milestone': octiconMilestone,
   'octicon-mirror': octiconMirror,
+  'octicon-note': octiconNote,
   'octicon-organization': octiconOrganization,
   'octicon-play': octiconPlay,
   'octicon-plus': octiconPlus,

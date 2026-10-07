@@ -4,6 +4,7 @@
 package issues
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -29,6 +30,7 @@ const CloseReasonUnknown CloseReason = -1
 
 // closeReasonNames are what forms and pages send instead of the stored numbers, so existing names must never change.
 // CloseReasonNone has no name: an empty name means no reason.
+// A new name also needs its look in closeReasonLooks (web_src/js/features/issue.ts) and close_reason in web_src/js/types.ts.
 var closeReasonNames = map[CloseReason]string{
 	CloseReasonCompleted:  "completed",
 	CloseReasonNotPlanned: "not_planned",
@@ -77,7 +79,8 @@ func BulkCloseReasons(isPull bool) []CloseReason {
 	})
 }
 
-// DefaultCloseReason is the reason the close button starts on; consumers may still send any allowed reason, or none.
+// DefaultCloseReason is the reason the close button starts on, and the one issue_service.CloseIssue records
+// for closes that take no reason; consumers may still send any allowed reason.
 func DefaultCloseReason(isPull bool) CloseReason {
 	if isPull {
 		return CloseReasonNotPlanned
@@ -93,7 +96,7 @@ type CloseReasonOptions struct {
 }
 
 // Validate checks the options for an issue or pull request, without looking anything up;
-// SetIssueAsClosed checks that the duplicate target exists.
+// DuplicateIssueID checks that the duplicate target exists.
 // No reason at all is valid, so close paths that give none keep working.
 func (opts CloseReasonOptions) Validate(isPull bool) error {
 	if opts.Reason != CloseReasonNone && !slices.Contains(AllowedCloseReasons(isPull), opts.Reason) {
@@ -122,6 +125,24 @@ func (opts CloseReasonOptions) Validate(isPull bool) error {
 		return ErrInvalidCloseReasonText{Reason: opts.Reason, Detail: fmt.Sprintf("text is longer than %d characters", CloseReasonTextMaxLength)}
 	}
 	return nil
+}
+
+// DuplicateIssueID returns the ID of the issue the options mark as duplicated, or 0 for any other reason.
+// Call it after Validate. It checks the target is in the repository and isn't the item itself; selfIndex is 0 for an item not created yet.
+func (opts CloseReasonOptions) DuplicateIssueID(ctx context.Context, repoID, selfIndex int64) (int64, error) {
+	if opts.Reason != CloseReasonDuplicate {
+		return 0, nil
+	}
+	if opts.DuplicateIndex == selfIndex {
+		return 0, ErrInvalidCloseDuplicate{Index: opts.DuplicateIndex, Detail: "an issue cannot duplicate itself"}
+	}
+	target, err := GetIssueByIndex(ctx, repoID, opts.DuplicateIndex) // the repo ID keeps the target in the same repository
+	if IsErrIssueNotExist(err) {
+		return 0, ErrInvalidCloseDuplicate{Index: opts.DuplicateIndex, Detail: "no issue with this number in the repository"}
+	} else if err != nil {
+		return 0, err
+	}
+	return target.ID, nil
 }
 
 // ErrCloseReasonNotAllowed represents a reason that is out of range, or not allowed for the issue or pull request.

@@ -54,10 +54,11 @@ func GetSuggestion(ctx context.Context, repo *repo_model.Repository, isPull opti
 	suggestions := make([]*structs.Issue, 0, len(issues))
 	for _, issue := range issues {
 		suggestion := &structs.Issue{
-			ID:    issue.ID,
-			Index: issue.Index,
-			Title: issue.Title,
-			State: issue.State(),
+			ID:          issue.ID,
+			Index:       issue.Index,
+			Title:       issue.Title,
+			State:       issue.State(),
+			CloseReason: issue.CloseReason.String(),
 		}
 
 		if issue.IsPull && issue.PullRequest != nil {
