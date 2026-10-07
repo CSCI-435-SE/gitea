@@ -105,7 +105,30 @@ There are different solutions:
 
 The current approach is: detect if the dropdown has an input,
 if yes, it works like a combobox, otherwise it works like a menu.
-Multiple selection dropdown is not well-supported yet, it needs more work.
+Multiple selection dropdowns (`ui multiple ... dropdown`) are partially supported:
+
+* the listbox has `aria-multiselectable="true"` and every option has `aria-selected`,
+  refreshed after each add or remove (Fomantic marks the chosen items `active`)
+* adding or removing an item is announced through the shared live region in
+  `web_src/js/modules/aria-announce.ts`; Fomantic doesn't call `onAdd`/`onRemove` on the
+  initial load, so existing selections are not read out
+* a selection label's delete icon is named after the label's visible text
+* picking an item keeps the keyboard focus: a `GITEA-PATCH` in `web_src/fomantic/build/components/dropdown.js`
+  stops Fomantic's IE11 workaround from blurring the dropdown itself, and the global Enter
+  quick-submit (`web_src/js/features/common-form.ts`) skips an Enter the dropdown already handled
+
+Still not working: moving between selection labels with Left/Right is not announced, because
+`aria-activedescendant` only ever points at menu items.
+
+The issue sidebar's label, assignee, reviewer and project pickers are not Fomantic multiple
+dropdowns: selection there is the `checked` class managed by
+`web_src/js/features/repo-issue-sidebar-combolist.ts`, which keeps `aria-selected` and the
+announcements in step itself. Their items sit in a nested `.scrolling.menu`, which the patch
+also covers.
+
+The Fomantic part of this is temporary by design: it goes away when these dropdowns move off
+Fomantic (`<aria-menu>` above is for action menus only, so it is not their replacement), while the
+sidebar part stays unless the sidebar itself is rewritten.
 
 Some important pages for dropdown testing:
 
