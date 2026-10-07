@@ -165,6 +165,8 @@ func applyIssuesOptions(sess db.Session, opts *IssuesOptions, issueIDs []int64) 
 		sess.And("issue.is_pull=?", opts.IsPull.Value())
 	}
 
+	applyDeadlineCondition(sess, opts)
+
 	return sess
 }
 

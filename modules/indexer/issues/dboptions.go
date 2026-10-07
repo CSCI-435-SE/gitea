@@ -77,6 +77,13 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 	if opts.UpdatedBeforeUnix > 0 {
 		searchOpt.UpdatedBeforeUnix = optional.Some(opts.UpdatedBeforeUnix)
 	}
+	if opts.DeadlineAfterUnix > 0 {
+		searchOpt.DeadlineAfterUnix = optional.Some(opts.DeadlineAfterUnix)
+	}
+	if opts.DeadlineBeforeUnix > 0 {
+		searchOpt.DeadlineBeforeUnix = optional.Some(opts.DeadlineBeforeUnix)
+	}
+	searchOpt.HasDeadline = opts.HasDeadline
 
 	searchOpt.Paginator = opts.Paginator
 
