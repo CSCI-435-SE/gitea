@@ -124,3 +124,34 @@ func TestToTrackedTime(t *testing.T) {
 		assert.ElementsMatch(t, []string{"repo1", "repo3"}, []string{list[0].Issue.Repo.Name, list[1].Issue.Repo.Name})
 	})
 }
+
+func TestToAPIIssueCloseReason(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}) // open
+	apiIssue := ToAPIIssue(t.Context(), doer, issue)
+	assert.Empty(t, apiIssue.CloseReason)
+	assert.Empty(t, apiIssue.CloseReasonText)
+	assert.Zero(t, apiIssue.CloseDuplicateOf)
+
+	_, err := issues_model.CloseIssue(t.Context(), issue, doer, issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonDuplicate, DuplicateIndex: 4})
+	require.NoError(t, err)
+	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	apiIssue = ToAPIIssue(t.Context(), doer, issue)
+	assert.Equal(t, "duplicate", apiIssue.CloseReason)
+	assert.Equal(t, int64(4), apiIssue.CloseDuplicateOf) // the number scripts send, not the stored ID
+
+	issue.CloseDuplicateIssueID = 999999 // the target was deleted
+	apiIssue = ToAPIIssue(t.Context(), doer, issue)
+	assert.Zero(t, apiIssue.CloseDuplicateOf)
+	assert.Equal(t, "duplicate", apiIssue.CloseReason)
+
+	other := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6}) // open, not a pull request
+	_, err = issues_model.CloseIssue(t.Context(), other, doer, issues_model.CloseReasonOptions{Reason: issues_model.CloseReasonOther, Text: "moved to the forum"})
+	require.NoError(t, err)
+	other = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
+	apiIssue = ToAPIIssue(t.Context(), doer, other)
+	assert.Equal(t, "other", apiIssue.CloseReason)
+	assert.Equal(t, "moved to the forum", apiIssue.CloseReasonText)
+}
