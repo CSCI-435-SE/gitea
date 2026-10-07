@@ -31,6 +31,7 @@ for (const path of globSync('web_src/css/themes/*.css', {cwd: import.meta.dirnam
 
 const webComponents = new Set([
   // our own, in web_src/js/webcomponents
+  'aria-menu',
   'overflow-menu',
   'relative-time',
   // from dependencies
