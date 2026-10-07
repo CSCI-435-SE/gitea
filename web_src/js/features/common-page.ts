@@ -23,6 +23,10 @@ function initHeadNavbarContentToggle() {
   });
 }
 
+/**
+ * Bind the footer language menu, if present, to GET the clicked item's data-url and reload the page.
+ * Any HTTP response triggers a reload; request rejection is uncaught in the async listener and prevents the reload.
+ */
 function initFooterLanguageMenu() {
   document.querySelector('.page-footer .menu.language-menu')?.addEventListener('click', async (e) => {
     const item = (e.target as HTMLElement).closest('.item');
