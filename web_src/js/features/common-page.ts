@@ -24,7 +24,7 @@ function initHeadNavbarContentToggle() {
 }
 
 function initFooterLanguageMenu() {
-  document.querySelector('.ui.dropdown .menu.language-menu')?.addEventListener('click', async (e) => {
+  document.querySelector('.page-footer .menu.language-menu')?.addEventListener('click', async (e) => {
     const item = (e.target as HTMLElement).closest('.item');
     if (!item) return;
     e.preventDefault();

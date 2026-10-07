@@ -1288,6 +1288,15 @@ td .commit-summary {
   padding: 4px; /* add some padding to make click area larger for the "item action ... ui dropdown" items */
 }
 
+.comment-header-right > aria-menu.item.action {
+  padding: 0;
+}
+
+.comment-header-right > aria-menu.item.action > .btn {
+  display: block;
+  padding: 4px;
+}
+
 .comment-body {
   background: var(--color-box-body);
   border: none !important;
