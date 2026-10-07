@@ -1,6 +1,6 @@
 ---
 scope: modules/queue, modules/cache, modules/storage, modules/indexer, modules/globallock, modules/log, modules/graceful, modules/process
-verified-at: c0092050a4
+verified-at: 94dfae067e
 ---
 
 # modules/* infrastructure — queues, cache, storage, indexers, locks
@@ -75,6 +75,10 @@ through the returned function.
   a local SQLite dev instance and production, so test the non-redis path too.
 - Search results come from the indexer, so "the issue exists but does not appear in search" is
   usually an indexing lag or a missing reindex, not a query bug.
+- Meilisearch applies index settings only when it creates the versioned index
+  (`modules/indexer/internal/meilisearch/indexer.go` → `Init`), so making a field filterable in
+  `modules/indexer/issues/meilisearch/meilisearch.go` also needs `issueIndexerLatestVersion` bumped,
+  which rebuilds the index on upgrade.
 
 ## Related
 
