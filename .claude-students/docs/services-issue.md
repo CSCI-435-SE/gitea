@@ -80,6 +80,9 @@ an unhandled type renders as nothing.
 - A merged pull request is closed by `services/pull/merge.go` → `SetMerged` calling
   `issues_model.SetIssueAsClosed` directly, skipping `CloseIssue`. Close-time behaviour that must
   cover merges belongs in `SetIssueAsClosed`, not here.
+- `GetMilestoneBurndown` counts and lists only the kinds in `BurndownOptions`, and the caller must
+  leave out any kind the viewer cannot read: the milestone routes in `routers/web/web.go` let in a
+  reader of issues *or* pulls, so `MilestoneBurndownData` intersects the toggle with permissions.
 
 ## Related
 

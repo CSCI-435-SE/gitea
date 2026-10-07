@@ -1,6 +1,6 @@
 ---
 source: docs/services-issue.md
-source-hash: d99faef1b64012cc
+source-hash: 32340b6077f0605d
 verified-at: 94dfae067e
 ---
 
@@ -126,6 +126,12 @@ effect was skipped.
 **You called the wrong `NewIssue`.** There is one here and one in `models/issues`, and they differ
 by exactly this wrapper. This is what the import aliases are for — `issue_service` and
 `issues_model` — so the call site says which you meant.
+
+**A milestone chart shows someone pull requests (or issues) they cannot open.** The milestone pages
+let in anyone who can read issues *or* pull requests, so a viewer may be able to read only one kind.
+`GetMilestoneBurndown` counts and lists exactly the kinds its `BurndownOptions` asks for and does not
+check permissions itself. Its caller in `routers/web/web.go`'s milestone routes, the
+`MilestoneBurndownData` handler, has to switch off any kind the viewer cannot read.
 
 **Users are emailed about something that did not happen.** A notify call ended up inside the
 transaction and the transaction rolled back.
