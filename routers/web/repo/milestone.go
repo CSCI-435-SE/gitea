@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/renderhelper"
+	"gitea.dev/models/unit"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -261,6 +262,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 	ctx.PageData["milestoneBurndownLink"] = fmt.Sprintf("%s/milestone/%d/burndown", ctx.Repo.RepoLink, milestone.ID)
+	ctx.PageData["repoLink"] = ctx.Repo.RepoLink // the chart links each changed item
 
 	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, optional.None[bool]())
 
@@ -285,7 +287,12 @@ func MilestoneBurndownData(ctx *context.Context) {
 		return
 	}
 
-	burndown, err := issue.GetMilestoneBurndown(ctx, milestone)
+	// issues by default, pull requests only on request, and neither kind unless the viewer may read it:
+	// the route lets in a reader of either, and the chart must not count or list the other
+	burndown, err := issue.GetMilestoneBurndown(ctx, milestone, issue.BurndownOptions{
+		Issues: ctx.Repo.Permission.CanRead(unit.TypeIssues),
+		Pulls:  ctx.FormBool("include_pulls") && ctx.Repo.Permission.CanRead(unit.TypePullRequests),
+	})
 	if err != nil {
 		ctx.ServerError("GetMilestoneBurndown", err)
 		return

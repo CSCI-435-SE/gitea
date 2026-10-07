@@ -38,6 +38,34 @@ type BurndownPoint struct {
 	Date      string `json:"date"`      // "YYYY-MM-DD" in the instance zone, so every viewer sees the same day
 	Remaining int    `json:"remaining"` // items in the milestone and open
 	Scope     int    `json:"scope"`     // items in the milestone, open or closed
+	Added     int    `json:"added"`     // items that joined the milestone this day, after its first day of work
+	Removed   int    `json:"removed"`   // items that left the milestone this day, after its first day of work
+
+	Changes []BurndownChange `json:"changes,omitempty"` // what moved the counts this day, in order; omitted on quiet days
+}
+
+// BurndownChangeKind is how one item changed the milestone's counts.
+type BurndownChangeKind string
+
+const (
+	BurndownChangeClosed   BurndownChangeKind = "closed" // a merge counts as a close
+	BurndownChangeReopened BurndownChangeKind = "reopened"
+	BurndownChangeAdded    BurndownChangeKind = "added"
+	BurndownChangeRemoved  BurndownChangeKind = "removed"
+)
+
+// BurndownChange is one item that changed the milestone's counts on a day.
+type BurndownChange struct {
+	Index  int64              `json:"index"`
+	Title  string             `json:"title"`
+	IsPull bool               `json:"isPull"`
+	Kind   BurndownChangeKind `json:"kind"`
+}
+
+// BurndownOptions says which kinds of item to count. A caller must leave out any kind the viewer cannot read.
+type BurndownOptions struct {
+	Issues bool
+	Pulls  bool
 }
 
 // BurndownIdeal is the straight line from the first day with work to zero on the due date.
@@ -67,6 +95,23 @@ type burndownDelta struct {
 	at        int64
 	remaining int
 	scope     int
+	item      *issues_model.MilestoneItem
+}
+
+// kind names the change for the day's list; a change of scope outranks a close, since an item that
+// joins already closed was added, not closed. It is empty when the counts did not move.
+func (d burndownDelta) kind() BurndownChangeKind {
+	switch {
+	case d.scope > 0:
+		return BurndownChangeAdded
+	case d.scope < 0:
+		return BurndownChangeRemoved
+	case d.remaining < 0:
+		return BurndownChangeClosed
+	case d.remaining > 0:
+		return BurndownChangeReopened
+	}
+	return ""
 }
 
 func (s burndownState) counts() (remaining, scope int) {
@@ -172,8 +217,8 @@ func startOfDay(unix int64, loc *time.Location) time.Time {
 // CalcMilestoneBurndown charts a milestone from its items and their history. It reads no clock and no
 // global zone, so it is tested with a fixed now and loc.
 //
-// Every item counts, whatever its kind or close reason, because the milestone's progress bar counts every
-// issue and pull request in it and the chart must agree with the bar above it.
+// Every item it is given counts, whatever its close reason; which kinds it is given is the caller's choice
+// (see BurndownOptions).
 func CalcMilestoneBurndown(m *issues_model.Milestone, items []issues_model.MilestoneItem, events []issues_model.MilestoneEvent, now time.Time, loc *time.Location) *MilestoneBurndown {
 	result := &MilestoneBurndown{Points: []BurndownPoint{}, Status: BurndownEmpty}
 	if len(items) == 0 {
@@ -185,8 +230,11 @@ func CalcMilestoneBurndown(m *issues_model.Milestone, items []issues_model.Miles
 		byItem[e.IssueID] = append(byItem[e.IssueID], e)
 	}
 	var deltas []burndownDelta
-	for _, item := range items {
-		deltas = append(deltas, replayMilestoneItem(item, byItem[item.ID], m.ID, int64(m.CreatedUnix))...)
+	for i := range items {
+		for _, d := range replayMilestoneItem(items[i], byItem[items[i].ID], m.ID, int64(m.CreatedUnix)) {
+			d.item = &items[i]
+			deltas = append(deltas, d)
+		}
 	}
 	slices.SortStableFunc(deltas, func(a, b burndownDelta) int { return cmp.Compare(a.at, b.at) })
 
@@ -211,14 +259,38 @@ func CalcMilestoneBurndown(m *issues_model.Milestone, items []issues_model.Miles
 	remaining, scope, next := 0, 0, 0
 	for day := firstDay; !day.After(lastDay); day = day.AddDate(0, 0, 1) {
 		dayEnd := day.AddDate(0, 0, 1).Unix()
+		point := BurndownPoint{Date: day.Format(time.DateOnly)}
 		for ; next < len(deltas) && deltas[next].at < dayEnd; next++ {
 			remaining += deltas[next].remaining
 			scope += deltas[next].scope
+			if deltas[next].scope > 0 {
+				point.Added++
+			} else if deltas[next].scope < 0 {
+				point.Removed++
+			}
+			if kind := deltas[next].kind(); kind != "" {
+				item := deltas[next].item
+				point.Changes = append(point.Changes, BurndownChange{Index: item.Index, Title: item.Title, IsPull: item.IsPull, Kind: kind})
+			}
 		}
-		result.Points = append(result.Points, BurndownPoint{Date: day.Format(time.DateOnly), Remaining: remaining, Scope: scope})
+		point.Remaining, point.Scope = remaining, scope
+		result.Points = append(result.Points, point)
 	}
 	points := result.Points
 	last := len(points) - 1
+
+	// what the milestone holds on its first day of work is its plan, not a change to it, so only
+	// later days are marked; otherwise every chart would open on an "added" marker
+	from := slices.IndexFunc(points, func(p BurndownPoint) bool { return p.Scope > 0 })
+	for i := 0; i <= from; i++ {
+		points[i].Added, points[i].Removed = 0, 0
+		points[i].Changes = slices.DeleteFunc(points[i].Changes, func(c BurndownChange) bool {
+			return c.Kind == BurndownChangeAdded || c.Kind == BurndownChangeRemoved
+		})
+		if len(points[i].Changes) == 0 {
+			points[i].Changes = nil // keep quiet days out of the JSON
+		}
+	}
 
 	var deadlineDay time.Time
 	if m.DeadlineUnix > 0 {
@@ -230,7 +302,7 @@ func CalcMilestoneBurndown(m *issues_model.Milestone, items []issues_model.Miles
 		}
 	}
 
-	if from := slices.IndexFunc(points, func(p BurndownPoint) bool { return p.Scope > 0 }); from >= 0 && !deadlineDay.IsZero() {
+	if from >= 0 && !deadlineDay.IsZero() {
 		fromDay := firstDay.AddDate(0, 0, from)
 		if points[from].Remaining > 0 && deadlineDay.After(fromDay) {
 			result.Ideal = &BurndownIdeal{From: points[from].Date, FromValue: points[from].Remaining, To: result.Deadline}
@@ -269,8 +341,9 @@ func CalcMilestoneBurndown(m *issues_model.Milestone, items []issues_model.Miles
 	return result
 }
 
-// GetMilestoneBurndown charts a milestone in the instance's zone, the zone its due date is stored in.
-func GetMilestoneBurndown(ctx context.Context, m *issues_model.Milestone) (*MilestoneBurndown, error) {
+// GetMilestoneBurndown charts a milestone in the instance's zone, the zone its due date is stored in,
+// counting only the kinds of item opts asks for.
+func GetMilestoneBurndown(ctx context.Context, m *issues_model.Milestone, opts BurndownOptions) (*MilestoneBurndown, error) {
 	scopeEvents, err := issues_model.GetMilestoneScopeEvents(ctx, m.RepoID, m.ID)
 	if err != nil {
 		return nil, err
@@ -284,6 +357,10 @@ func GetMilestoneBurndown(ctx context.Context, m *issues_model.Milestone) (*Mile
 	if err != nil {
 		return nil, err
 	}
+	// a left-out kind is not counted and not listed, so a viewer never learns of items they cannot read
+	items = slices.DeleteFunc(items, func(item issues_model.MilestoneItem) bool {
+		return item.IsPull && !opts.Pulls || !item.IsPull && !opts.Issues
+	})
 
 	itemIDs := make([]int64, 0, len(items))
 	for _, item := range items {

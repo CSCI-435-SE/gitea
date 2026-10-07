@@ -11,9 +11,12 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	api "gitea.dev/modules/structs"
 	issue_service "gitea.dev/services/issue"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -133,17 +136,34 @@ func TestMilestoneBurndown(t *testing.T) {
 		assert.Equal(t, row.NumIssues, today.Scope)
 		assert.Equal(t, row.NumIssues-row.NumClosedIssues, today.Remaining)
 
+		// today's list names each close and reopen; the move out happened on the milestone's first
+		// day of work, which is never marked as a change of scope
+		var changes []string
+		for _, c := range today.Changes {
+			changes = append(changes, fmt.Sprintf("%s #%d %s", c.Kind, c.Index, c.Title))
+		}
+		assert.Equal(t, []string{
+			fmt.Sprintf("closed #%d closed", issues["closed"].Index),
+			fmt.Sprintf("closed #%d reopened", issues["reopened"].Index),
+			fmt.Sprintf("reopened #%d reopened", issues["reopened"].Index),
+		}, changes)
+
 		// the moved issue now counts in the milestone it went to
 		today = read(other)
 		assert.Equal(t, 1, today.Scope)
 		assert.Equal(t, 1, today.Remaining)
 	})
 
-	t.Run("CountsPullRequests", func(t *testing.T) {
+	t.Run("PullRequestsOnRequest", func(t *testing.T) {
 		// milestone 1 holds pull request #2 and nothing else, has no creation time, and is due in the
-		// year 9999: the chart counts the pull request, as the progress bar does, and draws no ideal line
+		// year 9999: issues only by default, so it charts nothing until pull requests are asked for
 		req := NewRequest(t, "GET", "/user2/repo1/milestone/1/burndown")
 		burndown := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &issue_service.MilestoneBurndown{})
+		assert.Equal(t, issue_service.BurndownEmpty, burndown.Status)
+		assert.Empty(t, burndown.Points)
+
+		req = NewRequest(t, "GET", "/user2/repo1/milestone/1/burndown?include_pulls=1")
+		burndown = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &issue_service.MilestoneBurndown{})
 		require.NotEmpty(t, burndown.Points)
 		today := burndown.Points[len(burndown.Points)-1]
 		assert.Equal(t, 1, today.Scope)
@@ -162,4 +182,64 @@ func TestMilestoneBurndown(t *testing.T) {
 		// user2/repo2 is private, so a signed-out reader learns nothing about its milestones
 		MakeRequest(t, NewRequest(t, "GET", "/user2/repo2/milestone/1/burndown"), http.StatusNotFound)
 	})
+}
+
+// milestoneWithClosedIssue adds a closed issue to milestone 1 of user2/repo1, which already holds
+// pull request #2, so the chart has one item of each kind and the issue appears in today's changes
+func milestoneWithClosedIssue(t *testing.T) *api.Issue {
+	token := getTokenForLoggedInUser(t, loginUser(t, "user2"), auth_model.AccessTokenScopeWriteIssue)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/issues", api.CreateIssueOption{
+		Title: "only for issue readers", Milestone: 1,
+	}).AddTokenAuth(token)
+	created := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Issue{})
+	closed := "closed"
+	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/user2/repo1/issues/%d", created.Index), api.EditIssueOption{
+		State: &closed,
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+	return created
+}
+
+func readBurndown(t *testing.T, url string) *issue_service.MilestoneBurndown {
+	return DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", url), http.StatusOK), &issue_service.MilestoneBurndown{})
+}
+
+func TestMilestoneBurndownWithoutPullAccess(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	created := milestoneWithClosedIssue(t)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit_model.Type{unit_model.TypePullRequests}))
+
+	// asking for pull requests cannot count one the viewer may not read
+	burndown := readBurndown(t, "/user2/repo1/milestone/1/burndown?include_pulls=1")
+	require.NotEmpty(t, burndown.Points)
+	today := burndown.Points[len(burndown.Points)-1]
+	assert.Equal(t, 1, today.Scope, "the issue only")
+	for _, c := range today.Changes {
+		assert.False(t, c.IsPull)
+	}
+	require.Len(t, today.Changes, 1)
+	assert.Equal(t, created.Index, today.Changes[0].Index)
+}
+
+func TestMilestoneBurndownWithoutIssueAccess(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	created := milestoneWithClosedIssue(t)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit_model.Type{unit_model.TypeIssues}))
+
+	// a pull request reader still reaches the milestone, but the closed issue is neither counted nor
+	// listed, by default or with pull requests asked for
+	assert.Equal(t, issue_service.BurndownEmpty, readBurndown(t, "/user2/repo1/milestone/1/burndown").Status)
+
+	burndown := readBurndown(t, "/user2/repo1/milestone/1/burndown?include_pulls=1")
+	require.NotEmpty(t, burndown.Points)
+	today := burndown.Points[len(burndown.Points)-1]
+	assert.Equal(t, 1, today.Scope, "the pull request only")
+	assert.Equal(t, 1, today.Remaining)
+	for _, p := range burndown.Points {
+		for _, c := range p.Changes {
+			assert.NotEqual(t, created.Index, c.Index, "an unreadable issue leaked into %s", p.Date)
+		}
+	}
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -81,6 +82,22 @@ func scopeOf(points []BurndownPoint) []int {
 	return values
 }
 
+func addedOf(points []BurndownPoint) []int {
+	values := make([]int, 0, len(points))
+	for _, p := range points {
+		values = append(values, p.Added)
+	}
+	return values
+}
+
+func removedOf(points []BurndownPoint) []int {
+	values := make([]int, 0, len(points))
+	for _, p := range points {
+		values = append(values, p.Removed)
+	}
+	return values
+}
+
 func datesOf(points []BurndownPoint) []string {
 	values := make([]string, 0, len(points))
 	for _, p := range points {
@@ -104,6 +121,8 @@ func TestCalcMilestoneBurndown(t *testing.T) {
 
 		remaining []int
 		scope     []int
+		added     []int // scope changes marked on the chart
+		removed   []int
 		firstDate string
 		check     func(t *testing.T, b *MilestoneBurndown)
 	}{
@@ -131,6 +150,8 @@ func TestCalcMilestoneBurndown(t *testing.T) {
 			now:       jan(11, "12:00"),
 			remaining: []int{3, 3, 2, 2, 1, 1, 0},
 			scope:     []int{3, 3, 3, 3, 3, 3, 3},
+			added:     []int{0, 0, 0, 0, 0, 0, 0}, // joining on the first day is the plan, not a change
+			removed:   []int{0, 0, 0, 0, 0, 0, 0},
 			firstDate: "2026-01-05",
 			check: func(t *testing.T, b *MilestoneBurndown) {
 				assert.Equal(t, BurndownDone, b.Status)
@@ -148,6 +169,8 @@ func TestCalcMilestoneBurndown(t *testing.T) {
 			now:       jan(8, "12:00"),
 			remaining: []int{2, 2, 3, 3},
 			scope:     []int{2, 2, 3, 3},
+			added:     []int{0, 0, 1, 0},
+			removed:   []int{0, 0, 0, 0},
 			check: func(t *testing.T, b *MilestoneBurndown) {
 				assert.Equal(t, 2, b.Ideal.FromValue)
 				assert.Equal(t, BurndownNotBurning, b.Status, "the net rate counts the creep, so this is no progress")
@@ -164,6 +187,8 @@ func TestCalcMilestoneBurndown(t *testing.T) {
 			now:       jan(9, "12:00"),
 			remaining: []int{2, 2, 1, 1, 1},
 			scope:     []int{2, 2, 1, 1, 1},
+			added:     []int{0, 0, 0, 0, 0},
+			removed:   []int{0, 0, 1, 0, 0},
 			check: func(t *testing.T, b *MilestoneBurndown) {
 				// one item gone in four days: 0.25 a day, so the last item takes four more days
 				assert.Equal(t, BurndownProjected, b.Status)
@@ -201,6 +226,7 @@ func TestCalcMilestoneBurndown(t *testing.T) {
 			now:       jan(6, "12:00"),
 			remaining: []int{1, 1},
 			scope:     []int{1, 2},
+			added:     []int{0, 1}, // a change of scope even though no open work was added
 		},
 		{
 			name:      "an item with no join comment joins when the milestone was created",
@@ -210,6 +236,7 @@ func TestCalcMilestoneBurndown(t *testing.T) {
 			now:       jan(6, "12:00"),
 			remaining: []int{1, 2},
 			scope:     []int{1, 2},
+			added:     []int{0, 1},
 		},
 		{
 			name:      "an item whose first comment moves it out was in before then",
@@ -219,6 +246,7 @@ func TestCalcMilestoneBurndown(t *testing.T) {
 			now:       jan(7, "12:00"),
 			remaining: []int{1, 0, 0},
 			scope:     []int{1, 0, 0},
+			removed:   []int{0, 1, 0},
 			check: func(t *testing.T, b *MilestoneBurndown) {
 				assert.Equal(t, BurndownEmpty, b.Status, "nothing is left in it")
 			},
@@ -361,6 +389,20 @@ func TestCalcMilestoneBurndown(t *testing.T) {
 			},
 		},
 		{
+			name:      "an item that joins and leaves on the same day is marked both ways",
+			milestone: issues_model.Milestone{CreatedUnix: jan(5, "09:00")},
+			items: []issues_model.MilestoneItem{
+				openItem(1, jan(5, "09:00")),
+				{ID: 2, MilestoneID: burndownMilestone + 1, CreatedUnix: jan(6, "09:00")},
+			},
+			events:    (&eventSeq{}).join(1, jan(5, "10:00")).join(2, jan(6, "10:00")).leave(2, jan(6, "15:00")),
+			now:       jan(7, "12:00"),
+			remaining: []int{1, 1, 1},
+			scope:     []int{1, 1, 1},
+			added:     []int{0, 1, 0},
+			removed:   []int{0, 1, 0},
+		},
+		{
 			name:      "an item from another milestone that never joined is ignored",
 			milestone: issues_model.Milestone{CreatedUnix: jan(5, "09:00")},
 			items:     []issues_model.MilestoneItem{openItem(1, jan(5, "09:00"))},
@@ -381,6 +423,12 @@ func TestCalcMilestoneBurndown(t *testing.T) {
 			}
 			if c.scope != nil {
 				assert.Equal(t, c.scope, scopeOf(b.Points))
+			}
+			if c.added != nil {
+				assert.Equal(t, c.added, addedOf(b.Points), "added")
+			}
+			if c.removed != nil {
+				assert.Equal(t, c.removed, removedOf(b.Points), "removed")
 			}
 			if c.firstDate != "" {
 				assert.Equal(t, c.firstDate, b.Points[0].Date)
@@ -447,4 +495,73 @@ func TestCalcMilestoneBurndownTimezone(t *testing.T) {
 		// a due date stored as 23:59:59 New York time is that day, not the next one in UTC
 		assert.Equal(t, "2026-03-10", b.Deadline)
 	})
+}
+
+func TestCalcMilestoneBurndownChanges(t *testing.T) {
+	jan := func(day int, hour string) timeutil.TimeStamp {
+		return at(t, time.Date(2026, time.January, day, 0, 0, 0, 0, time.UTC).Format(time.DateOnly)+" "+hour)
+	}
+	named := func(item issues_model.MilestoneItem, index int64, title string, isPull bool) issues_model.MilestoneItem {
+		item.Index, item.Title, item.IsPull = index, title, isPull
+		return item
+	}
+	m := &issues_model.Milestone{ID: burndownMilestone, CreatedUnix: jan(5, "09:00")}
+	items := []issues_model.MilestoneItem{
+		named(openItem(1, jan(5, "09:00")), 11, "reopened later", false),
+		named(closedItem(2, jan(5, "09:00"), jan(7, "11:00")), 12, "merged", true),
+		named(openItem(3, jan(5, "09:00")), 13, "added late", false),
+		named(issues_model.MilestoneItem{ID: 4, MilestoneID: burndownMilestone + 1, CreatedUnix: jan(5, "09:00")}, 14, "moved out", false),
+		named(closedItem(5, jan(5, "09:00"), jan(5, "15:00")), 15, "closed on day one", false),
+		named(closedItem(6, jan(1, "09:00"), jan(3, "10:00")), 16, "added closed", false),
+	}
+	events := (&eventSeq{}).
+		join(1, jan(5, "10:00")).join(2, jan(5, "10:00")).join(4, jan(5, "10:00")).join(5, jan(5, "10:00")).
+		close(5, jan(5, "15:00")).close(6, jan(3, "10:00")).
+		join(3, jan(6, "10:00")).join(6, jan(6, "11:00")).
+		close(1, jan(7, "10:00")).merge(2, jan(7, "11:00")).
+		reopen(1, jan(8, "09:00")).leave(4, jan(8, "10:00")).
+		events
+
+	b := CalcMilestoneBurndown(m, items, events, time.Unix(int64(jan(9, "12:00")), 0), time.UTC)
+	require.Len(t, b.Points, 5)
+	change := func(index int64, title string, isPull bool, kind BurndownChangeKind) BurndownChange {
+		return BurndownChange{Index: index, Title: title, IsPull: isPull, Kind: kind}
+	}
+	// day one lists its close but not its joins, which are the plan rather than a change
+	assert.Equal(t, []BurndownChange{change(15, "closed on day one", false, BurndownChangeClosed)}, b.Points[0].Changes)
+	// an item that joins already closed was added, not closed
+	assert.Equal(t, []BurndownChange{
+		change(13, "added late", false, BurndownChangeAdded),
+		change(16, "added closed", false, BurndownChangeAdded),
+	}, b.Points[1].Changes)
+	// a merge is listed as a close, in the order the day's events happened
+	assert.Equal(t, []BurndownChange{
+		change(11, "reopened later", false, BurndownChangeClosed),
+		change(12, "merged", true, BurndownChangeClosed),
+	}, b.Points[2].Changes)
+	assert.Equal(t, []BurndownChange{
+		change(11, "reopened later", false, BurndownChangeReopened),
+		change(14, "moved out", false, BurndownChangeRemoved),
+	}, b.Points[3].Changes)
+	assert.Nil(t, b.Points[4].Changes)
+
+	// the list and the markers count the same changes
+	for _, p := range b.Points {
+		var added, removed int
+		for _, c := range p.Changes {
+			switch c.Kind {
+			case BurndownChangeAdded:
+				added++
+			case BurndownChangeRemoved:
+				removed++
+			}
+		}
+		assert.Equal(t, p.Added, added, p.Date)
+		assert.Equal(t, p.Removed, removed, p.Date)
+	}
+
+	// quiet days stay out of the JSON, which on a long milestone is most of them
+	quiet, err := json.Marshal(b.Points[4])
+	require.NoError(t, err)
+	assert.NotContains(t, string(quiet), "changes")
 }
