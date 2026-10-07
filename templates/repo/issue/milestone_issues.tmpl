@@ -61,6 +61,7 @@
 				{{end}}
 			</div>
 			<div id="milestone-burndown-chart"
+				{{if .Permission.CanRead ctx.Consts.RepoUnitTypePullRequests}}data-can-read-pulls="true"{{end}}
 				data-locale-loading-title="{{ctx.Locale.Tr "graphs.component_loading" (ctx.Locale.Tr "repo.milestones.burndown.what")}}"
 				data-locale-loading-title-failed="{{ctx.Locale.Tr "graphs.component_loading_failed" (ctx.Locale.Tr "repo.milestones.burndown.what")}}"
 				data-locale-loading-info="{{ctx.Locale.Tr "graphs.component_loading_info"}}"
@@ -70,6 +71,12 @@
 				data-locale-scope="{{ctx.Locale.Tr "repo.milestones.burndown.scope"}}"
 				data-locale-ideal="{{ctx.Locale.Tr "repo.milestones.burndown.ideal"}}"
 				data-locale-projection="{{ctx.Locale.Tr "repo.milestones.burndown.projection"}}"
+				data-locale-scope-added="{{ctx.Locale.Tr "repo.milestones.burndown.scope_added"}}"
+				data-locale-scope-removed="{{ctx.Locale.Tr "repo.milestones.burndown.scope_removed"}}"
+				data-locale-include-pulls="{{ctx.Locale.Tr "repo.milestones.burndown.include_pulls"}}"
+				data-locale-changes-on="{{ctx.Locale.Tr "repo.milestones.burndown.changes_on"}}"
+				data-locale-change-closed="{{ctx.Locale.Tr "repo.milestones.burndown.change_closed"}}"
+				data-locale-change-reopened="{{ctx.Locale.Tr "repo.milestones.burndown.change_reopened"}}"
 				data-locale-empty="{{ctx.Locale.Tr "repo.milestones.burndown.empty"}}"
 				data-locale-no-deadline="{{ctx.Locale.Tr "repo.milestones.burndown.no_deadline"}}"
 				data-locale-status-done="{{ctx.Locale.Tr "repo.milestones.burndown.status_done"}}"

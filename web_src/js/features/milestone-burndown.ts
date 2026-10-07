@@ -7,6 +7,7 @@ export async function initRepoMilestoneBurndown() {
   const {default: RepoMilestoneBurndown} = await import('../components/RepoMilestoneBurndown.vue');
   try {
     const View = createApp(RepoMilestoneBurndown, {
+      canReadPulls: el.hasAttribute('data-can-read-pulls'),
       locale: {
         loadingTitle: el.getAttribute('data-locale-loading-title'),
         loadingTitleFailed: el.getAttribute('data-locale-loading-title-failed'),
@@ -16,6 +17,12 @@ export async function initRepoMilestoneBurndown() {
         scope: el.getAttribute('data-locale-scope'),
         ideal: el.getAttribute('data-locale-ideal'),
         projection: el.getAttribute('data-locale-projection'),
+        scopeAdded: el.getAttribute('data-locale-scope-added'),
+        scopeRemoved: el.getAttribute('data-locale-scope-removed'),
+        includePulls: el.getAttribute('data-locale-include-pulls'),
+        changesOn: el.getAttribute('data-locale-changes-on'),
+        changeClosed: el.getAttribute('data-locale-change-closed'),
+        changeReopened: el.getAttribute('data-locale-change-reopened'),
         empty: el.getAttribute('data-locale-empty'),
         noDeadline: el.getAttribute('data-locale-no-deadline'),
         statusDone: el.getAttribute('data-locale-status-done'),

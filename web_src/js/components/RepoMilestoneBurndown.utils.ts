@@ -5,6 +5,16 @@ export type BurndownPoint = {
   date: string, // "YYYY-MM-DD" in the instance's zone, used as is so every viewer sees the same day
   remaining: number,
   scope: number,
+  added: number, // items that joined that day; the first day of work is never marked
+  removed: number,
+  changes?: BurndownChange[], // left out on days nothing changed
+};
+
+export type BurndownChange = {
+  index: number,
+  title: string,
+  isPull: boolean,
+  kind: 'closed' | 'reopened' | 'added' | 'removed',
 };
 
 export type MilestoneBurndown = {
@@ -29,6 +39,8 @@ export type BurndownSummaryLocale = {
 };
 
 export type LinePoint = {x: string, y: number};
+
+export type MarkerPoint = LinePoint & {count: number};
 
 // fills %s and %d in order, the way the server-side locale strings are written
 export function formatLocale(template: string, ...args: Array<string | number>): string {
@@ -76,4 +88,44 @@ export function burndownAxisMax(data: MilestoneBurndown): string {
     if (date > latest) latest = date; // ISO dates sort as strings, and an empty one never wins
   }
   return latest;
+}
+
+// a marker on the scope line for each day the milestone gained or lost items, carrying how many
+export function scopeMarkers(data: MilestoneBurndown, kind: 'added' | 'removed'): MarkerPoint[] {
+  return data.points.filter((p) => p[kind] > 0).map((p) => ({x: p.date, y: p.scope, count: p[kind]}));
+}
+
+const includePullsParam = 'include_pulls';
+
+export function includePullsFromSearch(search: string): boolean {
+  return new URLSearchParams(search).get(includePullsParam) === '1';
+}
+
+// the page's query with the toggle set or cleared, keeping the issue list's own filters intact
+export function searchWithIncludePulls(search: string, includePulls: boolean): string {
+  const params = new URLSearchParams(search);
+  if (includePulls) {
+    params.set(includePullsParam, '1');
+  } else {
+    params.delete(includePullsParam);
+  }
+  const query = params.toString();
+  return query ? `?${query}` : '';
+}
+
+export function burndownDataUrl(link: string, includePulls: boolean): string {
+  return includePulls ? `${link}?${includePullsParam}=1` : link;
+}
+
+export function changeLink(repoLink: string, change: BurndownChange): string {
+  return `${repoLink}/${change.isPull ? 'pulls' : 'issues'}/${change.index}`;
+}
+
+export function changesOn(data: MilestoneBurndown, date: string): BurndownChange[] {
+  return data.points.find((p) => p.date === date)?.changes ?? [];
+}
+
+// the list starts on the latest day anything changed, so it is useful before anyone hovers
+export function latestChangeDate(data: MilestoneBurndown): string {
+  return data.points.findLast((p) => p.changes !== undefined)?.date ?? '';
 }
