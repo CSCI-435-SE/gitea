@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
 	"gitea.dev/routers/web/shared/issue"
@@ -506,7 +507,7 @@ func renderMilestones(ctx *context.Context) {
 	ctx.Data["ClosedMilestones"] = closedMilestones
 }
 
-func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectIDs []int64, isPullOption optional.Option[bool]) {
+func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectIDs []int64, isPullOption optional.Option[bool], dueFilter issue.DueDateFilter) {
 	var err error
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
@@ -572,6 +573,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 		IsPull:            isPullOption,
 		IssueIDs:          nil,
 	}
+	dueFilter.Apply(statsOpts)
 
 	if keyword != "" {
 		keywordMatchedIssueIDs, _, err = issue_indexer.SearchIssues(ctx, issue_indexer.ToSearchOptions(keyword, statsOpts))
@@ -632,7 +634,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 		// Either it did search with the keyword, and found some issues, then keywordMatchedIssueIDs is not null, it needs to use db indexer.
 		// Or the keyword is empty, it also needs to usd db indexer.
 		// In either case, no need to use keyword anymore
-		searchResult, err := db_indexer.GetIndexer().FindWithIssueOptions(ctx, &issues_model.IssuesOptions{
+		listOpts := &issues_model.IssuesOptions{
 			Paginator: &db.ListOptions{
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
@@ -651,7 +653,9 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 			SortType:          sortType,
 			GroupLabelScope:   groupScope,
 			IssueIDs:          keywordMatchedIssueIDs,
-		})
+		}
+		dueFilter.Apply(listOpts)
+		searchResult, err := db_indexer.GetIndexer().FindWithIssueOptions(ctx, listOpts)
 		if err != nil {
 			ctx.ServerError("DBIndexer.Search", err)
 			return
@@ -756,6 +760,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 	ctx.Data["SelLabelIDs"] = preparedLabelFilter.SelectedLabelIDs
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
+	ctx.Data["DueDateFilter"] = dueFilter.Name
 	ctx.Data["MilestoneID"] = milestoneID
 	ctx.Data["ProjectIDs"] = projectIDs
 	ctx.Data["AssigneeID"] = assigneeID
@@ -802,7 +807,8 @@ func Issues(ctx *context.Context) {
 
 	projectIDs := parseProjectIDsFromQuery(ctx)
 
-	prepareIssueFilterAndList(ctx, ctx.FormInt64("milestone"), projectIDs, optional.Some(isPullList))
+	dueFilter := issue.ParseDueDateFilter(ctx.FormString("due"), timeutil.TimeStampNow().AsTime())
+	prepareIssueFilterAndList(ctx, ctx.FormInt64("milestone"), projectIDs, optional.Some(isPullList), dueFilter)
 	if ctx.Written() {
 		return
 	}

@@ -10,6 +10,7 @@
 			<input type="hidden" name="poster" value="{{$.PosterUsername}}">
 			<input type="hidden" name="sort" value="{{$.SortType}}">
 			<input type="hidden" name="group" value="{{$.GroupByLabelScope}}">
+			<input type="hidden" name="due" value="{{$.DueDateFilter}}">
 		{{end}}
 		{{template "shared/search/input" dict "Value" .Keyword}}
 		{{if .PageIsIssueList}}
