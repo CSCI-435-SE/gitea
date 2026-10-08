@@ -50,6 +50,10 @@ type IssuesOptions struct { //nolint:revive // export stutter
 	IssueIDs          []int64
 	UpdatedAfterUnix  int64
 	UpdatedBeforeUnix int64
+	// inclusive bounds on issue.deadline_unix, 0 means unbounded; either bound also excludes issues with no deadline
+	DeadlineAfterUnix  int64
+	DeadlineBeforeUnix int64
+	HasDeadline        optional.Option[bool]
 	// prioritize issues from this repo
 	PriorityRepoID int64
 	IsArchived     optional.Option[bool]
@@ -236,6 +240,22 @@ func applyProjectCondition(sess db.Session, opts *IssuesOptions) {
 	// do not need to apply any condition
 }
 
+func applyDeadlineCondition(sess db.Session, opts *IssuesOptions) {
+	// "no deadline" is stored as 0, so without this guard "before now" would match every undated issue
+	if opts.DeadlineAfterUnix != 0 || opts.DeadlineBeforeUnix != 0 || opts.HasDeadline.Value() {
+		sess.And(builder.Neq{"issue.deadline_unix": 0})
+	} else if opts.HasDeadline.Has() {
+		// the column has no default, so rows not written through Issue (fixtures among them) hold NULL, not 0
+		sess.And(builder.Or(builder.Eq{"issue.deadline_unix": 0}, builder.IsNull{"issue.deadline_unix"}))
+	}
+	if opts.DeadlineAfterUnix != 0 {
+		sess.And(builder.Gte{"issue.deadline_unix": opts.DeadlineAfterUnix})
+	}
+	if opts.DeadlineBeforeUnix != 0 {
+		sess.And(builder.Lte{"issue.deadline_unix": opts.DeadlineBeforeUnix})
+	}
+}
+
 func applyRepoConditions(sess db.Session, opts *IssuesOptions) {
 	if len(opts.RepoIDs) == 1 {
 		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoIDs[0]}
@@ -291,6 +311,8 @@ func applyConditions(sess db.Session, opts *IssuesOptions) {
 	if opts.UpdatedBeforeUnix != 0 {
 		sess.And(builder.Lte{"issue.updated_unix": opts.UpdatedBeforeUnix})
 	}
+
+	applyDeadlineCondition(sess, opts)
 
 	applyProjectCondition(sess, opts)
 
@@ -352,7 +374,7 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 					),
 				),
 			),
-		))
+		)).And(repo_model.NotTwoFactorBlockedRepoCond(id, userID))
 }
 
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table

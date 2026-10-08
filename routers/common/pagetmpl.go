@@ -11,6 +11,7 @@ import (
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	"gitea.dev/modules/log"
 	"gitea.dev/services/context"
 )
@@ -65,12 +66,28 @@ func notificationUnreadCount(ctx *context.Context) int64 {
 	return count
 }
 
+// orgTwoFactorRequired reports whether an organization the doer belongs to blocks them until they enable 2FA
+func orgTwoFactorRequired(ctx *context.Context) bool {
+	if ctx.Doer == nil {
+		return false
+	}
+	blocked, err := organization.IsTwoFactorBlockedByAnyOrg(ctx, ctx.Doer)
+	if err != nil {
+		if !errors.Is(err, goctx.Canceled) {
+			log.Error("Unable to IsTwoFactorBlockedByAnyOrg for user:%-v: %v", ctx.Doer, err)
+		}
+		return false
+	}
+	return blocked
+}
+
 type pageGlobalDataType struct {
 	IsSigned    bool
 	IsSiteAdmin bool
 
 	GetNotificationUnreadCount func() int64
 	GetActiveStopwatch         func() *StopwatchTmplInfo
+	GetOrgTwoFactorRequired    func() bool
 }
 
 func PageGlobalData(ctx *context.Context) {
@@ -79,5 +96,6 @@ func PageGlobalData(ctx *context.Context) {
 	data.IsSiteAdmin = ctx.Doer != nil && ctx.Doer.IsAdmin
 	data.GetNotificationUnreadCount = sync.OnceValue(func() int64 { return notificationUnreadCount(ctx) })
 	data.GetActiveStopwatch = sync.OnceValue(func() *StopwatchTmplInfo { return getActiveStopwatch(ctx) })
+	data.GetOrgTwoFactorRequired = sync.OnceValue(func() bool { return orgTwoFactorRequired(ctx) })
 	ctx.Data["PageGlobalData"] = data
 }

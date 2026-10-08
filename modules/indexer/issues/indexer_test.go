@@ -41,6 +41,7 @@ func TestDBSearchIssues(t *testing.T) {
 	t.Run("search issues by milestone", searchIssueByMilestoneID)
 	t.Run("search issues by label", searchIssueByLabelID)
 	t.Run("search issues by time", searchIssueByTime)
+	t.Run("search issues by deadline", searchIssueByDeadline)
 	t.Run("search issues with order", searchIssueWithOrder)
 	t.Run("search issues in project", searchIssueInProject)
 	t.Run("search issues with paginator", searchIssueWithPaginator)
@@ -387,6 +388,27 @@ func searchIssueByTime(t *testing.T) {
 		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
+	}
+}
+
+func searchIssueByDeadline(t *testing.T) {
+	// issue 10 is the only fixture with a deadline (1019307200), the others hold NULL
+	tests := []struct {
+		name        string
+		opts        SearchOptions
+		expectedIDs []int64
+	}{
+		{"has a deadline", SearchOptions{HasDeadline: optional.Some(true)}, []int64{10}},
+		{"before never matches no deadline", SearchOptions{DeadlineBeforeUnix: optional.Some(int64(1019307200))}, []int64{10}},
+		{"after the only deadline", SearchOptions{DeadlineAfterUnix: optional.Some(int64(1019307201))}, []int64{}},
+		{"has no deadline", SearchOptions{HasDeadline: optional.Some(false)}, []int64{22, 21, 17, 16, 15, 14, 13, 12, 11, 20, 6, 5, 19, 18, 7, 4, 9, 8, 3, 2, 1}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
+			require.NoError(t, err)
+			assert.Equal(t, test.expectedIDs, issueIDs)
+		})
 	}
 }
 

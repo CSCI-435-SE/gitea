@@ -109,6 +109,7 @@ func CanCreateOrgRepo(ctx context.Context, orgID, uid int64) (bool, error) {
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		And("team_user.uid = ?", uid).
 		And("team_user.org_id = ?", orgID).
+		And(notTwoFactorBlockedOrgCond("team_user.org_id", uid)).
 		Exist(new(Team))
 }
 

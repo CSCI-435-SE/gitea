@@ -149,6 +149,7 @@ type User struct {
 	NumMembers                int
 	Visibility                structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
+	RequireTwoFactor          bool                `xorm:"NOT NULL DEFAULT false INDEX"` // members and collaborators without 2FA are treated as non-members
 
 	// Preferences
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`

@@ -46,7 +46,7 @@ func Members(ctx *context.Context) {
 			ctx.ServerError("IsOrgMember", err)
 			return
 		}
-		opts.IsDoerMember = isMember
+		opts.IsDoerMember = isMember && ctx.Org.IsMember // OrgAssignment clears IsMember for a 2FA-blocked member
 	}
 	ctx.Data["PublicOnly"] = opts.PublicOnly()
 
@@ -76,6 +76,12 @@ func Members(ctx *context.Context) {
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
 	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(ctx, members, org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus(ctx)
+	if org.RequireTwoFactor && ctx.Org.IsOwner {
+		if ctx.Data["MembersWithoutTwoFactor"], err = organization.CountOrgMembersWithoutTwoFactor(ctx, org.ID); err != nil {
+			ctx.ServerError("CountOrgMembersWithoutTwoFactor", err)
+			return
+		}
+	}
 
 	ctx.HTML(http.StatusOK, tplMembers)
 }

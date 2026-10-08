@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 6
+	issueIndexerLatestVersion = 7 // settings only apply to a new index, so adding a filterable attribute needs a bump
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
@@ -81,6 +81,7 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 			"review_requested_ids",
 			"subscriber_ids",
 			"updated_unix",
+			"deadline_unix",
 		},
 		SortableAttributes: []string{
 			"updated_unix",
@@ -227,6 +228,13 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 	}
 	if options.UpdatedBeforeUnix.Has() {
 		query.And(inner_meilisearch.NewFilterLte("updated_unix", options.UpdatedBeforeUnix.Value()))
+	}
+
+	if minDeadline, maxDeadline, ok := options.DeadlineRange(); ok {
+		query.And(inner_meilisearch.NewFilterGte("deadline_unix", minDeadline.Value()))
+		if maxDeadline.Has() {
+			query.And(inner_meilisearch.NewFilterLte("deadline_unix", maxDeadline.Value()))
+		}
 	}
 
 	if options.SortBy == "" {

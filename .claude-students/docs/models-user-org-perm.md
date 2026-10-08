@@ -1,6 +1,6 @@
 ---
 scope: models/user, models/organization, models/perm, models/auth, models/asymkey
-verified-at: c0092050a4
+verified-at: 2629e98ef9
 ---
 
 # models/user, organization, perm — identities and who can do what
@@ -26,7 +26,9 @@ verified-at: c0092050a4
 | `models/organization/org.go`, `team.go` | orgs and teams |
 | `models/organization/team_unit.go` | a team's access mode per repo unit |
 | `models/perm/access_mode.go` | `AccessModeNone`/`Read`/`Write`/`Admin`/`Owner` |
-| `models/perm/access/repo_permission.go` | `Permission` and its `IsOwner`, unit-level accessors |
+| `models/perm/access/repo_permission.go` | `Permission`, `GetDoerRepoPermission` / `GetIndividualUserRepoPermission`, unit-level accessors |
+| `models/organization/org_two_factor.go` | an org's "require 2FA" policy: `IsTwoFactorBlocked`, `IgnoreTwoFactorPolicy` |
+| `models/user/two_factor_policy.go` | the policy's SQL twins, used by the repo list conditions in `models/repo/repo_list.go` |
 | `models/auth/access_token.go`, `access_token_scope.go` | API tokens and their scopes |
 | `models/asymkey/ssh_key.go`, `gpg_key.go` | key storage and verification |
 
@@ -49,6 +51,15 @@ verified-at: c0092050a4
   compared directly. `MustChangePassword` gates login after admin-created accounts.
 - API tokens carry scopes (`models/auth`), which is what `tokenRequiresScopes` enforces on API
   routes (`routers-api-v1.md`).
+- **An org can require 2FA** (`User.RequireTwoFactor`). A member or outside collaborator without TOTP or
+  WebAuthn is then treated as a non-member, fail-closed: `GetIndividualUserRepoPermission`,
+  `HasOrgOrUserVisible`, `Organization.UnitPermission`, `CanCreateOrgRepo` and the per-user conditions
+  in `models/repo/repo_list.go` all apply it, and branch-protection allowlist entries grant nothing while
+  their user is blocked (`models/git/protected_branch.go`). Site admins and non-person identities (an
+  org pushing through a deploy key) are exempt. Nothing is deleted, so enrolling restores access. An
+  owner of such an org cannot remove their last second factor.
+- The policy check does not test membership, so `NotTwoFactorBlockedRepoCond` only belongs on
+  membership-derived conditions; conditions that match public repos use the private-org-only variant.
 
 ## Recipes
 
@@ -59,6 +70,10 @@ specific unit.
 **Add a per-user setting.** `models/user/setting.go` holds key/value user settings; prefer that to
 a new column on `User`, which is a wide and hot table.
 
+**Write or delete rows because a user lost access** (unassign, unwatch, trim an allowlist). Check
+access with `organization.IgnoreTwoFactorPolicy(ctx)`, as `services/repository/collaboration.go`
+does, or a user only blocked by an org's 2FA policy loses those rows for good.
+
 **Find an org's members.** Go through `models/organization` (`org_user.go`, `team_user.go`) rather
 than joining the user table directly.
 
@@ -68,6 +83,8 @@ than joining the user table directly.
   numbers.
 - `models/perm` (the enum) and `models/perm/access` (the computation) are different packages that
   both get imported as something like `perm_model` and `access_model`. Match the file's aliases.
+- This fork has no `GetUserRepoPermission`: request paths use `GetDoerRepoPermission`, which also
+  resolves Actions task users; `GetIndividualUserRepoPermission` takes an explicit user.
 - Deleting a user is not a simple delete — it touches many tables; go through
   `services-user-org-auth.md`.
 

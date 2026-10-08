@@ -1,6 +1,6 @@
 ---
 scope: docs/testing.md, models/unittest, models/fixtures, services/contexttest, tests
-verified-at: 916a29ba28
+verified-at: 2629e98ef9
 ---
 
 # testing — the five tiers and their harnesses
@@ -89,6 +89,8 @@ under `models/migrations/fixtures/`; helpers in `models/migrations/migrationtest
   cleanup). Run the suite on Linux, macOS, WSL2 or the `.devcontainer` (`STUDENTS.md` §6).
 - `tests/integration` and `tests/e2e` share one Gitea instance per run, so a test that leaves state
   behind breaks later tests rather than itself.
+- `loginUser` cannot get past the TOTP step, so it never signs in a user who has 2FA. Sign in first,
+  then insert the `TwoFactor` row (`tests/integration/org_two_factor_test.go`); the session stays valid.
 - `unittest.AssertExistsAndLoadBean(t, &Foo{ID: 1, Bar: x})` turns the bean into the `WHERE`, and
   XORM leaves out zero-valued and `xorm:"-"` fields, so those are never checked. To verify a stored
   value, load by ID and compare fields (`models/issues/issue_close_reason_test.go`).

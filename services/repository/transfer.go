@@ -463,7 +463,8 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		}
 
 		// In case the new owner would not have sufficient access to the repo, give access rights for read
-		hasAccess, err := access_model.HasAnyUnitAccess(ctx, newOwner.ID, repo)
+		// (a 2FA lockout is not "insufficient": downgrading the new owner's collaboration would outlast it)
+		hasAccess, err := access_model.HasAnyUnitAccess(organization.IgnoreTwoFactorPolicy(ctx), newOwner.ID, repo)
 		if err != nil {
 			return err
 		}

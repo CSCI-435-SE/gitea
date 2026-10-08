@@ -291,6 +291,10 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 			"updated_unix"))
 	}
 
+	if minDeadline, maxDeadline, ok := options.DeadlineRange(); ok {
+		queries = append(queries, inner_bleve.NumericRangeInclusiveQuery(minDeadline, maxDeadline, "deadline_unix"))
+	}
+
 	var indexerQuery query.Query = bleve.NewConjunctionQuery(queries...)
 	if len(queries) == 0 {
 		indexerQuery = bleve.NewMatchAllQuery()

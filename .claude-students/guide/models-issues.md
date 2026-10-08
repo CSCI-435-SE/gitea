@@ -1,6 +1,6 @@
 ---
 source: docs/models-issues.md
-source-hash: 46a4fa498f7c32d7
+source-hash: 464abebbab914f0e
 verified-at: 94dfae067e
 ---
 
@@ -173,6 +173,11 @@ The grouping is worked out in two places that must agree: `applyGroupByLabelScop
 sit together, and `GroupByExclusiveLabelScope` in `models/issues/issue_group.go` then cuts that page
 into groups in Go. If you change the order in one, change it in the other. In particular both settle
 ties on the label's `id`, not its name, because the database and Go do not sort text the same way.
+
+**The list obeys your new filter but the Open/Closed counts do not.** The counts come from a second
+condition builder, `applyIssuesOptions` in `models/issues/issue_stats.go`, not `applyConditions` in
+`models/issues/issue_search.go`, so a new filter goes in both. Likewise "no due date" means
+`deadline_unix` is 0 *or* NULL: the column has no default, and fixture rows leave it out.
 
 **`Test_MigrateFromGiteaToGitea` fails with "missing fixture" after you add a column to `Issue`.** The
 migration code fetches issues in pages sized by `db.MaxBatchInsertSize` (`models/db/engine.go`): 999

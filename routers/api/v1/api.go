@@ -475,6 +475,27 @@ func reqAnyRepoReader() func(ctx *context.APIContext) {
 	}
 }
 
+// denyTwoFactorBlocked responds 403 and returns true when the org requires a 2FA that the doer, a member, lacks
+func denyTwoFactorBlocked(ctx *context.APIContext, orgID int64) bool {
+	org := ctx.Org.Organization
+	if org == nil || org.ID != orgID {
+		var err error
+		if org, err = organization.GetOrgByID(ctx, orgID); err != nil {
+			ctx.APIErrorInternal(err)
+			return true
+		}
+	}
+	blocked, err := org.IsTwoFactorBlocked(ctx, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return true
+	}
+	if blocked {
+		ctx.APIError(http.StatusForbidden, "This organization requires two-factor authentication; enable it on your account to regain access")
+	}
+	return blocked
+}
+
 // reqOrgOwnership user should be an organization owner, or a site admin
 func reqOrgOwnership() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
@@ -505,6 +526,7 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 			}
 			return
 		}
+		denyTwoFactorBlocked(ctx, orgID)
 	}
 }
 
@@ -538,13 +560,17 @@ func teamAccessPrivileged(ctx *context.APIContext) (orgID int64, privileged, ok 
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return 0, false, false
-	} else if isOwner {
-		return orgID, true, true
 	}
 
-	isTeamMember, err := organization.IsTeamMember(ctx, orgID, ctx.Org.Team.ID, ctx.Doer.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
+	isTeamMember := isOwner
+	if !isOwner {
+		isTeamMember, err = organization.IsTeamMember(ctx, orgID, ctx.Org.Team.ID, ctx.Doer.ID)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return 0, false, false
+		}
+	}
+	if isTeamMember && denyTwoFactorBlocked(ctx, orgID) {
 		return 0, false, false
 	}
 	return orgID, isTeamMember, true
@@ -628,6 +654,7 @@ func reqOrgMembership() func(ctx *context.APIContext) {
 			}
 			return
 		}
+		denyTwoFactorBlocked(ctx, orgID)
 	}
 }
 

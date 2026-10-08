@@ -1,7 +1,7 @@
 ---
 source: docs/modules-infra.md
-source-hash: 96d6b43b61e99a0e
-verified-at: c0092050a4
+source-hash: 6c71c04748e648db
+verified-at: 94dfae067e
 ---
 
 <!-- Derived from docs/modules-infra.md. Do not edit by hand: fix the reference doc and regenerate
@@ -134,6 +134,12 @@ queue survives a restart while an in-memory one does not.
 
 **"The issue exists but does not show up in search."** Almost always indexing lag or a missing
 reindex, not a query bug. Check the database first to confirm the row is there.
+
+**A new Meilisearch filter works on a fresh install but errors on an existing one.** Meilisearch
+only applies its settings, including which fields can be filtered, when it first creates the index
+(`Init` in `modules/indexer/internal/meilisearch/indexer.go`). An old index never learns about the
+new field. Bump `issueIndexerLatestVersion` in `modules/indexer/issues/meilisearch/meilisearch.go`,
+which makes Gitea build a fresh index on upgrade.
 
 **Your file handling breaks on a real deployment.** Something assumed a local path instead of using
 the storage interface.

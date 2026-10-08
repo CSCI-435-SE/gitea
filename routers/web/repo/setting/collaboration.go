@@ -31,6 +31,13 @@ func Collaboration(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Collaborators"] = users
+	if ctx.Repo.Repository.Owner.RequireTwoFactor {
+		collaboratorUsers := make(user_model.UserList, 0, len(users))
+		for _, u := range users {
+			collaboratorUsers = append(collaboratorUsers, u.User)
+		}
+		ctx.Data["CollaboratorsTwoFaStatus"] = collaboratorUsers.GetTwoFaStatus(ctx)
+	}
 
 	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.ID)
 	if err != nil {
