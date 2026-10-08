@@ -141,6 +141,10 @@ func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *use
 		return writeAccess
 	}
 
+	if protectBranch.isAllowlistBlockedByTwoFactor(ctx, user) {
+		return false
+	}
+
 	if slices.Contains(protectBranch.WhitelistUserIDs, user.ID) {
 		return true
 	}
@@ -155,6 +159,26 @@ func (protectBranch *ProtectedBranch) CanUserPush(ctx context.Context, user *use
 		return false
 	}
 	return in
+}
+
+// isAllowlistBlockedByTwoFactor reports whether the repo's owner org requires a 2FA that the user lacks.
+// Their allowlist entries are kept while they are blocked (see updateUserWhitelist), so they must not
+// grant anything until the user enrols. It fails closed.
+func (protectBranch *ProtectedBranch) isAllowlistBlockedByTwoFactor(ctx context.Context, user *user_model.User) bool {
+	if err := protectBranch.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return true
+	}
+	if err := protectBranch.Repo.LoadOwner(ctx); err != nil {
+		log.Error("LoadOwner: %v", err)
+		return true
+	}
+	blocked, err := organization.OrgFromUser(protectBranch.Repo.Owner).IsTwoFactorBlocked(ctx, user)
+	if err != nil {
+		log.Error("IsTwoFactorBlocked: %v", err)
+		return true
+	}
+	return blocked
 }
 
 // CanUserForcePush returns if some user could force push to this protected branch
@@ -189,6 +213,25 @@ func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch,
 	if !protectBranch.EnableMergeWhitelist {
 		// Then we need to fall back on whether the user has write permission
 		return permissionInRepo.CanWrite(unit.TypeCode)
+	}
+
+	if err := protectBranch.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return false
+	}
+	if err := protectBranch.Repo.LoadOwner(ctx); err != nil {
+		log.Error("LoadOwner: %v", err)
+		return false
+	}
+	if protectBranch.Repo.Owner.RequireTwoFactor { // load the user only when an org's 2FA policy may apply
+		user, err := user_model.GetUserByID(ctx, userID)
+		if err != nil {
+			log.Error("GetUserByID: %v", err)
+			return false
+		}
+		if protectBranch.isAllowlistBlockedByTwoFactor(ctx, user) {
+			return false
+		}
 	}
 
 	if slices.Contains(protectBranch.MergeWhitelistUserIDs, userID) {
