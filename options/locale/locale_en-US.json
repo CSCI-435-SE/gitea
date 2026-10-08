@@ -89,6 +89,8 @@
   "remove": "Remove",
   "remove_all": "Remove All",
   "remove_label_str": "Remove item \"%s\"",
+  "selected_item_str": "Selected \"%s\"",
+  "deselected_item_str": "Deselected \"%s\"",
   "edit": "Edit",
   "view": "View",
   "test": "Test",

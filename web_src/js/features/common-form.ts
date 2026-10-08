@@ -16,6 +16,7 @@ export function initGlobalEnterQuickSubmit() {
   document.addEventListener('keydown', (e) => {
     if (e.isComposing) return;
     if (e.key !== 'Enter') return;
+    if (e.defaultPrevented) return; // a widget has handled it, e.g. a dropdown picking an item
     const el = e.target as HTMLElement;
     const hasCtrlOrMeta = ((e.ctrlKey || e.metaKey) && !e.altKey);
     const isCtrlEnterInTextarea = hasCtrlOrMeta && el.matches('textarea');

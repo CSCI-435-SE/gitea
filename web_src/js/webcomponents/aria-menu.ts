@@ -2,6 +2,7 @@ import {generateElemId, hideElem, showElem} from '../utils/dom.ts';
 
 // A menu button following https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/ with no Fomantic.
 // Markup: <aria-menu><button type="button">label</button><div class="menu"><a class="item">...</a></div></aria-menu>
+// Optional host attributes, read only by CSS: placement="bottom-start|bottom-end|top-start|top-end" (default bottom-start), pointing
 // Items get real focus (roving tabindex) instead of aria-activedescendant, see web_src/js/modules/fomantic/aria.md
 window.customElements.define('aria-menu', class extends HTMLElement {
   trigger!: HTMLElement;

@@ -43,12 +43,12 @@
 	<!-- the full dropdown menus -->
 	<div class="navbar-right">
 		{{if and .IsSigned .MustChangePassword}}
-			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="text">
+			<aria-menu class="item" placement="bottom-end">
+				<button type="button" class="btn" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 					{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-1"}}
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
 					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
-				</span>
+				</button>
 				<div class="menu user-menu">
 					<div class="header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
@@ -60,15 +60,15 @@
 						{{ctx.Locale.Tr "sign_out"}}
 					</a>
 				</div><!-- end content avatar menu -->
-			</div><!-- end dropdown avatar menu -->
+			</aria-menu><!-- end dropdown avatar menu -->
 		{{else if .IsSigned}}
 			{{template "base/head_navbar_icons" dict "ItemExtraClass" "not-mobile" "PageGlobalData" .PageGlobalData}}
-			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
-				<span class="flex-text-block">
+			<aria-menu class="item" placement="bottom-end">
+				<button type="button" class="btn flex-text-block" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
 					{{svg "octicon-plus"}}
 					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 					<span class="only-mobile">{{ctx.Locale.Tr "create_new"}}</span>
-				</span>
+				</button>
 				<div class="menu">
 					<a class="item" href="{{AppSubUrl}}/repo/create">
 						{{svg "octicon-plus"}} {{ctx.Locale.Tr "new_repo"}}
@@ -84,17 +84,17 @@
 					</a>
 					{{end}}
 				</div><!-- end content create new menu -->
-			</div><!-- end dropdown menu create new -->
+			</aria-menu><!-- end dropdown menu create new -->
 
-			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="text tw-flex tw-items-center">
+			<aria-menu class="item" placement="bottom-end">
+				<button type="button" class="btn tw-gap-0" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 					<span class="navbar-avatar">
 						{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-2"}}
 						{{if .IsAdmin}}{{svg "octicon-shield-check" 16 "navbar-admin-badge"}}{{end}}
 					</span>
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
 					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
-				</span>
+				</button>
 				<div class="menu user-menu">
 					<div class="header">
 						{{ctx.Locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
@@ -136,7 +136,7 @@
 						{{ctx.Locale.Tr "sign_out"}}
 					</a>
 				</div><!-- end content avatar menu -->
-			</div><!-- end dropdown avatar menu -->
+			</aria-menu><!-- end dropdown avatar menu -->
 		{{else}}
 			{{if .ShowRegistrationButton}}
 				<a class="item{{if .PageIsSignUp}} active{{end}}" href="{{AppSubUrl}}/user/sign_up">

@@ -4,6 +4,7 @@ import {showErrorToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {parseDom} from '../utils.ts';
+import {announceSelectionChange} from '../modules/aria-announce.ts';
 
 export function syncIssueMainContentTimelineItems(oldMainContent: Element, newMainContent: Element) {
   // find the end of comments timeline by "id=timeline-comments-end" in current main content, and insert new items before it
@@ -66,6 +67,24 @@ export class IssueSidebarComboList {
 
   collectCheckedValues() {
     return Array.from(this.elDropdown.querySelectorAll('.menu > .item.checked'), (el) => el.getAttribute('data-value')!);
+  }
+
+  // keep each item's aria-selected in step with its "checked" class, and return the items that changed
+  syncAriaSelected(): Array<HTMLElement> {
+    const changed: Array<HTMLElement> = [];
+    for (const el of this.elDropdown.querySelectorAll<HTMLElement>('.menu > .item:not(.clear-selection)')) {
+      const selected = el.classList.contains('checked') ? 'true' : 'false';
+      if (el.getAttribute('aria-selected') === selected) continue;
+      if (el.hasAttribute('aria-selected')) changed.push(el); // the first sync on init is not a change
+      el.setAttribute('aria-selected', selected);
+    }
+    return changed;
+  }
+
+  getItemName(elItem: HTMLElement): string {
+    const el = elItem.cloneNode(true) as HTMLElement;
+    queryElems(el, '.item-check-mark, .item-secondary-info', (el) => el.remove());
+    return el.textContent.trim().replace(/\s+/g, ' ');
   }
 
   updateUiList(changedValues: Array<string>) {
@@ -145,7 +164,10 @@ export class IssueSidebarComboList {
   }
 
   async onChange() {
-    if (this.selectionMode === 'single') {
+    const changedItems = this.syncAriaSelected();
+    if (this.selectionMode === 'multiple') {
+      for (const el of changedItems) announceSelectionChange(this.getItemName(el), el.classList.contains('checked'));
+    } else if (this.selectionMode === 'single') {
       await this.doUpdate();
       fomanticQuery(this.elDropdown).dropdown('hide');
     }
@@ -201,6 +223,8 @@ export class IssueSidebarComboList {
       }
     }
     this.initialValues = this.collectCheckedValues();
+    if (this.selectionMode === 'multiple') this.elDropdown.querySelector(':scope > .menu')!.setAttribute('aria-multiselectable', 'true');
+    this.syncAriaSelected();
 
     addDelegatedEventListener(this.elDropdown, 'click', '.item', (el, e) => this.onItemClick(el, e));
 

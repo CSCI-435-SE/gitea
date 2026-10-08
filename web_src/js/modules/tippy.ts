@@ -12,6 +12,14 @@ type TippyOpts = {
 const visibleInstances = new Set<Instance>();
 const arrowSvg = html`<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
 
+/**
+ * Create and return a Tippy instance with Gitea's popup defaults, appending to document.body unless overridden.
+ * The default role is "menu", which sets aria-haspopup="true" on the target.
+ * On show, targets with aria-haspopup="menu" retain aria-controls and cannot show while aria-expanded="true".
+ * Otherwise, showing requests that other tracked tooltips hide and sets aria-controls for non-menu-button targets.
+ * The onShow, onHide, and onDestroy hooks run after internal handling; a blocked show skips onShow.
+ * Errors from supplied hooks are not caught.
+ */
 export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
@@ -34,6 +42,8 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       return onDestroy?.(instance);
     },
     onShow: (instance: Instance) => {
+      const isMenuButton = target.getAttribute('aria-haspopup') === 'menu';
+      if (isMenuButton && target.getAttribute('aria-expanded') === 'true') return false;
       // hide other tooltip instances so only one tooltip shows at a time
       for (const visibleInstance of visibleInstances) {
         if (visibleInstance.props.role === 'tooltip') {
@@ -41,7 +51,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
         }
       }
       visibleInstances.add(instance);
-      target.setAttribute('aria-controls', instance.popper.id);
+      if (!isMenuButton) target.setAttribute('aria-controls', instance.popper.id);
       return onShow?.(instance);
     },
     arrow: arrow ?? (theme === 'bare' ? false : arrowSvg),
@@ -175,6 +185,13 @@ export function initGlobalTooltips(): void {
   attachChildrenLazyTooltip(document.documentElement);
 }
 
+/**
+ * Show feedback using an existing Tippy instance or a newly attached tooltip.
+ * Anchor to the nearest Fomantic dropdown or aria-menu, or to target itself. Inside a Tippy popup,
+ * attach to document.body and anchor to the element controlling that popup, falling back to a zero-sized rect at (0, 0).
+ * Outside Tippy popups, schedule hiding after 1500 ms. Once hidden, restore the target's default tooltip or destroy it.
+ * @throws {TypeError} If content is an empty string and the resolved target has no existing Tippy instance.
+ */
 export function showTemporaryTooltip(target: Element, content: Content): void {
   // if the target is inside a dropdown or tippy popup, the menu will be hidden soon
   // so display the tooltip on the "aria-controls" element or dropdown instead
@@ -187,7 +204,7 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
     refClientRect = refClientRect ?? new DOMRect(0, 0, 0, 0); // fallback to empty rect if not found, tippy doesn't accept null
   } else {
     // for example, the "Copy Link" button in the issue header dropdown menu
-    target = target.closest('.ui.dropdown') ?? target;
+    target = target.closest('.ui.dropdown, aria-menu') ?? target;
     refClientRect = target.getBoundingClientRect();
   }
   const tooltipTippy = target._tippy ?? attachTooltip(target, content);
