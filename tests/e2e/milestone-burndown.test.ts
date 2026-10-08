@@ -50,6 +50,41 @@ test('milestone burndown charts remaining work against the ideal line', async ({
   await apiDeleteRepo(page.request, user, repoName);
 });
 
+test('a slow answer for an earlier toggle does not overwrite the chart', async ({page}) => {
+  const repoName = `e2e-burndown-race-${randomString(8)}`;
+  const user = env.GITEA_TEST_E2E_USER;
+  await Promise.all([login(page), apiCreateRepo(page.request, {name: repoName})]);
+  const {id} = await apiCreateMilestone(page.request, {owner: user, repo: repoName, title: 'Sprint'});
+  await apiCreateIssue(page.request, {owner: user, repo: repoName, title: 'Open', milestone: id});
+
+  // the pull request answer is held back until the box is unticked again, and would claim the milestone is done
+  const release = Promise.withResolvers<void>();
+  const answered = Promise.withResolvers<void>();
+  await page.route('**/burndown?include_pulls=1', async (route) => {
+    await release.promise;
+    await route.fulfill({json: {points: [{date: '2026-01-05', remaining: 0, scope: 1, added: 0, removed: 0}], deadline: '',
+      ideal: null, status: 'done', projected: '', daysLate: null, completedOn: '2026-01-05'}});
+    answered.resolve();
+  });
+
+  await page.goto(`/${user}/${repoName}/milestone/${id}`);
+  const chart = page.locator('#milestone-burndown-chart');
+  await expect(chart.locator('canvas')).toBeVisible();
+  const includePulls = chart.getByRole('checkbox', {name: 'Include pull requests'});
+  const summary = chart.locator('.milestone-burndown-summary');
+  await includePulls.check();
+  await includePulls.uncheck();
+  await expect(summary).toContainText('two days of history'); // the newer, issues-only answer
+  const lateResponse = page.waitForResponse('**/burndown?include_pulls=1');
+  release.resolve();
+  await Promise.all([answered.promise, lateResponse]);
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50))); // one task turn for the component to read it
+  await expect(summary).toContainText('two days of history');
+  await expect(summary).not.toContainText('Completed');
+
+  await apiDeleteRepo(page.request, user, repoName);
+});
+
 test('milestone burndown shows an empty state without items', async ({page}) => {
   const repoName = `e2e-burndown-empty-${randomString(8)}`;
   const user = env.GITEA_TEST_E2E_USER;
