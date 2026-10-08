@@ -389,6 +389,50 @@ func TestCalcMilestoneBurndown(t *testing.T) {
 			},
 		},
 		{
+			// how sprint milestones are usually made: created first, filled days later
+			name:      "the projection counts from the first day with work, not the creation day",
+			milestone: issues_model.Milestone{CreatedUnix: jan(1, "09:00")},
+			items: []issues_model.MilestoneItem{
+				closedItem(1, jan(10, "09:00"), jan(12, "10:00")),
+				openItem(2, jan(10, "09:00")), openItem(3, jan(10, "09:00")), openItem(4, jan(10, "09:00")), openItem(5, jan(10, "09:00")),
+			},
+			events: (&eventSeq{}).join(1, jan(10, "10:00")).join(2, jan(10, "10:00")).join(3, jan(10, "10:00")).
+				join(4, jan(10, "10:00")).join(5, jan(10, "10:00")).close(1, jan(12, "10:00")),
+			now: jan(13, "12:00"),
+			check: func(t *testing.T, b *MilestoneBurndown) {
+				// one closed in the three days since work began; measured from Jan 1 the empty days read as growth
+				assert.Equal(t, BurndownProjected, b.Status)
+				assert.Equal(t, "2026-01-25", b.Projected)
+			},
+		},
+		{
+			name:      "history before the first day of work does not count towards a projection",
+			milestone: issues_model.Milestone{CreatedUnix: jan(1, "09:00")},
+			items:     []issues_model.MilestoneItem{openItem(1, jan(10, "09:00"))},
+			events:    (&eventSeq{}).join(1, jan(10, "10:00")),
+			now:       jan(11, "12:00"),
+			check: func(t *testing.T, b *MilestoneBurndown) {
+				assert.Equal(t, BurndownInsufficientData, b.Status)
+			},
+		},
+		{
+			name: "a closed milestone ignores a later close of an item that already left it",
+			milestone: issues_model.Milestone{
+				CreatedUnix: jan(5, "09:00"), IsClosed: true, ClosedDateUnix: jan(7, "10:00"),
+			},
+			items: []issues_model.MilestoneItem{
+				{ID: 1, MilestoneID: burndownMilestone + 1, CreatedUnix: jan(5, "09:00"), IsClosed: true, ClosedUnix: jan(20, "10:00")},
+				openItem(2, jan(5, "09:00")),
+			},
+			events:    (&eventSeq{}).join(1, jan(5, "10:00")).join(2, jan(5, "10:00")).leave(1, jan(6, "10:00")).close(1, jan(20, "10:00")),
+			now:       jan(25, "12:00"),
+			remaining: []int{2, 1, 1},
+			scope:     []int{2, 1, 1},
+			check: func(t *testing.T, b *MilestoneBurndown) {
+				assert.Equal(t, "2026-01-07", b.Points[len(b.Points)-1].Date, "the chart ends where the milestone closed")
+			},
+		},
+		{
 			name:      "an item that joins and leaves on the same day is marked both ways",
 			milestone: issues_model.Milestone{CreatedUnix: jan(5, "09:00")},
 			items: []issues_model.MilestoneItem{

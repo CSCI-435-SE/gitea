@@ -98,6 +98,10 @@ type burndownDelta struct {
 	item      *issues_model.MilestoneItem
 }
 
+func (d burndownDelta) moves() bool {
+	return d.remaining != 0 || d.scope != 0
+}
+
 // kind names the change for the day's list; a change of scope outranks a close, since an item that
 // joins already closed was added, not closed. It is empty when the counts did not move.
 func (d burndownDelta) kind() BurndownChangeKind {
@@ -184,11 +188,13 @@ func replayMilestoneItem(item issues_model.MilestoneItem, events []issues_model.
 		case issues_model.CommentTypeReopen:
 			next.open = true
 		}
-		lastAt = max(lastAt, int64(e.CreatedUnix))
-		if next != state {
-			deltas = append(deltas, state.diff(next, int64(e.CreatedUnix)))
-			state = next
+		// a close or reopen while the item is outside the milestone moves no count; recording it would
+		// stretch a closed milestone's chart to a change that never touched it
+		if d := state.diff(next, int64(e.CreatedUnix)); d.moves() {
+			deltas = append(deltas, d)
+			lastAt = max(lastAt, d.at)
 		}
+		state = next
 	}
 
 	// the comments can still disagree with the row, for instance after a reopen whose close was never
@@ -199,7 +205,9 @@ func replayMilestoneItem(item issues_model.MilestoneItem, events []issues_model.
 		if state.open && !want.open {
 			at = max(at, int64(item.ClosedUnix))
 		}
-		deltas = append(deltas, state.diff(want, at))
+		if d := state.diff(want, at); d.moves() {
+			deltas = append(deltas, d)
+		}
 	}
 	return deltas
 }
@@ -321,10 +329,12 @@ func CalcMilestoneBurndown(m *issues_model.Milestone, items []issues_model.Miles
 		result.CompletedOn = points[done].Date
 	case m.IsClosed:
 		result.Status = BurndownClosed
-	case last < burndownMinHistoryDays:
+	// history counts from the first day with work: days before it hold nothing to burn, and a window
+	// reaching back into them would read the work arriving as work growing
+	case last-from < burndownMinHistoryDays:
 		result.Status = BurndownInsufficientData
 	default:
-		window := min(burndownWindowDays, last)
+		window := min(burndownWindowDays, last-from)
 		rate := float64(points[last-window].Remaining-points[last].Remaining) / float64(window)
 		if rate <= 0 {
 			result.Status = BurndownNotBurning
