@@ -6,6 +6,7 @@ package organization_test
 import (
 	"testing"
 
+	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -100,6 +101,27 @@ func TestTwoFactorPolicyQueries(t *testing.T) {
 	assert.True(t, blockedByAnyOrg(10), "outside collaborator")
 	assert.False(t, blockedByAnyOrg(5), "unrelated user")
 	assert.False(t, blockedByAnyOrg(1), "site admin")
+}
+
+func TestCountOrgMembersWithoutTwoFactorExcludesAdmins(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	for _, userID := range []int64{24, 32} {
+		require.NoError(t, db.Insert(ctx, &organization.OrgUser{OrgID: 3, UID: userID}))
+	}
+
+	count, err := organization.CountOrgMembersWithoutTwoFactor(ctx, 3)
+	require.NoError(t, err)
+	assert.EqualValues(t, 3, count, "TOTP and WebAuthn members are excluded")
+
+	for i, userID := range []int64{4, 2} {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
+		user.IsAdmin = true
+		require.NoError(t, user_model.UpdateUserCols(ctx, user, "is_admin"))
+		count, err = organization.CountOrgMembersWithoutTwoFactor(ctx, 3)
+		require.NoError(t, err)
+		assert.EqualValues(t, 2-i, count, "site admins are excluded, including owners")
+	}
 }
 
 func TestHasOrgOrUserVisibleTwoFactorPolicy(t *testing.T) {

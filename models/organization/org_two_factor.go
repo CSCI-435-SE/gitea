@@ -79,9 +79,12 @@ func notTwoFactorBlockedOrgCond(orgIDCol string, userID int64) builder.Cond {
 }
 
 // CountOrgMembersWithoutTwoFactor counts the organization's members enrolled in neither TOTP nor WebAuthn.
+// Site administrators are excluded because the policy never blocks them.
 func CountOrgMembersWithoutTwoFactor(ctx context.Context, orgID int64) (int64, error) {
 	return db.GetEngine(ctx).
+		Join("INNER", "user", "`user`.id = `org_user`.uid").
 		Where(builder.Eq{"`org_user`.org_id": orgID}).
+		And(builder.Eq{"`user`.is_admin": false}).
 		And(builder.Not{user_model.HasTwoFactorCond("`org_user`.uid")}).
 		Count(new(OrgUser))
 }

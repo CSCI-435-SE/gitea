@@ -13,7 +13,6 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/session"
 	"gitea.dev/services/context"
 )
 
@@ -69,7 +68,7 @@ func notificationUnreadCount(ctx *context.Context) int64 {
 
 // orgTwoFactorRequired reports whether an organization the doer belongs to blocks them until they enable 2FA
 func orgTwoFactorRequired(ctx *context.Context) bool {
-	if ctx.Doer == nil || ctx.Session.Get(session.KeyUserHasTwoFactorAuth) == true {
+	if ctx.Doer == nil {
 		return false
 	}
 	blocked, err := organization.IsTwoFactorBlockedByAnyOrg(ctx, ctx.Doer)
