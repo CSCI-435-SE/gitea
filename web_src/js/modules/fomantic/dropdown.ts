@@ -1,5 +1,6 @@
 import type {FomanticInitFunction} from '../../types.ts';
 import {generateElemId, queryElems} from '../../utils/dom.ts';
+import {announceSelectionChange} from '../aria-announce.ts';
 
 const ariaPatchKey = '_giteaAriaPatchDropdown';
 const fomanticDropdownFn = $.fn.dropdown;
@@ -62,9 +63,19 @@ function updateSelectionLabel(label: HTMLElement) {
 
   const deleteIcon = label.querySelector('.delete.icon');
   if (deleteIcon) {
+    // the value can be an internal ID (the protected branch user and team pickers), so name it by what is shown
+    const labelName = label.textContent.trim() || label.getAttribute('data-value')!;
     deleteIcon.setAttribute('aria-hidden', 'false');
-    deleteIcon.setAttribute('aria-label', window.config.i18n.remove_label_str.replace('%s', label.getAttribute('data-value')!));
+    deleteIcon.setAttribute('aria-label', window.config.i18n.remove_label_str.replace('%s', labelName));
     deleteIcon.setAttribute('role', 'button');
+  }
+}
+
+// Fomantic marks the chosen items of a multiple selection dropdown "active"
+function refreshAriaSelected(dropdown: HTMLElement) {
+  if (!dropdown.classList.contains('multiple')) return;
+  for (const item of dropdown.querySelectorAll(':scope > .menu > .item')) {
+    item.setAttribute('aria-selected', item.classList.contains('active') ? 'true' : 'false');
   }
 }
 
@@ -91,6 +102,7 @@ function delegateDropdownModule($dropdown: any) {
     const $items = $wrapper.find('> .item');
     $items.each((_, item) => updateMenuItem($dropdown[0], item));
     $dropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem();
+    setTimeout(() => refreshAriaSelected($dropdown[0]), 0);
     return $wrapper.html();
   };
   dropdownCall('setting', 'templates', dropdownTemplates);
@@ -102,6 +114,21 @@ function delegateDropdownModule($dropdown: any) {
     updateSelectionLabel($label[0]);
     return $label;
   });
+
+  // Fomantic doesn't call onAdd/onRemove on the initial load, so pre-selected items stay silent
+  for (const [callbackName, selected] of [['onAdd', true], ['onRemove', false]] as const) {
+    const callbackOld = dropdownCall('setting', callbackName);
+    dropdownCall('setting', callbackName, function(this: any, value: string, text: string, $item: any) {
+      const ret = callbackOld.call(this, value, text, $item);
+      if ($dropdown[0].classList.contains('multiple')) {
+        // a value typed by the user and removed by its label has no menu item
+        $item?.[0]?.setAttribute('aria-selected', selected ? 'true' : 'false'); // the changed item is exact now, before Fomantic updates its classes
+        announceSelectionChange($item?.[0]?.textContent.trim() || value, selected);
+        setTimeout(() => refreshAriaSelected($dropdown[0]), 0); // Fomantic updates the "active" classes after the callback
+      }
+      return ret;
+    });
+  }
 
   const oldSet = dropdownCall('internal', 'set');
   const oldSetDirection = oldSet.direction;
@@ -127,10 +154,12 @@ function attachStaticElements(dropdown: HTMLElement, focusable: HTMLElement, men
     menu.id = generateElemId('_aria_dropdown_menu_');
   }
 
-  $(menu).find('> .item').each((_, item) => updateMenuItem(dropdown, item));
+  $(menu).find('> .item, > .scrolling.menu > .item').each((_, item) => updateMenuItem(dropdown, item));
 
   // this role could only be changed after its content is ready, otherwise some browsers+readers (like Chrome+AppleVoice) crash
   menu.setAttribute('role', (dropdown as any)[ariaPatchKey].listPopupRole);
+  if (dropdown.classList.contains('multiple')) menu.setAttribute('aria-multiselectable', 'true');
+  refreshAriaSelected(dropdown);
 
   // prepare selection label items
   for (const label of dropdown.querySelectorAll<HTMLElement>('.ui.label')) {
@@ -210,7 +239,7 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
 
     // if there is an active item, use it (the user is navigating between items)
     // otherwise use the "selected" for combobox (for the last selected item)
-    const active = $(menu).find('> .item.active, > .item.selected')[0];
+    const active = $(menu).find('> .item.active, > .item.selected, > .scrolling.menu > .item.selected')[0];
     if (!active) return;
     // if the popup is visible and has an active/selected item, use its id as aria-activedescendant
     if (menuVisible) {
