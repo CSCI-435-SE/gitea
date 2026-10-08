@@ -287,11 +287,13 @@ func MilestoneBurndownData(ctx *context.Context) {
 		return
 	}
 
-	// issues by default, pull requests only on request, and neither kind unless the viewer may read it:
-	// the route lets in a reader of either, and the chart must not count or list the other
+	// issues by default, pull requests on request, and neither kind unless the viewer may read it: the route
+	// lets in a reader of either, and the chart must not count or list the other. A reader of pull requests
+	// only gets them by default, or their chart would always claim the milestone is empty.
+	canReadIssues := ctx.Repo.Permission.CanRead(unit.TypeIssues)
 	burndown, err := issue.GetMilestoneBurndown(ctx, milestone, issue.BurndownOptions{
-		Issues: ctx.Repo.Permission.CanRead(unit.TypeIssues),
-		Pulls:  ctx.FormBool("include_pulls") && ctx.Repo.Permission.CanRead(unit.TypePullRequests),
+		Issues: canReadIssues,
+		Pulls:  ctx.Repo.Permission.CanRead(unit.TypePullRequests) && (ctx.FormBool("include_pulls") || !canReadIssues),
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestoneBurndown", err)

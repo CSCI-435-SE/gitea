@@ -228,18 +228,18 @@ func TestMilestoneBurndownWithoutIssueAccess(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, nil, []unit_model.Type{unit_model.TypeIssues}))
 
-	// a pull request reader still reaches the milestone, but the closed issue is neither counted nor
-	// listed, by default or with pull requests asked for
-	assert.Equal(t, issue_service.BurndownEmpty, readBurndown(t, "/user2/repo1/milestone/1/burndown").Status)
-
-	burndown := readBurndown(t, "/user2/repo1/milestone/1/burndown?include_pulls=1")
-	require.NotEmpty(t, burndown.Points)
-	today := burndown.Points[len(burndown.Points)-1]
-	assert.Equal(t, 1, today.Scope, "the pull request only")
-	assert.Equal(t, 1, today.Remaining)
-	for _, p := range burndown.Points {
-		for _, c := range p.Changes {
-			assert.NotEqual(t, created.Index, c.Index, "an unreadable issue leaked into %s", p.Date)
+	// a pull request reader still reaches the milestone and sees its pull requests by default, rather
+	// than an "empty" chart; the closed issue is never counted or listed, asked for or not
+	for _, url := range []string{"/user2/repo1/milestone/1/burndown", "/user2/repo1/milestone/1/burndown?include_pulls=1"} {
+		burndown := readBurndown(t, url)
+		require.NotEmpty(t, burndown.Points, url)
+		today := burndown.Points[len(burndown.Points)-1]
+		assert.Equal(t, 1, today.Scope, "the pull request only: %s", url)
+		assert.Equal(t, 1, today.Remaining, url)
+		for _, p := range burndown.Points {
+			for _, c := range p.Changes {
+				assert.NotEqual(t, created.Index, c.Index, "an unreadable issue leaked into %s of %s", p.Date, url)
+			}
 		}
 	}
 }
