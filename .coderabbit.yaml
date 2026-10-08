@@ -33,6 +33,7 @@ reviews:
         - Layers: imports flow cmd → routers → services → models → modules only. Flag an import against that direction.
         - Comments: short, explaining why, never narrating the code. Flag a removed comment that is still true. Never ask for docstrings.
         - Docs drift: if the change makes a statement in a .claude-students/docs page wrong, ask for that page to be fixed in the same PR (AGENTS.md).
+        - Commits: a commit made with AI help, including one pushed by a bot, ends with an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer, and no commit carries `Co-Authored-By` or `Signed-off-by` (AGENTS.md, .claude-students/COURSE-WORKFLOW.md). If possible, the message also names the person who approved the change, since a human approves every commit.
         - Skip anything `make fmt`, `make lint-go`, `make lint-js`, `make lint-css` or `make lint-templates` enforces; CI runs them.
     - path: "**/*.go"
       instructions: |
@@ -94,7 +95,7 @@ reviews:
         - Only `locale_en-US.json` is edited by hand. Edits to any other locale file are overwritten by the Crowdin sync and must be reverted (CONTRIBUTING.md, "Translation").
         - A new key sits next to its neighbours in the same area. A plural is a `_1` and `_n` pair, both using `%d`.
         - Flag a new key that nothing uses, and a removed key that something still uses.
-  finishing_touches: # a human approves every commit (AGENTS.md), so the bot never pushes code
+  finishing_touches: # a human approves every commit (AGENTS.md), so the bot never pushes code; its commits also lack the Assisted-by trailer the course requires
     docstrings:
       enabled: false
     unit_tests:
