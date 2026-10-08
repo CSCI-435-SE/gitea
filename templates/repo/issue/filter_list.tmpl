@@ -1,6 +1,6 @@
 {{$projectIDs := $.ProjectIDs}}
 {{$projectIDsQuery := SliceUtils.JoinInt64 $projectIDs}}
-{{$queryLink := QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" $.State "labels" $.SelectLabels "milestone" $.MilestoneID "project" $projectIDsQuery "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true") "group" $.GroupByLabelScope}}
+{{$queryLink := QueryBuild "?" "q" $.Keyword "type" $.ViewType "sort" $.SortType "state" $.State "labels" $.SelectLabels "milestone" $.MilestoneID "project" $projectIDsQuery "assignee" $.AssigneeID "poster" $.PosterUsername "archived_labels" (Iif $.ShowArchivedLabels "true") "group" $.GroupByLabelScope "due" $.DueDateFilter}}
 {{$showAllProjects := not $projectIDs}}
 {{$showNoProjectSelected := and (eq (len $projectIDs) 1) (eq (index $projectIDs 0) -1)}}
 
@@ -75,6 +75,10 @@
 	"TextFilterMatchNone" (ctx.Locale.Tr "repo.issues.filter_assignee_no_assignee")
 	"TextFilterMatchAny" (ctx.Locale.Tr "repo.issues.filter_assignee_any_assignee")
 }}
+
+{{if not .Milestone}}
+{{template "repo/issue/filter_item_due_date" dict "QueryLink" $queryLink "DueDateFilter" $.DueDateFilter}}
+{{end}}
 
 {{if .IsSigned}}
 	<!-- Type -->

@@ -1343,7 +1343,8 @@ $.fn.dropdown = function(parameters) {
                 isBubbledEvent = ($subMenu.find($target).length > 0)
               ;
               // prevents IE11 bug where menu receives focus even though `tabindex=-1`
-              if (document.activeElement.tagName.toLowerCase() !== 'input') {
+              // GITEA-PATCH: keep the focus on the dropdown itself, blurring it drops keyboard users to <body>
+              if (document.activeElement.tagName.toLowerCase() !== 'input' && document.activeElement !== element) {
                 $(document.activeElement).blur();
               }
               if(!isBubbledEvent && (!hasSubMenu || settings.allowCategorySelection)) {

@@ -73,13 +73,22 @@ so the VoiceOver arrow key problem above cannot happen. Try it on the `/devtest/
 </aria-menu>
 ```
 
+The popup opens below the trigger, aligned to its start. Two optional host attributes, read only by CSS, move it:
+
+* `placement="bottom-start|bottom-end|top-start|top-end"`, the same words as `data-tooltip-placement`.
+  The template knows where the menu sits, so there is no automatic flip: a menu at the right edge needs `bottom-end`.
+* `pointing` draws Fomantic's small arrow on a bottom placement.
+
+Put `data-tooltip-content` on the trigger, not the host, so the tooltip text also becomes the trigger's `aria-label`.
+The tooltip will not show while the menu is open.
+
 Comboboxes, searchable and multiple-selection dropdowns still use Fomantic Dropdown below.
 
 # Fomantic Dropdown
 
 Fomantic Dropdown is designed to be used for many purposes:
 
-* Menu (the profile menu in navbar, the language menu in footer)
+* Menu (the theme menu in footer)
 * Popup (the branch/tag panel, the review box)
 * Simple `<select>` , used in many forms
 * Searchable option-list with static items (used in many forms)
@@ -105,11 +114,34 @@ There are different solutions:
 
 The current approach is: detect if the dropdown has an input,
 if yes, it works like a combobox, otherwise it works like a menu.
-Multiple selection dropdown is not well-supported yet, it needs more work.
+Multiple selection dropdowns (`ui multiple ... dropdown`) are partially supported:
+
+* the listbox has `aria-multiselectable="true"` and every option has `aria-selected`,
+  refreshed after each add or remove (Fomantic marks the chosen items `active`)
+* adding or removing an item is announced through the shared live region in
+  `web_src/js/modules/aria-announce.ts`; Fomantic doesn't call `onAdd`/`onRemove` on the
+  initial load, so existing selections are not read out
+* a selection label's delete icon is named after the label's visible text
+* picking an item keeps the keyboard focus: a `GITEA-PATCH` in `web_src/fomantic/build/components/dropdown.js`
+  stops Fomantic's IE11 workaround from blurring the dropdown itself, and the global Enter
+  quick-submit (`web_src/js/features/common-form.ts`) skips an Enter the dropdown already handled
+
+Still not working: moving between selection labels with Left/Right is not announced, because
+`aria-activedescendant` only ever points at menu items.
+
+The issue sidebar's label, assignee, reviewer and project pickers are not Fomantic multiple
+dropdowns: selection there is the `checked` class managed by
+`web_src/js/features/repo-issue-sidebar-combolist.ts`, which keeps `aria-selected` and the
+announcements in step itself. Their items sit in a nested `.scrolling.menu`, which the patch
+also covers.
+
+The Fomantic part of this is temporary by design: it goes away when these dropdowns move off
+Fomantic (`<aria-menu>` above is for action menus only, so it is not their replacement), while the
+sidebar part stays unless the sidebar itself is rewritten.
 
 Some important pages for dropdown testing:
 
-* Home(dashboard) page, the "Create Repo" / "Profile" / "Language" menu.
+* Home(dashboard) page, the "Theme" menu in footer.
 * Create New Repo page, a lot of dropdowns as combobox.
 * Collaborators page, the "permission" dropdown (the old behavior was not quite good, it just works).
 

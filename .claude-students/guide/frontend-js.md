@@ -1,7 +1,7 @@
 ---
 source: docs/frontend-js.md
-source-hash: 633ae470c1ac23a6
-verified-at: 94dfae067e
+source-hash: e1d561edfc25e3c9
+verified-at: 2629e98ef9
 ---
 
 <!-- Derived from docs/frontend-js.md. Do not edit by hand: fix the reference doc and regenerate
@@ -178,9 +178,9 @@ its events arrives — the events come from an editor that is ready.
 of a Fomantic dropdown. Pressing Enter on a highlighted item only becomes a real click when the item
 is a link or has the class `js-aria-clickable` — Gitea's own patch in
 `web_src/js/modules/fomantic/dropdown.ts` does that, so everything else is handled inside Fomantic
-and your listener never hears it. Add the class, as the comment menu
-(`templates/repo/issue/view_content/context_menu.tmpl`) and the close reason menu
-(`templates/repo/issue/view_content.tmpl`) do.
+and your listener never hears it. Add the class, as the close reason menu
+(`templates/repo/issue/view_content.tmpl`) does. An `<aria-menu>` needs none of this: Enter and
+Space on one of its items call the item's own `click()`, so a plain click listener hears both.
 
 **You focus a box after a menu pick, and the focus jumps back.** When an item of a Fomantic dropdown
 is clicked, the dropdown puts the focus back on itself after your click handler has run. Wait one

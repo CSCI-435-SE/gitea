@@ -16,8 +16,10 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
@@ -212,6 +214,48 @@ func TestIssues(t *testing.T) {
 				assert.Equal(t, test.ExpectedIssueIDs[i], issue.ID)
 			}
 		}
+	}
+}
+
+func TestIssuesDeadlineFilter(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// repo 1 holds issues 1 and 5 (closed) and pulls 2, 3 and 11, none with a deadline in the fixtures
+	for id, deadline := range map[int64]timeutil.TimeStamp{1: 1000, 2: 2000, 3: 3000, 5: 2500} {
+		assert.NoError(t, issues_model.UpdateIssueCols(t.Context(), &issues_model.Issue{ID: id, DeadlineUnix: deadline}, "deadline_unix"))
+	}
+
+	cases := []struct {
+		name         string
+		opts         issues_model.IssuesOptions
+		ids          []int64
+		open, closed int64
+	}{
+		{"an upper bound alone never matches undated issues", issues_model.IssuesOptions{DeadlineBeforeUnix: 2000}, []int64{1, 2}, 2, 0},
+		{"bounds are inclusive", issues_model.IssuesOptions{DeadlineAfterUnix: 2000, DeadlineBeforeUnix: 3000}, []int64{2, 3, 5}, 2, 1},
+		{"a lower bound alone", issues_model.IssuesOptions{DeadlineAfterUnix: 2600}, []int64{3}, 1, 0},
+		{"has a deadline", issues_model.IssuesOptions{HasDeadline: optional.Some(true)}, []int64{1, 2, 3, 5}, 3, 1},
+		{"has no deadline", issues_model.IssuesOptions{HasDeadline: optional.Some(false)}, []int64{11}, 1, 0},
+		{"no deadline condition", issues_model.IssuesOptions{}, []int64{1, 2, 3, 5, 11}, 4, 1},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			opts := c.opts
+			opts.RepoIDs = []int64{1}
+			issues, err := issues_model.Issues(t.Context(), &opts)
+			assert.NoError(t, err)
+			ids := make([]int64, 0, len(issues))
+			for _, issue := range issues {
+				ids = append(ids, issue.ID)
+			}
+			assert.ElementsMatch(t, c.ids, ids)
+
+			// the counts use a separate condition builder from the list, so they must agree with it
+			stats, err := issues_model.GetIssueStats(t.Context(), &opts)
+			assert.NoError(t, err)
+			assert.Equal(t, c.open, stats.OpenCount)
+			assert.Equal(t, c.closed, stats.ClosedCount)
+		})
 	}
 }
 

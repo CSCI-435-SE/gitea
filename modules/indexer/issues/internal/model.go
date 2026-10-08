@@ -112,6 +112,11 @@ type SearchOptions struct {
 	UpdatedAfterUnix  optional.Option[int64]
 	UpdatedBeforeUnix optional.Option[int64]
 
+	// inclusive bounds on deadline_unix; either bound also excludes issues with no deadline, stored as 0
+	DeadlineAfterUnix  optional.Option[int64]
+	DeadlineBeforeUnix optional.Option[int64]
+	HasDeadline        optional.Option[bool]
+
 	Paginator *db.ListOptions
 
 	SortBy SortBy // sort by field
@@ -128,6 +133,18 @@ func (o *SearchOptions) Copy(edit ...func(options *SearchOptions)) *SearchOption
 		e(&v)
 	}
 	return &v
+}
+
+// DeadlineRange folds the deadline options into one inclusive range on deadline_unix, so every
+// backend applies the same "no deadline is 0" guard. ok is false when there is no deadline condition.
+func (o *SearchOptions) DeadlineRange() (minUnix, maxUnix optional.Option[int64], ok bool) {
+	if o.DeadlineAfterUnix.Has() || o.DeadlineBeforeUnix.Has() || o.HasDeadline.Value() {
+		return optional.Some(max(o.DeadlineAfterUnix.Value(), 1)), o.DeadlineBeforeUnix, true
+	}
+	if o.HasDeadline.Has() {
+		return optional.Some[int64](0), optional.Some[int64](0), true
+	}
+	return optional.None[int64](), optional.None[int64](), false
 }
 
 // used for optimized issue index based search
