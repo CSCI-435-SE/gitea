@@ -88,6 +88,15 @@ func ListMembers(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
+		if isMember {
+			// a member without the 2FA the org requires sees only the public members
+			blocked, err := ctx.Org.Organization.IsTwoFactorBlocked(ctx, ctx.Doer)
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			isMember = !blocked
+		}
 	}
 	listMembers(ctx, isMember)
 }

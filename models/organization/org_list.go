@@ -101,7 +101,8 @@ func GetOrgsCanCreateRepoByUserID(ctx context.Context, userID int64) ([]*Organiz
 		Join("INNER", "`team_user`", "`team_user`.org_id = `user`.id").
 		Join("INNER", "`team`", "`team`.id = `team_user`.team_id").
 		Where(builder.Eq{"`team_user`.uid": userID}).
-		And(builder.Eq{"`team`.authorize": perm.AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})))).
+		And(builder.Eq{"`team`.authorize": perm.AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})).
+		And(notTwoFactorBlockedOrgCond("`team_user`.org_id", userID)))).
 		Asc("`user`.name").
 		Find(&orgs)
 }

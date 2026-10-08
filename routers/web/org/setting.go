@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"net/url"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
 	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -46,7 +48,19 @@ func Settings(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
+	ctx.Data["RequireTwoFactor"] = ctx.Org.Organization.RequireTwoFactor
 	ctx.Data["ContextUser"] = ctx.ContextUser
+
+	// counted even while the policy is off: they preview who would lose access if it were turned on
+	var err error
+	if ctx.Data["MembersWithoutTwoFactor"], err = organization.CountOrgMembersWithoutTwoFactor(ctx, ctx.Org.Organization.ID); err != nil {
+		ctx.ServerError("CountOrgMembersWithoutTwoFactor", err)
+		return
+	}
+	if ctx.Data["CollaboratorsWithoutTwoFactor"], err = organization.CountOrgOutsideCollaboratorsWithoutTwoFactor(ctx, ctx.Org.Organization.ID); err != nil {
+		ctx.ServerError("CountOrgOutsideCollaboratorsWithoutTwoFactor", err)
+		return
+	}
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
@@ -70,6 +84,21 @@ func SettingsPost(ctx *context.Context) {
 	}
 
 	org := ctx.Org.Organization
+
+	// the owner turning the policy on must not be the first one it locks out
+	if form.RequireTwoFactor && !org.RequireTwoFactor && !ctx.Doer.IsAdmin {
+		has, err := auth_model.HasTwoFactorOrWebAuthn(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.ServerError("HasTwoFactorOrWebAuthn", err)
+			return
+		}
+		if !has {
+			ctx.Flash.Error(ctx.Tr("org.settings.require_two_factor_self_required"))
+			ctx.Redirect(ctx.Org.OrgLink + "/settings")
+			return
+		}
+	}
+
 	if err := org_service.UpdateOrgEmailAddress(ctx, org, form.Email); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.Data["Err_Email"] = true
@@ -86,6 +115,7 @@ func SettingsPost(ctx *context.Context) {
 		Website:                   optional.FromPtr(form.Website),
 		Location:                  optional.FromPtr(form.Location),
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
+		RequireTwoFactor:          optional.Some(form.RequireTwoFactor),
 	}
 	if ctx.Doer.IsAdmin {
 		opts.MaxRepoCreation = optional.FromPtr(form.MaxRepoCreation)

@@ -43,6 +43,7 @@ type UpdateOrgSettingForm struct {
 	Location                  *string `binding:"MaxSize(50)"`
 	MaxRepoCreation           *int
 	RepoAdminChangeTeamAccess *bool
+	RequireTwoFactor          bool // not a pointer: an unticked checkbox is not posted, and must still turn it off
 }
 
 // Validate validates the fields

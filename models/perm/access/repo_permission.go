@@ -424,6 +424,16 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 		return perm, err
 	}
 
+	// A member or collaborator without the 2FA the owner org requires gets only what a signed-in non-member gets
+	if blocked, err := organization.OrgFromUser(repo.Owner).IsTwoFactorBlocked(ctx, user); err != nil {
+		return perm, err
+	} else if blocked {
+		if organization.HasOrgOrUserVisibleToNonMember(repo.Owner, user) {
+			perm.AccessMode = publicAccessMode(user, repo)
+		}
+		return perm, nil
+	}
+
 	// Prevent strangers from checking out public repo of private organization/users
 	// Allow user if they are a collaborator of a repo within a private user or a private organization but not a member of the organization itself
 	// TODO: rename it to "IsOwnerVisibleToDoer"
@@ -502,7 +512,7 @@ func IsUserRealRepoAdmin(ctx context.Context, repo *repo_model.Repository, user 
 		return true, nil
 	}
 
-	if err := repo.LoadOwner(ctx); err != nil {
+	if blocked, err := isTwoFactorBlocked(ctx, repo, user); err != nil || blocked {
 		return false, err
 	}
 
@@ -514,6 +524,15 @@ func IsUserRealRepoAdmin(ctx context.Context, repo *repo_model.Repository, user 
 	return accessMode >= perm_model.AccessModeAdmin, nil
 }
 
+// isTwoFactorBlocked reports whether the repo's owner org requires a 2FA that the user lacks;
+// such a user is at most a reader, never a repo admin
+func isTwoFactorBlocked(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (bool, error) {
+	if err := repo.LoadOwner(ctx); err != nil {
+		return false, err
+	}
+	return organization.OrgFromUser(repo.Owner).IsTwoFactorBlocked(ctx, user)
+}
+
 // IsUserRepoAdmin return true if user has admin right of a repo
 func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (bool, error) {
 	if user == nil || repo == nil {
@@ -521,6 +540,10 @@ func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *use
 	}
 	if user.IsAdmin {
 		return true, nil
+	}
+
+	if blocked, err := isTwoFactorBlocked(ctx, repo, user); err != nil || blocked {
+		return false, err
 	}
 
 	mode, err := accessLevel(ctx, user, repo)

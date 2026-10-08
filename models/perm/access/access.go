@@ -33,24 +33,27 @@ func init() {
 	db.RegisterModel(new(Access))
 }
 
-func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (perm.AccessMode, error) {
-	mode := perm.AccessModeNone
-	var userID int64
-	restricted := false
+// publicAccessMode is the access the user has to the repo without being granted any; repo.Owner must be loaded
+func publicAccessMode(user *user_model.User, repo *repo_model.Repository) perm.AccessMode {
+	restricted := user != nil && user.IsRestricted
+	repoIsFullyPublic := !setting.Service.RequireSignInViewStrict && repo.Owner.Visibility == structs.VisibleTypePublic && !repo.IsPrivate
+	if (restricted && repoIsFullyPublic) || (!restricted && !repo.IsPrivate) {
+		return perm.AccessModeRead
+	}
+	return perm.AccessModeNone
+}
 
+func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (perm.AccessMode, error) {
+	var userID int64
 	if user != nil {
 		userID = user.ID
-		restricted = user.IsRestricted
 	}
 
 	if err := repo.LoadOwner(ctx); err != nil {
-		return mode, err
+		return perm.AccessModeNone, err
 	}
 
-	repoIsFullyPublic := !setting.Service.RequireSignInViewStrict && repo.Owner.Visibility == structs.VisibleTypePublic && !repo.IsPrivate
-	if (restricted && repoIsFullyPublic) || (!restricted && !repo.IsPrivate) {
-		mode = perm.AccessModeRead
-	}
+	mode := publicAccessMode(user, repo)
 
 	if userID == 0 {
 		return mode, nil

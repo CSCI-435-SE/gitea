@@ -123,8 +123,12 @@ func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.Acces
 	accessMode := perm.AccessModeNone
 	if pkgOwner.IsOrganization() {
 		org := organization.OrgFromUser(pkgOwner)
+		blocked, err := org.IsTwoFactorBlocked(ctx, doer) // team access needs the 2FA the org requires
+		if err != nil {
+			return accessMode, err
+		}
 
-		if doer != nil && !doer.IsGhost() {
+		if doer != nil && !doer.IsGhost() && !blocked {
 			// 1. If user is logged in, check all team packages permissions
 			var err error
 			accessMode, err = org.GetOrgUserMaxAuthorizeLevel(ctx, doer.ID)

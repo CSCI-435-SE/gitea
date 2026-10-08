@@ -110,7 +110,8 @@ func removeAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (e
 
 		// Remove watches from all users and now inaccessible repos
 		for _, user := range t.Members {
-			has, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo)
+			// a user only blocked by a 2FA policy until they enrol keeps their watches
+			has, err := access_model.HasAnyUnitAccess(organization.IgnoreTwoFactorPolicy(ctx), user.ID, repo)
 			if err != nil {
 				return err
 			} else if has {
@@ -191,7 +192,8 @@ func removeRepositoryFromTeam(ctx context.Context, t *organization.Team, repo *r
 		return fmt.Errorf("GetTeamMembers: %w", err)
 	}
 	for _, member := range teamMembers {
-		has, err := access_model.HasAnyUnitAccess(ctx, member.ID, repo)
+		// a user only blocked by a 2FA policy until they enrol keeps their watches
+		has, err := access_model.HasAnyUnitAccess(organization.IgnoreTwoFactorPolicy(ctx), member.ID, repo)
 		if err != nil {
 			return err
 		} else if has {

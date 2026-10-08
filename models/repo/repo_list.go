@@ -226,6 +226,28 @@ func UserOwnedRepoCond(userID int64) builder.Cond {
 	}
 }
 
+// NotTwoFactorBlockedRepoCond stops a membership-derived condition from matching the repos of organizations
+// whose two-factor policy blocks the user; it is the SQL twin of the check in access.GetIndividualUserRepoPermission.
+// It drops those repos for every user without 2FA, member or not, so only AND it into a condition that
+// matches repos through membership or collaboration.
+func NotTwoFactorBlockedRepoCond(idStr string, userID int64) builder.Cond {
+	return builder.Or(
+		user_model.TwoFactorPolicyExemptCond(userID),
+		builder.NotIn(idStr, builder.Select("id").From("repository").Where(builder.In("owner_id", user_model.RequireTwoFactorOrgIDsBuilder()))),
+	)
+}
+
+// notTwoFactorBlockedPublicRepoCond is the variant for conditions that only match public repos and do not
+// involve membership: anyone may read those unless their owner is a private organization, so only the
+// public repos of private organizations whose two-factor policy blocks the user are dropped
+func notTwoFactorBlockedPublicRepoCond(idStr string, userID int64) builder.Cond {
+	privatePolicyOrgIDs := user_model.RequireTwoFactorOrgIDsBuilder().And(builder.Eq{"`user`.visibility": structs.VisibleTypePrivate})
+	return builder.Or(
+		user_model.TwoFactorPolicyExemptCond(userID),
+		builder.NotIn(idStr, builder.Select("id").From("repository").Where(builder.In("owner_id", privatePolicyOrgIDs))),
+	)
+}
+
 // UserAssignedRepoCond return user as assignee repositories list
 func UserAssignedRepoCond(id string, userID int64) builder.Cond {
 	return builder.And(
@@ -239,6 +261,7 @@ func UserAssignedRepoCond(id string, userID int64) builder.Cond {
 					"issue_assignees.assignee_id": userID,
 				}),
 		),
+		notTwoFactorBlockedPublicRepoCond(id, userID),
 	)
 }
 
@@ -255,6 +278,7 @@ func UserCreateIssueRepoCond(id string, userID int64, isPull bool) builder.Cond 
 					"issue.is_pull":   isPull,
 				}),
 		),
+		notTwoFactorBlockedPublicRepoCond(id, userID),
 	)
 }
 
@@ -272,6 +296,7 @@ func UserMentionedRepoCond(id string, userID int64) builder.Cond {
 					"issue_user.uid":          userID,
 				}),
 		),
+		notTwoFactorBlockedPublicRepoCond(id, userID),
 	)
 }
 
@@ -283,7 +308,7 @@ func UserAccessRepoCond(idStr string, userID int64) builder.Cond {
 			builder.Eq{"`access`.user_id": userID},
 			builder.Gt{"`access`.mode": int(perm.AccessModeNone)},
 		)),
-	)
+	).And(NotTwoFactorBlockedRepoCond(idStr, userID))
 }
 
 // userCollaborationRepoCond returns a condition for selecting all repositories a user is collaborator in
@@ -293,12 +318,12 @@ func UserCollaborationRepoCond(idStr string, userID int64) builder.Cond {
 		Where(builder.And(
 			builder.Eq{"`collaboration`.user_id": userID},
 		)),
-	)
+	).And(NotTwoFactorBlockedRepoCond(idStr, userID))
 }
 
 // UserOrgTeamRepoCond selects repos that the given user has access to through team membership
 func UserOrgTeamRepoCond(idStr string, userID int64) builder.Cond {
-	return builder.In(idStr, userOrgTeamRepoBuilder(userID))
+	return builder.In(idStr, userOrgTeamRepoBuilder(userID)).And(NotTwoFactorBlockedRepoCond(idStr, userID))
 }
 
 // userOrgTeamRepoBuilder returns repo ids where user's teams can access.
@@ -325,7 +350,7 @@ func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Build
 
 // userOrgTeamUnitRepoCond returns a condition to select repo ids where user's teams can access the special unit.
 func userOrgTeamUnitRepoCond(idStr string, userID int64, unitType unit.Type) builder.Cond {
-	return builder.In(idStr, userOrgTeamUnitRepoBuilder(userID, unitType))
+	return builder.In(idStr, userOrgTeamUnitRepoBuilder(userID, unitType)).And(NotTwoFactorBlockedRepoCond(idStr, userID))
 }
 
 // UserOrgUnitRepoCond selects repos that the given user has access to through org and the special unit
@@ -333,7 +358,7 @@ func UserOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) 
 	return builder.In(idStr,
 		userOrgTeamUnitRepoBuilder(userID, unitType).
 			And(builder.Eq{"`team`.org_id": orgID}),
-	)
+	).And(NotTwoFactorBlockedRepoCond(idStr, userID))
 }
 
 // userOrgPublicRepoCond returns the condition that one user could access all public repositories in organizations
@@ -345,6 +370,7 @@ func userOrgPublicRepoCond(userID int64) builder.Cond {
 				From("org_user").
 				Where(builder.Eq{"`org_user`.uid": userID}),
 		),
+		NotTwoFactorBlockedRepoCond("`repository`.id", userID),
 	)
 }
 
@@ -362,6 +388,7 @@ func userOrgPublicRepoCondPrivate(userID int64) builder.Cond {
 					"`user`.visibility": structs.VisibleTypePrivate,
 				}),
 		),
+		NotTwoFactorBlockedRepoCond("`repository`.id", userID),
 	)
 }
 

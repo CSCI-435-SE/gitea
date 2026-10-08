@@ -374,7 +374,7 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 					),
 				),
 			),
-		))
+		)).And(repo_model.NotTwoFactorBlockedRepoCond(id, userID))
 }
 
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
