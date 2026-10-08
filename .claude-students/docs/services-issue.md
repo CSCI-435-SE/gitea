@@ -85,7 +85,8 @@ an unhandled type renders as nothing.
   cover merges belongs in `SetIssueAsClosed`, not here.
 - `GetMilestoneBurndown` counts and lists only the kinds in `BurndownOptions`, and the caller must
   leave out any kind the viewer cannot read: the milestone routes in `routers/web/web.go` let in a
-  reader of issues *or* pulls, so `MilestoneBurndownData` intersects the toggle with permissions.
+  reader of issues *or* pulls, so `MilestoneBurndownData` intersects the toggle with permissions,
+  and defaults to pull requests for a viewer who can read only those.
 
 ## Related
 
