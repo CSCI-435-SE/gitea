@@ -139,6 +139,12 @@ The Fomantic part of this is temporary by design: it goes away when these dropdo
 Fomantic (`<aria-menu>` above is for action menus only, so it is not their replacement), while the
 sidebar part stays unless the sidebar itself is rewritten.
 
+A dropdown whose trigger is only an icon (a kebab, a split button's caret) needs a localised
+`aria-label` in its template, or a `data-tooltip-content`, which the patch copies into `aria-label`.
+A `menu` takes no name from its content, so give one to a dropdown that only shows its current
+value too, like the footer theme selector. The patch never makes up a name: outside
+`RUN_MODE = prod` it logs a console warning for any dropdown with no name and no visible text.
+
 Some important pages for dropdown testing:
 
 * Home(dashboard) page, the "Theme" menu in footer.

@@ -61,6 +61,12 @@ test('navbar tooltip does not cover an open menu', async ({page}) => {
   await expect(trigger).toHaveAttribute('aria-expanded', 'true');
 });
 
+test('footer theme selector has an accessible name', async ({page}) => {
+  await page.goto('/');
+  await expect(page.getByRole('menu', {name: 'Theme'})).toBeVisible();
+  await assertNoJsError(page);
+});
+
 test('comment menu is operable by keyboard', async ({page, request}) => {
   const repoName = `e2e-comment-menu-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;

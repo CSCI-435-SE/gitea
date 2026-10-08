@@ -10,7 +10,7 @@
 			{{$data.UpdatePrimaryAction.Text}}
 		</button>
 		{{if gt (len $data.UpdateStyleOptions) 1}}
-		<div class="ui dropdown icon button">
+		<div class="ui dropdown icon button" aria-label="{{ctx.Locale.Tr "repo.pulls.update_branch_choose"}}">
 			{{svg "octicon-triangle-down"}}
 			<div class="menu">
 				{{range $data.UpdateStyleOptions}}

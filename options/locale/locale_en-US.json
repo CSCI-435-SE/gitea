@@ -1932,6 +1932,7 @@
   "repo.pulls.status_checks_need_approvals_helper": "The workflow will only run after approval from the repository maintainer.",
   "repo.pulls.update_branch": "Update branch by merge",
   "repo.pulls.update_branch_rebase": "Update branch by rebase",
+  "repo.pulls.update_branch_choose": "Choose how to update the branch",
   "repo.pulls.update_branch_success": "Branch update was successful",
   "repo.pulls.update_not_allowed": "You are not allowed to update branch",
   "repo.pulls.outdated_with_base_branch": "This branch is out-of-date with the base branch",
