@@ -129,3 +129,16 @@ export function changesOn(data: MilestoneBurndown, date: string): BurndownChange
 export function latestChangeDate(data: MilestoneBurndown): string {
   return data.points.findLast((p) => p.changes !== undefined)?.date ?? '';
 }
+
+const tooltipMaxChanges = 5; // the rest are in the list under the chart, which has room and links
+const tooltipMaxTitle = 50;
+
+// the hovered day's changes as tooltip lines, so hovering a day names what changed on it
+export function changeTooltipLines(changes: BurndownChange[], labels: Record<BurndownChange['kind'], string>, moreTemplate: string): string[] {
+  const lines = changes.slice(0, tooltipMaxChanges).map((c) => {
+    const title = c.title.length > tooltipMaxTitle ? `${c.title.slice(0, tooltipMaxTitle - 1)}…` : c.title;
+    return `${labels[c.kind]}: #${c.index} ${title}`;
+  });
+  if (changes.length > tooltipMaxChanges) lines.push(formatLocale(moreTemplate, changes.length - tooltipMaxChanges));
+  return lines;
+}

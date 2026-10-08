@@ -23,6 +23,7 @@ export async function initRepoMilestoneBurndown() {
         changesOn: el.getAttribute('data-locale-changes-on'),
         changeClosed: el.getAttribute('data-locale-change-closed'),
         changeReopened: el.getAttribute('data-locale-change-reopened'),
+        changesMore: el.getAttribute('data-locale-changes-more'),
         empty: el.getAttribute('data-locale-empty'),
         noDeadline: el.getAttribute('data-locale-no-deadline'),
         statusDone: el.getAttribute('data-locale-status-done'),

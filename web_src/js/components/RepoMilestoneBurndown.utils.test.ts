@@ -3,6 +3,7 @@ import {
   burndownDataUrl,
   burndownSummary,
   changeLink,
+  changeTooltipLines,
   changesOn,
   formatLocale,
   idealLine,
@@ -130,4 +131,23 @@ test('changes', () => {
   expect(changesOn(data, '2026-02-01')).toEqual([]);
   expect(latestChangeDate(data)).toEqual('2026-01-06');
   expect(latestChangeDate(burndown({}))).toEqual('');
+});
+
+test('changeTooltipLines', () => {
+  const labels = {closed: 'Closed', reopened: 'Reopened', added: 'Added to milestone', removed: 'Removed from milestone'};
+  const change = (index: number, title: string, kind: BurndownChange['kind']): BurndownChange => ({index, title, isPull: false, kind});
+  expect(changeTooltipLines([], labels, '%d more')).toEqual([]);
+  expect(changeTooltipLines([change(3, 'Fix login', 'closed'), change(9, 'SSO', 'added')], labels, '%d more')).toEqual([
+    'Closed: #3 Fix login',
+    'Added to milestone: #9 SSO',
+  ]);
+  // a long title is cut so the tooltip stays inside the chart
+  const [long] = changeTooltipLines([change(1, 'x'.repeat(80), 'reopened')], labels, '%d more');
+  expect(long).toEqual(`Reopened: #1 ${'x'.repeat(49)}…`);
+  // a busy day shows five and counts the rest, which the list under the chart shows in full
+  const busy = Array.from({length: 8}, (_, i) => change(i + 1, `item ${i + 1}`, 'closed'));
+  const lines = changeTooltipLines(busy, labels, '%d more');
+  expect(lines).toHaveLength(6);
+  expect(lines[4]).toEqual('Closed: #5 item 5');
+  expect(lines[5]).toEqual('3 more');
 });

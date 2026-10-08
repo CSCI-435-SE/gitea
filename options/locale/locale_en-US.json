@@ -1998,6 +1998,7 @@
   "repo.milestones.burndown.changes_on": "Changes on %s",
   "repo.milestones.burndown.change_closed": "Closed",
   "repo.milestones.burndown.change_reopened": "Reopened",
+  "repo.milestones.burndown.changes_more": "%d more, listed below the chart",
   "repo.milestones.burndown.empty": "This milestone has no issues or pull requests yet.",
   "repo.milestones.burndown.status_done": "Completed on %s",
   "repo.milestones.burndown.status_closed": "Milestone closed with open items",

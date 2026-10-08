@@ -23,6 +23,7 @@ import {
   burndownDataUrl,
   burndownSummary,
   changeLink,
+  changeTooltipLines,
   changesOn,
   formatLocale,
   idealLine,
@@ -71,6 +72,7 @@ const props = defineProps<{
     changesOn: string;
     changeClosed: string;
     changeReopened: string;
+    changesMore: string;
   };
 }>();
 
@@ -89,12 +91,12 @@ const chartData = computed(() => (hasChart.value ? toChartData(burndown.value!) 
 const chartOptions = computed(() => (hasChart.value ? toChartOptions(burndown.value!) : null));
 const selectedChanges = computed(() => (hasChart.value ? changesOn(burndown.value!, selectedDate.value) : []));
 
-const changeLabels: Record<BurndownChange['kind'], () => string> = {
-  closed: () => props.locale.changeClosed,
-  reopened: () => props.locale.changeReopened,
-  added: () => props.locale.scopeAdded,
-  removed: () => props.locale.scopeRemoved,
-};
+const changeLabels = computed<Record<BurndownChange['kind'], string>>(() => ({
+  closed: props.locale.changeClosed,
+  reopened: props.locale.changeReopened,
+  added: props.locale.scopeAdded,
+  removed: props.locale.scopeRemoved,
+}));
 
 onMounted(() => {
   fetchBurndown();
@@ -245,6 +247,8 @@ function toChartOptions(data: MilestoneBurndown): ChartOptions<'line'> {
             const count = (item.raw as Partial<MarkerPoint>).count;
             return `${item.dataset.label}: ${count === undefined ? item.formattedValue : count}`;
           },
+          // hovering a day names what changed on it; the list under the chart repeats it with links
+          footer: (items) => changeTooltipLines(changesOn(data, (items[0].raw as LinePoint).x), changeLabels.value, props.locale.changesMore),
         },
       },
     },
@@ -314,7 +318,7 @@ function toChartOptions(data: MilestoneBurndown): ChartOptions<'line'> {
       <div class="tw-font-semibold">{{ formatLocale(locale.changesOn, selectedDate) }}</div>
       <ul class="tw-my-1 tw-pl-5">
         <li v-for="(change, i) in selectedChanges" :key="i">
-          {{ changeLabels[change.kind]() }}:
+          {{ changeLabels[change.kind] }}:
           <a :href="changeLink(pageData.repoLink!, change)">#{{ change.index }} {{ change.title }}</a>
         </li>
       </ul>
