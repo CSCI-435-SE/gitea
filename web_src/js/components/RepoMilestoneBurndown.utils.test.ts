@@ -10,6 +10,7 @@ import {
   includePullsFromSearch,
   latestChangeDate,
   projectionLine,
+  projectionOnChart,
   scopeMarkers,
   searchWithIncludePulls,
   type BurndownChange,
@@ -22,9 +23,11 @@ const locale = {
   statusNotBurning: 'not burning',
   statusInsufficient: 'insufficient',
   projected: 'Projected %s',
-  projectedOnTime: 'Projected %s, %d early',
+  projectedOnTime: 'Projected %s, %d days early',
+  projectedOnTimeOne: 'Projected %s, %d day early',
   projectedOnDueDate: 'Projected %s, on the day',
-  projectedLate: 'Projected %s, %d late',
+  projectedLate: 'Projected %s, %d days late',
+  projectedLateOne: 'Projected %s, %d day late',
 };
 
 function burndown(fields: Partial<MilestoneBurndown>): MilestoneBurndown {
@@ -56,10 +59,13 @@ test('burndownSummary', () => {
   expect(burndownSummary(burndown({status: 'empty'}), locale)).toEqual('');
 
   expect(burndownSummary(burndown({projected: '2026-01-09'}), locale)).toEqual('Projected 2026-01-09');
-  expect(burndownSummary(burndown({projected: '2026-01-09', daysLate: 3}), locale)).toEqual('Projected 2026-01-09, 3 late');
+  expect(burndownSummary(burndown({projected: '2026-01-09', daysLate: 3}), locale)).toEqual('Projected 2026-01-09, 3 days late');
   expect(burndownSummary(burndown({projected: '2026-01-09', daysLate: 0}), locale)).toEqual('Projected 2026-01-09, on the day');
   // early is sent as negative days late and read back as a positive count
-  expect(burndownSummary(burndown({projected: '2026-01-09', daysLate: -4}), locale)).toEqual('Projected 2026-01-09, 4 early');
+  expect(burndownSummary(burndown({projected: '2026-01-09', daysLate: -4}), locale)).toEqual('Projected 2026-01-09, 4 days early');
+  // one day is singular either way
+  expect(burndownSummary(burndown({projected: '2026-01-09', daysLate: 1}), locale)).toEqual('Projected 2026-01-09, 1 day late');
+  expect(burndownSummary(burndown({projected: '2026-01-09', daysLate: -1}), locale)).toEqual('Projected 2026-01-09, 1 day early');
 });
 
 test('idealLine', () => {
@@ -150,4 +156,14 @@ test('changeTooltipLines', () => {
   expect(lines).toHaveLength(6);
   expect(lines[4]).toEqual('Closed: #5 item 5');
   expect(lines[5]).toEqual('3 more');
+});
+
+test('a projection years away stays off the chart', () => {
+  // the last point is 2026-01-06; a year later still draws, beyond that does not
+  expect(projectionOnChart(burndown({projected: '2027-01-06'}))).toBe(true);
+  const far = burndown({projected: '2030-03-01', deadline: '2026-01-20'});
+  expect(projectionOnChart(far)).toBe(false);
+  expect(projectionLine(far)).toEqual([]);
+  expect(burndownAxisMax(far)).toEqual('2026-01-20'); // the axis stops at the due date, not years on
+  expect(projectionOnChart(burndown({status: 'not_burning', projected: ''}))).toBe(false);
 });

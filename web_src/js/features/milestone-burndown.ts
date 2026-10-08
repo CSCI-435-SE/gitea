@@ -4,9 +4,11 @@ export async function initRepoMilestoneBurndown() {
   const el = document.querySelector('#milestone-burndown-chart');
   if (!el) return;
 
-  const {default: RepoMilestoneBurndown} = await import('../components/RepoMilestoneBurndown.vue');
   try {
+    // inside the try, so a chunk that fails to load still gets the localised fallback
+    const {default: RepoMilestoneBurndown} = await import('../components/RepoMilestoneBurndown.vue');
     const View = createApp(RepoMilestoneBurndown, {
+      canReadIssues: el.hasAttribute('data-can-read-issues'),
       canReadPulls: el.hasAttribute('data-can-read-pulls'),
       locale: {
         loadingTitle: el.getAttribute('data-locale-loading-title'),
@@ -32,8 +34,10 @@ export async function initRepoMilestoneBurndown() {
         statusInsufficient: el.getAttribute('data-locale-status-insufficient'),
         projected: el.getAttribute('data-locale-projected'),
         projectedOnTime: el.getAttribute('data-locale-projected-on-time'),
+        projectedOnTimeOne: el.getAttribute('data-locale-projected-on-time-one'),
         projectedOnDueDate: el.getAttribute('data-locale-projected-on-due-date'),
         projectedLate: el.getAttribute('data-locale-projected-late'),
+        projectedLateOne: el.getAttribute('data-locale-projected-late-one'),
       },
     });
     View.mount(el);

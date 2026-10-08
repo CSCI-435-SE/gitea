@@ -61,6 +61,7 @@
 				{{end}}
 			</div>
 			<div id="milestone-burndown-chart"
+				{{if .Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}data-can-read-issues="true"{{end}}
 				{{if .Permission.CanRead ctx.Consts.RepoUnitTypePullRequests}}data-can-read-pulls="true"{{end}}
 				data-locale-loading-title="{{ctx.Locale.Tr "graphs.component_loading" (ctx.Locale.Tr "repo.milestones.burndown.what")}}"
 				data-locale-loading-title-failed="{{ctx.Locale.Tr "graphs.component_loading_failed" (ctx.Locale.Tr "repo.milestones.burndown.what")}}"
@@ -85,9 +86,11 @@
 				data-locale-status-not-burning="{{ctx.Locale.Tr "repo.milestones.burndown.status_not_burning"}}"
 				data-locale-status-insufficient="{{ctx.Locale.Tr "repo.milestones.burndown.status_insufficient"}}"
 				data-locale-projected="{{ctx.Locale.Tr "repo.milestones.burndown.projected"}}"
-				data-locale-projected-on-time="{{ctx.Locale.Tr "repo.milestones.burndown.projected_on_time"}}"
+				data-locale-projected-on-time="{{ctx.Locale.Tr "repo.milestones.burndown.projected_on_time_n"}}"
+				data-locale-projected-on-time-one="{{ctx.Locale.Tr "repo.milestones.burndown.projected_on_time_1"}}"
 				data-locale-projected-on-due-date="{{ctx.Locale.Tr "repo.milestones.burndown.projected_on_due_date"}}"
-				data-locale-projected-late="{{ctx.Locale.Tr "repo.milestones.burndown.projected_late"}}"
+				data-locale-projected-late="{{ctx.Locale.Tr "repo.milestones.burndown.projected_late_n"}}"
+				data-locale-projected-late-one="{{ctx.Locale.Tr "repo.milestones.burndown.projected_late_1"}}"
 			></div>
 		</div>
 		<div class="divider"></div>

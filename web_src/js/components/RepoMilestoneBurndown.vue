@@ -54,7 +54,8 @@ Chart.register(
 );
 
 const props = defineProps<{
-  canReadPulls: boolean; // the server enforces this too; here it only hides a toggle that could do nothing
+  canReadIssues: boolean; // the server enforces both; here they only decide whether the toggle can do anything
+  canReadPulls: boolean;
   locale: BurndownSummaryLocale & {
     loadingTitle: string;
     loadingTitleFailed: string;
@@ -79,7 +80,9 @@ const props = defineProps<{
 const isLoading = shallowRef(false);
 const errorText = shallowRef('');
 const burndown = shallowRef<MilestoneBurndown | null>(null);
-const includePulls = shallowRef(props.canReadPulls && includePullsFromSearch(window.location.search));
+// a reader of pull requests only is shown them by default; the server does the same
+const includePulls = shallowRef(props.canReadPulls && (!props.canReadIssues || includePullsFromSearch(window.location.search)));
+let latestRequest = 0; // toggling twice quickly sends two requests, and only the latest may update the chart
 const selectedDate = shallowRef('');
 
 const hasChart = computed(() => burndown.value !== null && burndown.value.status !== 'empty');
@@ -103,20 +106,26 @@ onMounted(() => {
 });
 
 async function fetchBurndown() {
+  const request = ++latestRequest;
   isLoading.value = true;
   try {
     const response = await GET(burndownDataUrl(pageData.milestoneBurndownLink!, includePulls.value));
+    const data = response.ok ? await response.json() : null;
+    if (request !== latestRequest) return; // superseded: its answer is for a checkbox state that has changed
     if (response.ok) {
-      burndown.value = await response.json();
-      selectedDate.value = latestChangeDate(burndown.value!);
+      burndown.value = data;
+      selectedDate.value = latestChangeDate(data);
       errorText.value = '';
     } else {
-      errorText.value = response.statusText;
+      burndown.value = null; // or the old summary would sit next to the "failed" title
+      errorText.value = response.statusText || `HTTP ${response.status}`; // HTTP/2 sends no status text
     }
   } catch (err) {
+    if (request !== latestRequest) return;
+    burndown.value = null;
     errorText.value = errorMessage(err);
   } finally {
-    isLoading.value = false;
+    if (request === latestRequest) isLoading.value = false;
   }
 }
 
@@ -223,7 +232,9 @@ function toChartOptions(data: MilestoneBurndown): ChartOptions<'line'> {
     onHover: (_event, elements, chart) => {
       if (!elements.length) return;
       const {datasetIndex, index} = elements[0];
-      selectedDate.value = (chart.data.datasets[datasetIndex].data[index] as unknown as LinePoint).x; // x is our date string
+      const date = (chart.data.datasets[datasetIndex].data[index] as unknown as LinePoint).x; // x is our date string
+      // passing over quiet days keeps the last list, so the page below does not jump as the pointer sweeps
+      if (changesOn(data, date).length) selectedDate.value = date;
     },
     plugins: {
       legend: {
@@ -293,7 +304,7 @@ function toChartOptions(data: MilestoneBurndown): ChartOptions<'line'> {
         {{ summaryLine }}
       </span>
     </summary>
-    <label v-if="canReadPulls" class="flex-text-inline tw-mt-2">
+    <label v-if="canReadIssues && canReadPulls" class="flex-text-inline tw-mt-2">
       <input class="milestone-burndown-include-pulls" type="checkbox" :checked="includePulls" @change="toggleIncludePulls">
       {{ locale.includePulls }}
     </label>

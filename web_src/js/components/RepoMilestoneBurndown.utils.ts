@@ -34,8 +34,10 @@ export type BurndownSummaryLocale = {
   statusInsufficient: string,
   projected: string,
   projectedOnTime: string,
+  projectedOnTimeOne: string, // "1 day", where the others say "%d days"
   projectedOnDueDate: string,
   projectedLate: string,
+  projectedLateOne: string,
 };
 
 export type LinePoint = {x: string, y: number};
@@ -61,9 +63,11 @@ export function burndownSummary(data: MilestoneBurndown, locale: BurndownSummary
       return locale.statusInsufficient;
     case 'projected':
       if (data.daysLate === null) return formatLocale(locale.projected, data.projected);
-      if (data.daysLate > 0) return formatLocale(locale.projectedLate, data.projected, data.daysLate);
       if (data.daysLate === 0) return formatLocale(locale.projectedOnDueDate, data.projected);
-      return formatLocale(locale.projectedOnTime, data.projected, -data.daysLate);
+      if (data.daysLate > 0) {
+        return formatLocale(data.daysLate === 1 ? locale.projectedLateOne : locale.projectedLate, data.projected, data.daysLate);
+      }
+      return formatLocale(data.daysLate === -1 ? locale.projectedOnTimeOne : locale.projectedOnTime, data.projected, -data.daysLate);
     default:
       return '';
   }
@@ -75,8 +79,19 @@ export function idealLine(data: MilestoneBurndown): LinePoint[] {
 }
 
 // from today's remaining work down to zero on the projected day
+const dayMillis = 24 * 60 * 60 * 1000;
+const projectionHorizonDays = 365; // as far past the chart as the server draws a due date
+
+// a slow burn can project years ahead; drawing that would squash the history into a sliver, so the
+// summary still states the date but the chart does not stretch to it
+export function projectionOnChart(data: MilestoneBurndown): boolean {
+  if (data.status !== 'projected' || data.points.length === 0) return false;
+  const today = Date.parse(data.points[data.points.length - 1].date); // both parse as UTC midnight
+  return Date.parse(data.projected) - today <= projectionHorizonDays * dayMillis;
+}
+
 export function projectionLine(data: MilestoneBurndown): LinePoint[] {
-  if (data.status !== 'projected' || data.points.length === 0) return [];
+  if (!projectionOnChart(data)) return [];
   const today = data.points[data.points.length - 1];
   return [{x: today.date, y: today.remaining}, {x: data.projected, y: 0}];
 }
@@ -84,7 +99,7 @@ export function projectionLine(data: MilestoneBurndown): LinePoint[] {
 // the axis must reach the due date and the projected finish, or their lines are cut off
 export function burndownAxisMax(data: MilestoneBurndown): string {
   let latest = data.points[data.points.length - 1].date;
-  for (const date of [data.deadline, data.projected]) {
+  for (const date of [data.deadline, projectionOnChart(data) ? data.projected : '']) {
     if (date > latest) latest = date; // ISO dates sort as strings, and an empty one never wins
   }
   return latest;
