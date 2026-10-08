@@ -1,0 +1,160 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit settings for the CSCI 435 fork; every key is in https://docs.coderabbit.ai/reference/configuration
+# Reviews treat each PR as if it were going upstream to go-gitea/gitea; where the course rules differ, they win.
+language: en-US
+tone_instructions: "Review like a Gitea maintainer helping a student team with little time. Raise real bugs, security holes, unmet acceptance criteria and broken repo rules. Start each comment with Required or Optional. Be brief: no praise or style nits."
+
+reviews:
+  profile: chill
+  high_level_summary: false # PR descriptions are graded, so the bot must not write into them
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  suggested_reviewers: false
+  in_progress_fortune: false
+  enable_prompt_for_ai_agents: false
+  auto_review:
+    auto_incremental_review: false # one review when the PR leaves draft; comment "@coderabbitai review" for another
+  path_filters:
+    - "!ai-logs/**" # course logs are filed unedited
+    - "!.claude-students/guide/**" # generated from .claude-students/docs
+    - "!docs/superpowers/**" # AI planning notes
+    - "!templates/swagger/v1_json.tmpl" # generated, and CI checks it is up to date
+    - "!templates/swagger/v1_openapi3_json.tmpl"
+    - "!web_src/fomantic/build/**" # vendored
+  path_instructions:
+    - path: "**"
+      instructions: |
+        The project rules are AGENTS.md, CONTRIBUTING.md, docs/sprint0/standards.md, docs/guidelines-backend.md, docs/guidelines-frontend.md, and the .claude-students/docs page that .claude-students/INDEX.md maps to the changed path. Cite the rule when you raise one.
+        Course rules win where they differ from upstream: PRs here are merged with a merge commit, and AI logs and .claude-students docs are committed on purpose.
+        - Scope: a PR covers one issue. Flag changes unrelated to the linked issue (CONTRIBUTING.md: "Don't make changes unrelated to your PR").
+        - Layers: imports flow cmd → routers → services → models → modules only. Flag an import against that direction.
+        - Comments: short, explaining why, never narrating the code. Flag a removed comment that is still true. Never ask for docstrings.
+        - Docs drift: if the change makes a statement in a .claude-students/docs page wrong, ask for that page to be fixed in the same PR (AGENTS.md).
+        - Commits: a commit made with AI help, including one pushed by a bot, ends with an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer, and no commit carries `Co-Authored-By` or `Signed-off-by` (AGENTS.md, .claude-students/COURSE-WORKFLOW.md). If possible, the message also names the person who approved the change, since a human approves every commit.
+        - Skip anything `make fmt`, `make lint-go`, `make lint-js`, `make lint-css` or `make lint-templates` enforces; CI runs them.
+    - path: "**/*.go"
+      instructions: |
+        - A new .go file starts with `// Copyright <current year> The Gitea Authors. All rights reserved.` and `// SPDX-License-Identifier: MIT`.
+        - Writes that must roll back together run inside `db.WithTx` or `db.WithTx2`, and every function in the transaction takes `context.Context` first.
+        - XORM: flag an `Update` or `Delete` with no `Where` or ID condition; it touches every row.
+        - Before reading or changing another user's or repository's data, the doer's permission is checked. Treat a missing check as a security bug.
+        - Handlers fail through the context helpers (`ctx.NotFound`, `ctx.ServerError`, `ctx.JSONError` and the like), never by writing the response by hand.
+        - User-visible text is a locale key, never a literal; user-facing errors go through `util.ErrorWrapTranslatable`.
+        - `go.mod` and `go.sum` change only when the feature needs it, after `make tidy`.
+    - path: "**/*_test.go"
+      instructions: |
+        - Prefer a unit test next to the code over an integration test when the logic can be tested alone (AGENTS.md).
+        - A new test package has `func TestMain(m *testing.M) { unittest.MainTest(m) }`, or its fixtures never load.
+        - Cover the normal case, invalid input and permission checks where they apply (docs/sprint0/standards.md).
+        - Integration tests should run in under 2 seconds. Don't ask for tests beyond what the acceptance criteria need.
+    - path: "models/migrations/**"
+      instructions: |
+        - A new migration is appended at the bottom of the slice in `migrations.go`. Never insert in the middle, renumber, or edit a migration that is already on main.
+        - It lives in `v1_27/v<id>.go` and declares its own local copy of each struct inside the function. It never imports a live model from `models/`.
+        - Partial table changes use `SyncWithOptions` with `IgnoreDropIndices` and `IgnoreConstrains`, not plain `Sync`.
+        - A column added to an existing table is `NOT NULL DEFAULT <value>`, so old rows are filled.
+        - It has a `v<id>_test.go`, whose fixtures folder under `models/migrations/fixtures/` matches the test function name exactly.
+    - path: "routers/api/v1/**"
+      instructions: |
+        - Never break v1: no removed or renamed fields, changed field types, changed status codes or removed endpoints (docs/guidelines-backend.md).
+        - Every result, success and each error, is documented in the route's swagger comment. Request and response bodies are structs in `modules/structs/`, registered under `routers/api/v1/swagger/`.
+        - Status codes: GET 200, POST 201 with the created object, PUT 204, PATCH 200 with the changed object, DELETE 204.
+        - Edit endpoints take every field as optional except the ones that identify the object. List endpoints accept `page` and `limit` and set `X-Total-Count` via `ctx.SetTotalCountHeader`.
+        - Where GitHub's API has the same concept, use its endpoint and field names.
+    - path: "modules/structs/**"
+      instructions: |
+        These structs are the public API. Flag a removed or renamed field, or a changed JSON name or type, as breaking v1.
+    - path: "templates/**"
+      instructions: |
+        - Every user-visible string goes through `ctx.Locale.Tr`, or `ctx.Locale.TrN` for plurals, and its key exists in `locale_en-US.json`.
+        - Hide and show with the `tw-hidden` class. Use `tw-` utilities and `flex-*` helpers rather than per-child margins (AGENTS.md).
+        - Ids and classes are kebab-case with 2–3 feature keywords. Use `<button>` and other semantic elements rather than a clickable `<div>`.
+        - User content reaches the page through the existing render and sanitiser helpers. Flag user input inserted as raw HTML as a security bug (.claude-students/docs/modules-markup.md).
+    - path: "web_src/js/**"
+      instructions: |
+        Follow docs/guidelines-frontend.md:
+        - Use `import type` for type-only imports and `@ts-expect-error`, not `@ts-ignore`.
+        - Use `!` rather than `?.` or `??` when a value always exists (AGENTS.md).
+        - Mark a function `async` only when it awaits or returns a Promise. An async event listener calls `e.preventDefault()` before its first `await`.
+        - Requests use the `GET`/`POST`/`PUT`/`PATCH`/`DELETE` wrappers from `modules/fetch.ts`. Read data attributes with `getAttribute`, not `dataset`, and never bind user-provided data directly onto DOM nodes.
+        - Show and hide with `showElem`, `hideElem` and `toggleElem`; prefix custom DOM events with `ce-`.
+        - Don't mix Vue with Fomantic-UI, and don't use JSX.
+        - No user-visible literals: text comes from a locale key, through `data-locale-*` attributes or `window.config.i18n`.
+        - New logic in a `.ts` module gets a vitest `*.test.ts` file next to it.
+    - path: "web_src/css/**"
+      instructions: |
+        - Prefer `tw-` utilities and `flex-*` helpers; use `gt-` or `g-` helpers only when no Tailwind utility exists.
+        - Avoid `!important`. Where it can't be avoided, a comment says why.
+        - Add a new, prefixed class rather than restyling a Fomantic class.
+        - Colours come from the theme's `var(--color-*)` variables, never a literal colour, or the other themes break (.claude-students/docs/frontend-css.md).
+    - path: "options/locale/**"
+      instructions: |
+        - Only `locale_en-US.json` is edited by hand. Edits to any other locale file are overwritten by the Crowdin sync and must be reverted (CONTRIBUTING.md, "Translation").
+        - A new key sits next to its neighbours in the same area. A plural is a `_1` and `_n` pair, both using `%d`.
+        - Flag a new key that nothing uses, and a removed key that something still uses.
+  finishing_touches: # a human approves every commit (AGENTS.md), so the bot never pushes code; its commits also lack the Assisted-by trailer the course requires
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    autofix:
+      enabled: false
+    fix_ci:
+      enabled: false
+    resolve_merge_conflict:
+      enabled: false
+  pre_merge_checks:
+    docstrings:
+      mode: "off" # AGENTS.md wants short "why" comments, not a docstring on every function
+    title:
+      mode: "off" # the pr-title CI job already checks Conventional Commits
+    description:
+      mode: "off" # replaced by the course-specific check below
+    issue_assessment:
+      mode: warning
+    custom_checks:
+      - name: Course PR description
+        mode: warning
+        instructions: |
+          Judge only the PR description. Pass only if all of these hold, otherwise fail and list what is missing:
+          - Each issue the PR closes is on its own line, as "Closes #<number>", "Fixes #<number>" or "Resolves #<number>".
+          - It has these sections, each with the author's own text rather than only the template's comments: "What changed", "Why", "How it was tested", "CI / manual verification", "Design", "AI assistance".
+          - When the linked issue lists acceptance criteria, "Why" names the ones the PR satisfies (AC1, AC2, ...).
+          - "AI assistance" either says "No AI used", or names the tool and model, what the AI did, and what the author did to check it.
+          - Nothing links to a file under ai-logs/. AI logs belong in the issue's AI Assistance comment (.claude-students/AI-ASSISTANCE.md).
+      - name: Screenshots for UI changes
+        mode: warning
+        instructions: |
+          Pass if no file under templates/ or web_src/css/, and no .vue file, changed.
+          Otherwise pass only if the PR description contains at least one image (Markdown image syntax or an <img> tag), and fail asking for after screenshots, plus before screenshots for a fix (CONTRIBUTING.md, "PR title and summary").
+      - name: Tests for behaviour changes
+        mode: warning
+        instructions: |
+          Pass if no non-test file under cmd/, models/, modules/, routers/, services/ or web_src/js/ changed.
+          Otherwise pass only if at least one test file was added or changed: a *_test.go file, a *.test.ts file, or a file under tests/. On fail, list the changed code files.
+          The course requires a new or updated test for every behaviour change (.claude-students/COURSE-WORKFLOW.md).
+      - name: Breaking and dependency changes
+        mode: warning
+        instructions: |
+          Check each case below. For each one that applies, the PR description must explain it; fail and name the missing explanation otherwise. Pass if none applies.
+          - An /api/v1 endpoint is removed, or a response loses or renames a field, changes a field type, or changes a status code. Or an app.ini setting is removed or its default changes. The description needs a reason and a "BREAKING" section saying how users are affected and how to adapt (CONTRIBUTING.md, "Breaking PRs").
+          - go.mod, go.sum, package.json or pnpm-lock.yaml changed. The description says why the dependency change is needed (docs/guidelines-backend.md, "Dependencies").
+
+knowledge_base:
+  code_guidelines:
+    filePatterns: # AGENTS.md and CLAUDE.md are read by default
+      - CONTRIBUTING.md
+      - docs/sprint0/standards.md
+      - .claude-students/INDEX.md
+      - .claude-students/COURSE-WORKFLOW.md
+      - .claude-students/AI-ASSISTANCE.md
+      - .claude-students/docs/*.md
+      - files: docs/guidelines-backend.md
+        applyTo: "**/*.go"
+      - files: docs/guidelines-frontend.md
+        applyTo: "web_src/**,templates/**"
+      - files: docs/testing.md
+        applyTo: "**/*_test.go,**/*.test.ts,tests/**"
