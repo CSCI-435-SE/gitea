@@ -1,7 +1,22 @@
 /* the <aria-menu> web component, styled to match ".ui.dropdown .menu" so migrated menus look the same */
 aria-menu {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
   position: relative;
+  font-size: 1rem;
+  line-height: var(--line-height-default);
+  text-align: left;
+}
+
+aria-menu > :not(.menu) {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* normalize.css gives buttons line-height 1.15 */
+aria-menu > .btn {
+  line-height: inherit;
 }
 
 aria-menu > .menu {
@@ -10,7 +25,7 @@ aria-menu > .menu {
   left: 0;
   z-index: 11;
   min-width: max-content;
-  margin-top: 4px;
+  margin: 0;
   padding: 0;
   background: var(--color-menu);
   color: var(--color-text);
@@ -18,6 +33,41 @@ aria-menu > .menu {
   border-radius: var(--border-radius);
   box-shadow: 0 6px 18px var(--color-shadow);
   text-align: left;
+  cursor: auto;
+}
+
+aria-menu[placement$="-end"] > .menu {
+  left: auto;
+  right: 0;
+}
+
+aria-menu[placement^="top-"] > .menu {
+  top: auto;
+  bottom: 100%;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+aria-menu[pointing]:not([placement^="top-"]) > .menu {
+  margin-top: 1em;
+}
+
+aria-menu[pointing]:not([placement^="top-"]) > .menu::after {
+  content: "";
+  position: absolute;
+  top: -0.25em;
+  left: 1em;
+  width: 0.5em;
+  height: 0.5em;
+  transform: rotate(45deg);
+  background: var(--color-menu);
+  box-shadow: -1px -1px 0 0 var(--color-secondary);
+  z-index: 2;
+  pointer-events: none;
+}
+
+aria-menu[pointing][placement$="-end"] > .menu::after {
+  left: auto;
+  right: 1em;
 }
 
 /* the element upgrades in <head> but only sets up its children at DOMContentLoaded, keep the popup hidden until then */
@@ -26,10 +76,10 @@ aria-menu > .menu:not([role="menu"]) {
 }
 
 aria-menu > .menu > .item {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
+  display: block;
+  min-height: 2.57142857rem;
   padding: 0.78571429rem 1.14285714rem;
+  font-size: 1rem;
   color: var(--color-text);
   line-height: var(--line-height-default);
   white-space: nowrap;
@@ -37,10 +87,31 @@ aria-menu > .menu > .item {
   text-decoration: none;
 }
 
-aria-menu > .menu > .item:hover,
-aria-menu > .menu > .item:focus {
+aria-menu > .menu > .item > svg {
+  margin-right: 0.78rem;
+}
+
+aria-menu > .menu > .item:first-child {
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+aria-menu > .menu > .item:last-child {
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+aria-menu > .menu > .item:hover:not(.active, :active),
+aria-menu > .menu > .item:focus-visible,
+aria-menu > .menu > .item.selected {
   background: var(--color-hover);
+}
+
+aria-menu > .menu > .item:focus {
   outline: none;
+}
+
+aria-menu > .menu > .item.active,
+aria-menu > .menu > .item:active {
+  background: var(--color-active);
 }
 
 aria-menu > .menu > .item:focus-visible {
@@ -50,11 +121,13 @@ aria-menu > .menu > .item:focus-visible {
 
 aria-menu > .menu > .divider {
   border-top: 1px solid var(--color-secondary);
+  height: 0;
   margin: 4px 0;
 }
 
 aria-menu > .menu > .header {
   margin: 1rem 0 0.75rem;
   padding: 0 1.14285714rem;
+  font-size: 0.95em;
   font-weight: var(--font-weight-medium);
 }

@@ -91,7 +91,7 @@ Then the inner one needs to get padding and parent "item" padding needs to be re
   padding: 11px 16px;
 }
 
-.page-footer .ui.dropdown .menu.language-menu,
+.page-footer .menu.language-menu,
 .page-footer .ui.dropdown .menu.theme-menu {
   max-height: min(500px, calc(100vh - 60px));
   overflow-y: auto;
