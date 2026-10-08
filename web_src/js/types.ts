@@ -41,6 +41,7 @@ export type Issue = {
   title: string,
   body: string,
   state: 'open' | 'closed',
+  close_reason: '' | 'completed' | 'not_planned' | 'duplicate' | 'other', // '' when open or closed without a reason
   created_at: string,
   html_url: string,
   pull_request?: {

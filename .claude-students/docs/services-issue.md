@@ -23,7 +23,7 @@ call this package; they must not call `models/issues` directly.
 | `services/issue/label.go` | `AddLabel`, `AddLabels`, `RemoveLabel`, `ReplaceLabels`, `ClearLabels` |
 | `services/issue/assignee.go` | `ToggleAssignee`, `AddAssignees`, `RemoveAssignees`, `UpdateAssignees` |
 | `services/issue/content.go` | `ChangeContent` |
-| `services/issue/status.go` | `CloseIssueWithReason`, `CloseIssue` (the no-reason wrapper), `ReopenIssue` |
+| `services/issue/status.go` | `CloseIssueWithReason`, `CloseIssue` (the default-reason wrapper), `ReopenIssue` |
 | `services/issue/comments.go`, `reaction.go`, `milestone.go` | comment, reaction and milestone operations |
 | `services/issue/milestone_burndown.go` | `CalcMilestoneBurndown` (pure: takes `now` and a zone), `GetMilestoneBurndown` — the milestone page's chart |
 | `services/issue/review_request.go` | `ReviewRequest`, `TeamReviewRequest`, `CanDoerChangeReviewRequests` |
@@ -51,10 +51,13 @@ call this package; they must not call `models/issues` directly.
   no history.
 - `ChangeContent` takes a `contentVersion` for optimistic concurrency — pass the version the client
   submitted, do not invent one.
-- A close that records why goes through `CloseIssueWithReason`. `CloseIssue` passes an empty
-  `issues_model.CloseReasonOptions`, for callers with no reason to give (commit keywords, the API);
-  bulk close on the list passes the picked reason, from `issues_model.BulkCloseReasons`. The reason is
-  validated in `models/issues/issue_update.go` → `SetIssueAsClosed`, inside the close transaction.
+- A close that records why goes through `CloseIssueWithReason`. `CloseIssue` records
+  `issues_model.DefaultCloseReason` (completed for an issue, not planned for a pull request), for
+  callers with no reason to give: commit keywords, merged-PR references, deleted branches, and API
+  requests without `close_reason`. Bulk close on the list passes the picked reason, from
+  `issues_model.BulkCloseReasons`. The reason is validated in `models/issues/issue_update.go` →
+  `SetIssueAsClosed`, inside the close transaction; `routers/api/v1/repo/issue_close_reason.go` runs
+  the same checks before an API request writes anything.
 
 ## Recipes
 

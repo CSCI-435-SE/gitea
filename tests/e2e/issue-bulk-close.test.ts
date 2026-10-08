@@ -20,6 +20,7 @@ test('bulk close selected issues with the reason picked in the menu', async ({pa
   // the button takes the picked reason, and its request carries it; the page reloads once the server answers
   await Promise.all([
     page.waitForResponse((response) => response.url().endsWith('/issues/status')),
+    page.waitForEvent('load'), // wait out that reload, or the goto below can be interrupted by it (seen in WebKit)
     closeGroup.getByRole('button', {name: 'Close as not planned'}).click(),
   ]);
 

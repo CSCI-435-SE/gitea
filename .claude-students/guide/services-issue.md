@@ -1,6 +1,6 @@
 ---
 source: docs/services-issue.md
-source-hash: 32340b6077f0605d
+source-hash: f568518717125a08
 verified-at: 94dfae067e
 ---
 
@@ -57,7 +57,7 @@ timeline entry and the notification.
 | `services/issue/label.go` | Adding, removing and replacing labels. |
 | `services/issue/assignee.go` | Assigning and unassigning people. |
 | `services/issue/content.go` | Editing the issue body. |
-| `services/issue/status.go` | Opening and closing: `CloseIssueWithReason` records why, `CloseIssue` is the older no-reason form. |
+| `services/issue/status.go` | Opening and closing: `CloseIssueWithReason` records why, `CloseIssue` is the form for callers with no reason to give and fills in a default. |
 | `services/issue/comments.go`, `reaction.go`, `milestone.go` | Comments, reactions, milestones. |
 | `services/issue/milestone_burndown.go` | The milestone page's burndown chart. `CalcMilestoneBurndown` is handed the time and zone instead of reading the clock, so tests can pin both. |
 | `services/issue/review_request.go` | Requesting a review from a person or a team. |
@@ -99,10 +99,14 @@ closed and nothing says who did it or when.
 that if someone else edited in the meantime the clash is detected. Pass through what the client
 sent; do not invent one.
 
-**Closing with a reason uses `CloseIssueWithReason`.** `CloseIssue` keeps its old signature and
-simply passes an empty `issues_model.CloseReasonOptions`. Callers with no reason to give — commit keywords,
-the API — keep calling it unchanged. Bulk close on the list passes the reason picked there. The reason itself is checked further
-down, in `models/issues/issue_update.go`, inside the same transaction as the close.
+**Closing with a reason uses `CloseIssueWithReason`.** `CloseIssue` is for callers with no
+reason to give, and it records the default one, `issues_model.DefaultCloseReason`: completed for an
+issue, not planned for a pull request. That covers commit keywords, merged-PR references, deleted
+branches, and API requests that send no `close_reason`. Bulk close on the list passes the reason
+picked there, from `issues_model.BulkCloseReasons`. The reason itself is checked further down, in
+`models/issues/issue_update.go`, inside the same transaction as the close.
+`routers/api/v1/repo/issue_close_reason.go` runs the same checks before an API request writes
+anything, so a bad reason is refused before any other change is saved.
 
 ## How to actually do it
 

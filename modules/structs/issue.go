@@ -67,6 +67,12 @@ type Issue struct {
 	State     StateType `json:"state"`
 	IsLocked  bool      `json:"is_locked"`
 	Comments  int       `json:"comments"`
+	// Why it was closed: completed, not_planned, duplicate or other; empty when open or closed without a reason
+	CloseReason string `json:"close_reason"`
+	// The close reason's description, only for other
+	CloseReasonText string `json:"close_reason_text"`
+	// The number of the issue or pull request it duplicates, in the same repository, only for duplicate; 0 otherwise
+	CloseDuplicateOf int64 `json:"close_duplicate_of"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -104,6 +110,12 @@ type CreateIssueOption struct {
 	// list of project ids
 	Projects []int64 `json:"projects"`
 	Closed   bool    `json:"closed"`
+	// Why the issue is closed, only with closed: completed, not_planned, duplicate or other; defaults to completed
+	CloseReason string `json:"close_reason"`
+	// Required with the other close reason, up to 255 characters
+	CloseReasonText string `json:"close_reason_text"`
+	// Required with the duplicate close reason: the number of an issue or pull request in the same repository
+	CloseDuplicateOf int64 `json:"close_duplicate_of"`
 }
 
 // EditIssueOption options for editing an issue
@@ -118,6 +130,13 @@ type EditIssueOption struct {
 	// list of project ids to set (replaces existing projects)
 	Projects *[]int64 `json:"projects"`
 	State    *string  `json:"state"`
+	// Why the item is closed, only when state closes it: completed (issues only), not_planned, duplicate or other;
+	// defaults to completed for an issue and not_planned for a pull request
+	CloseReason string `json:"close_reason"`
+	// Required with the other close reason, up to 255 characters
+	CloseReasonText string `json:"close_reason_text"`
+	// Required with the duplicate close reason: the number of an issue or pull request in the same repository
+	CloseDuplicateOf int64 `json:"close_duplicate_of"`
 	// swagger:strfmt date-time
 	Deadline       *time.Time `json:"due_date"`
 	RemoveDeadline *bool      `json:"unset_due_date"`

@@ -1,7 +1,7 @@
 ---
 source: docs/frontend-js.md
-source-hash: aadb1ae155ccf08e
-verified-at: 32ac0cbb78
+source-hash: 633ae470c1ac23a6
+verified-at: 94dfae067e
 ---
 
 <!-- Derived from docs/frontend-js.md. Do not edit by hand: fix the reference doc and regenerate
@@ -22,7 +22,7 @@ All the browser-side code except the Vue components, organised by how reusable i
 - `modules/` — shared infrastructure: fetching, initialisation, tooltips, toasts, the code editor.
 - `utils/` — pure helpers with no assumptions about the page: strings, URLs, dates, colours.
 - `markup/` and `render/` — enhancing content that has already been rendered.
-- `webcomponents/` — custom HTML elements like the relative-time display.
+- `webcomponents/` — custom HTML elements like the relative-time display and the `aria-menu` menu button.
 
 ## Why it exists
 
@@ -160,6 +160,8 @@ Registration happens at module load; the observer starts last, on purpose.
 **You build on Fomantic-UI because the existing code does.** It is the vendored jQuery library, and
 it is deprecated. Do not start new features on it, and never mix its JavaScript with Vue — Vue may
 use its CSS classes, but the two fight over who owns the DOM.
+For a plain menu of actions there is a newer `<aria-menu>` element (`web_src/js/webcomponents/aria-menu.ts`);
+`web_src/js/modules/fomantic/aria.md` explains when to pick it over a Fomantic dropdown.
 
 **You put a helper in `utils/` and it breaks in tests.** That folder is for pure helpers. Anything
 reaching for `window` or searching the page belongs in `modules/` or `features/`.
