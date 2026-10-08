@@ -51,6 +51,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["RequireTwoFactor"] = ctx.Org.Organization.RequireTwoFactor
 	ctx.Data["ContextUser"] = ctx.ContextUser
 
+	// counted even while the policy is off: they preview who would lose access if it were turned on
 	var err error
 	if ctx.Data["MembersWithoutTwoFactor"], err = organization.CountOrgMembersWithoutTwoFactor(ctx, ctx.Org.Organization.ID); err != nil {
 		ctx.ServerError("CountOrgMembersWithoutTwoFactor", err)

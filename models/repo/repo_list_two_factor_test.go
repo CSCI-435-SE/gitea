@@ -12,6 +12,7 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -59,4 +60,27 @@ func TestAccessibleReposTwoFactorPolicy(t *testing.T) {
 
 	assert.Contains(t, accessibleIDs(), int64(3))
 	assert.Contains(t, myRepoIDs(), int64(3))
+}
+
+// The dashboard's "issues I created / was assigned / was mentioned in" conditions only match public repos.
+// Anyone may read those, so the policy must only drop them when the owner org is private.
+func TestPublicRepoIssueCondsTwoFactorPolicy(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+	const poster = 15 // posted issue17 in org3's public repo32, has no 2FA
+
+	createdIssueRepoIDs := func() []int64 {
+		ids, err := repo_model.SearchRepositoryIDsByCondition(ctx, repo_model.UserCreateIssueRepoCond("`repository`.id", poster, false))
+		require.NoError(t, err)
+		return ids
+	}
+
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	org.RequireTwoFactor = true
+	require.NoError(t, user_model.UpdateUserCols(ctx, org, "require_two_factor"))
+	assert.Contains(t, createdIssueRepoIDs(), int64(32), "a public repo of a public org stays visible to users without 2FA")
+
+	org.Visibility = structs.VisibleTypePrivate
+	require.NoError(t, user_model.UpdateUserCols(ctx, org, "visibility"))
+	assert.NotContains(t, createdIssueRepoIDs(), int64(32), "a private org's repos are hidden from blocked users")
 }

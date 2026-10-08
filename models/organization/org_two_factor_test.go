@@ -124,6 +124,40 @@ func TestCountOrgMembersWithoutTwoFactorExcludesAdmins(t *testing.T) {
 	}
 }
 
+func TestCountOrgOutsideCollaboratorsWithoutTwoFactorExcludesAdmins(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	count, err := organization.CountOrgOutsideCollaboratorsWithoutTwoFactor(ctx, 3)
+	require.NoError(t, err)
+	assert.EqualValues(t, 1, count, "user10 on repo21")
+
+	collaborator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
+	collaborator.IsAdmin = true
+	require.NoError(t, user_model.UpdateUserCols(ctx, collaborator, "is_admin"))
+	count, err = organization.CountOrgOutsideCollaboratorsWithoutTwoFactor(ctx, 3)
+	require.NoError(t, err)
+	assert.Zero(t, count, "a site admin is exempt, so not counted")
+}
+
+func TestGetOwnedOrgsRequiringTwoFactor(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	ownedIDs := func(uid int64) (ids []int64) {
+		orgs, err := organization.GetOwnedOrgsRequiringTwoFactor(t.Context(), uid)
+		require.NoError(t, err)
+		for _, o := range orgs {
+			ids = append(ids, o.ID)
+		}
+		return ids
+	}
+
+	assert.Empty(t, ownedIDs(2), "policy off")
+	setRequireTwoFactor(t, org, true)
+	assert.Equal(t, []int64{3}, ownedIDs(2), "user2 owns org3")
+	assert.Empty(t, ownedIDs(4), "user4 is a member, not an owner")
+}
+
 func TestHasOrgOrUserVisibleTwoFactorPolicy(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})

@@ -227,11 +227,24 @@ func UserOwnedRepoCond(userID int64) builder.Cond {
 }
 
 // NotTwoFactorBlockedRepoCond stops a membership-derived condition from matching the repos of organizations
-// whose two-factor policy blocks the user; it is the SQL twin of the check in access.GetIndividualUserRepoPermission
+// whose two-factor policy blocks the user; it is the SQL twin of the check in access.GetIndividualUserRepoPermission.
+// It drops those repos for every user without 2FA, member or not, so only AND it into a condition that
+// matches repos through membership or collaboration.
 func NotTwoFactorBlockedRepoCond(idStr string, userID int64) builder.Cond {
 	return builder.Or(
 		user_model.TwoFactorPolicyExemptCond(userID),
 		builder.NotIn(idStr, builder.Select("id").From("repository").Where(builder.In("owner_id", user_model.RequireTwoFactorOrgIDsBuilder()))),
+	)
+}
+
+// notTwoFactorBlockedPublicRepoCond is the variant for conditions that only match public repos and do not
+// involve membership: anyone may read those unless their owner is a private organization, so only the
+// public repos of private organizations whose two-factor policy blocks the user are dropped
+func notTwoFactorBlockedPublicRepoCond(idStr string, userID int64) builder.Cond {
+	privatePolicyOrgIDs := user_model.RequireTwoFactorOrgIDsBuilder().And(builder.Eq{"`user`.visibility": structs.VisibleTypePrivate})
+	return builder.Or(
+		user_model.TwoFactorPolicyExemptCond(userID),
+		builder.NotIn(idStr, builder.Select("id").From("repository").Where(builder.In("owner_id", privatePolicyOrgIDs))),
 	)
 }
 
@@ -248,7 +261,7 @@ func UserAssignedRepoCond(id string, userID int64) builder.Cond {
 					"issue_assignees.assignee_id": userID,
 				}),
 		),
-		NotTwoFactorBlockedRepoCond(id, userID),
+		notTwoFactorBlockedPublicRepoCond(id, userID),
 	)
 }
 
@@ -265,7 +278,7 @@ func UserCreateIssueRepoCond(id string, userID int64, isPull bool) builder.Cond 
 					"issue.is_pull":   isPull,
 				}),
 		),
-		NotTwoFactorBlockedRepoCond(id, userID),
+		notTwoFactorBlockedPublicRepoCond(id, userID),
 	)
 }
 
@@ -283,7 +296,7 @@ func UserMentionedRepoCond(id string, userID int64) builder.Cond {
 					"issue_user.uid":          userID,
 				}),
 		),
-		NotTwoFactorBlockedRepoCond(id, userID),
+		notTwoFactorBlockedPublicRepoCond(id, userID),
 	)
 }
 

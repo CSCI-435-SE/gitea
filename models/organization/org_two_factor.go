@@ -8,6 +8,7 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/cachegroup"
@@ -28,21 +29,27 @@ func IgnoreTwoFactorPolicy(ctx context.Context) context.Context {
 // neither TOTP nor WebAuthn, so u must be treated as a non-member: no member, team or collaborator access.
 // Site admins and non-person identities (the organization itself pushing through a deploy key, Actions
 // users, the ghost user) are never blocked. The enrolment check is cached per request.
+//
+// It does not check that u is a member or collaborator: anyone without 2FA counts as blocked. Callers
+// must only use it to take away access that came from membership or collaboration.
 func (org *Organization) IsTwoFactorBlocked(ctx context.Context, u *user_model.User) (bool, error) {
-	if !org.RequireTwoFactor {
+	if !org.RequireTwoFactor || isTwoFactorPolicyExempt(ctx, u) {
 		return false, nil
 	}
-	return lacksPolicyTwoFactor(ctx, u)
+	return lacksTwoFactor(ctx, u)
 }
 
-// lacksPolicyTwoFactor reports whether a two-factor policy applies to u and u has neither TOTP nor WebAuthn
-func lacksPolicyTwoFactor(ctx context.Context, u *user_model.User) (bool, error) {
+// isTwoFactorPolicyExempt reports whether no two-factor policy applies to u at all
+func isTwoFactorPolicyExempt(ctx context.Context, u *user_model.User) bool {
 	if u == nil || u.ID <= 0 || u.IsAdmin || (u.Type != user_model.UserTypeIndividual && u.Type != user_model.UserTypeBot) {
-		return false, nil
+		return true
 	}
-	if ignore, _ := ctx.Value(ignoreTwoFactorPolicyKey{}).(bool); ignore {
-		return false, nil
-	}
+	ignore, _ := ctx.Value(ignoreTwoFactorPolicyKey{}).(bool)
+	return ignore
+}
+
+// lacksTwoFactor reports whether u has neither TOTP nor WebAuthn, cached per request
+func lacksTwoFactor(ctx context.Context, u *user_model.User) (bool, error) {
 	has, err := cache.GetWithContextCache(ctx, cachegroup.UserHasTwoFactor, u.ID, auth_model.HasTwoFactorOrWebAuthn)
 	if err != nil {
 		return false, err
@@ -51,23 +58,47 @@ func lacksPolicyTwoFactor(ctx context.Context, u *user_model.User) (bool, error)
 }
 
 // IsTwoFactorBlockedByAnyOrg reports whether u is a member of, or a collaborator on a repository of, an
-// organization whose two-factor policy blocks them
+// organization whose two-factor policy blocks them. It reads the database rather than the session's
+// "has 2FA" flag, which goes stale when a factor is removed in another session.
 func IsTwoFactorBlockedByAnyOrg(ctx context.Context, u *user_model.User) (bool, error) {
-	if lacks, err := lacksPolicyTwoFactor(ctx, u); err != nil || !lacks {
+	if isTwoFactorPolicyExempt(ctx, u) {
+		return false, nil
+	}
+	// it runs on every rendered page: most instances have no such organization, and most users are in none
+	if anyOrg, err := db.GetEngine(ctx).Where(builder.Eq{"require_two_factor": true}).Exist(new(Organization)); err != nil || !anyOrg {
 		return false, err
 	}
-	isMember, err := db.GetEngine(ctx).
+	inPolicyOrg, err := db.GetEngine(ctx).
 		Where(builder.Eq{"uid": u.ID}).
 		And(builder.In("org_id", user_model.RequireTwoFactorOrgIDsBuilder())).
 		Exist(new(OrgUser))
-	if err != nil || isMember {
-		return isMember, err
+	if err != nil {
+		return false, err
 	}
-	return db.GetEngine(ctx).Table("collaboration").
-		Join("INNER", "repository", "`repository`.id = `collaboration`.repo_id").
-		Where(builder.Eq{"`collaboration`.user_id": u.ID}).
-		And(builder.In("`repository`.owner_id", user_model.RequireTwoFactorOrgIDsBuilder())).
-		Exist()
+	if !inPolicyOrg {
+		inPolicyOrg, err = db.GetEngine(ctx).Table("collaboration").
+			Join("INNER", "repository", "`repository`.id = `collaboration`.repo_id").
+			Where(builder.Eq{"`collaboration`.user_id": u.ID}).
+			And(builder.In("`repository`.owner_id", user_model.RequireTwoFactorOrgIDsBuilder())).
+			Exist()
+		if err != nil || !inPolicyOrg {
+			return false, err
+		}
+	}
+	return lacksTwoFactor(ctx, u)
+}
+
+// GetOwnedOrgsRequiringTwoFactor returns the organizations that require two-factor authentication and
+// that u owns; such an owner must keep a second factor, or they would lock themselves out of the org
+func GetOwnedOrgsRequiringTwoFactor(ctx context.Context, uid int64) ([]*Organization, error) {
+	orgs := make([]*Organization, 0, 2)
+	return orgs, db.GetEngine(ctx).
+		Where(builder.Eq{"require_two_factor": true}).
+		And(builder.In("id", builder.Select("`team`.org_id").From("team").
+			Join("INNER", "team_user", "`team_user`.team_id = `team`.id").
+			Where(builder.Eq{"`team_user`.uid": uid, "`team`.authorize": perm.AccessModeOwner}))).
+		Asc("name").
+		Find(&orgs)
 }
 
 // notTwoFactorBlockedOrgCond is the SQL twin of IsTwoFactorBlocked for a query over orgIDCol
@@ -78,25 +109,30 @@ func notTwoFactorBlockedOrgCond(orgIDCol string, userID int64) builder.Cond {
 	)
 }
 
-// CountOrgMembersWithoutTwoFactor counts the organization's members enrolled in neither TOTP nor WebAuthn.
-// Site administrators are excluded because the policy never blocks them.
+// blockableWithoutTwoFactorCond matches rows whose userIDCol is a user an organization's policy would block:
+// enrolled in neither TOTP nor WebAuthn, and not a site admin
+func blockableWithoutTwoFactorCond(userIDCol string) builder.Cond {
+	return builder.Not{user_model.HasTwoFactorCond(userIDCol)}.
+		And(builder.NotIn(userIDCol, builder.Select("`user`.id").From("`user`").Where(builder.Eq{"`user`.is_admin": true})))
+}
+
+// CountOrgMembersWithoutTwoFactor counts the organization's members its two-factor policy would block:
+// enrolled in neither TOTP nor WebAuthn, and not site admins, whom the policy never blocks.
 func CountOrgMembersWithoutTwoFactor(ctx context.Context, orgID int64) (int64, error) {
 	return db.GetEngine(ctx).
-		Join("INNER", "user", "`user`.id = `org_user`.uid").
 		Where(builder.Eq{"`org_user`.org_id": orgID}).
-		And(builder.Eq{"`user`.is_admin": false}).
-		And(builder.Not{user_model.HasTwoFactorCond("`org_user`.uid")}).
+		And(blockableWithoutTwoFactorCond("`org_user`.uid")).
 		Count(new(OrgUser))
 }
 
 // CountOrgOutsideCollaboratorsWithoutTwoFactor counts the non-members who collaborate on any of the
-// organization's repositories and are enrolled in neither TOTP nor WebAuthn.
+// organization's repositories and whom its two-factor policy would block, as CountOrgMembersWithoutTwoFactor.
 func CountOrgOutsideCollaboratorsWithoutTwoFactor(ctx context.Context, orgID int64) (int64, error) {
 	return db.GetEngine(ctx).Table("collaboration").
 		Join("INNER", "repository", "`repository`.id = `collaboration`.repo_id").
 		Where(builder.Eq{"`repository`.owner_id": orgID}).
 		And(builder.NotIn("`collaboration`.user_id", builder.Select("uid").From("org_user").Where(builder.Eq{"org_id": orgID}))).
-		And(builder.Not{user_model.HasTwoFactorCond("`collaboration`.user_id")}).
+		And(blockableWithoutTwoFactorCond("`collaboration`.user_id")).
 		Distinct("`collaboration`.user_id").
 		Count()
 }
