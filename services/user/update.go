@@ -56,6 +56,7 @@ type UpdateOptions struct {
 	EmailNotificationsPreference optional.Option[string]
 	SetLastLogin                 bool
 	RepoAdminChangeTeamAccess    optional.Option[bool]
+	RequireTwoFactor             optional.Option[bool]
 }
 
 func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) error {
@@ -168,6 +169,11 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		u.RepoAdminChangeTeamAccess = opts.RepoAdminChangeTeamAccess.Value()
 
 		cols = append(cols, "repo_admin_change_team_access")
+	}
+	if opts.RequireTwoFactor.Has() {
+		u.RequireTwoFactor = opts.RequireTwoFactor.Value()
+
+		cols = append(cols, "require_two_factor")
 	}
 
 	if opts.EmailNotificationsPreference.Has() {

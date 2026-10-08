@@ -183,5 +183,6 @@ func WebauthnDelete(ctx *context.Context) {
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
 		return
 	}
+	refreshSessionTwoFactorFlag(ctx)
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }

@@ -93,8 +93,21 @@ func DisableTwoFactor(ctx *context.Context) {
 		return
 	}
 
+	refreshSessionTwoFactorFlag(ctx)
+
 	ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+}
+
+// refreshSessionTwoFactorFlag re-reads whether the doer still has a second factor after removing one,
+// so the "two-factor authentication required" banners don't trust a stale "enrolled" flag
+func refreshSessionTwoFactorFlag(ctx *context.Context) {
+	has, err := auth.HasTwoFactorOrWebAuthn(ctx, ctx.Doer.ID)
+	if err != nil {
+		log.Error("HasTwoFactorOrWebAuthn: %v", err)
+		return
+	}
+	_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, has)
 }
 
 func twofaGenerateSecretAndQr(ctx *context.Context) bool {
@@ -165,6 +178,7 @@ func EnrollTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["ShowTwoFactorRequiredMessage"] = false
+	ctx.Data["HideOrgTwoFactorRequiredMessage"] = true
 
 	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if t != nil {
@@ -197,6 +211,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["ShowTwoFactorRequiredMessage"] = false
+	ctx.Data["HideOrgTwoFactorRequiredMessage"] = true
 
 	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if t != nil {

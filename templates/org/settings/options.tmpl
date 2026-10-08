@@ -38,6 +38,20 @@
 				</div>
 			</div>
 
+			<div class="field" id="security_box">
+				<label>{{ctx.Locale.Tr "org.settings.security"}}</label>
+				<div class="field">
+					<div class="ui checkbox">
+						<input type="checkbox" name="require_two_factor" {{if .RequireTwoFactor}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "org.settings.require_two_factor"}}</label>
+					</div>
+					<p class="help">{{ctx.Locale.Tr "org.settings.require_two_factor_desc"}}</p>
+					{{if or .MembersWithoutTwoFactor .CollaboratorsWithoutTwoFactor}}
+						<p class="help text red">{{ctx.Locale.Tr "org.settings.require_two_factor_noncompliant" .MembersWithoutTwoFactor .CollaboratorsWithoutTwoFactor}}</p>
+					{{end}}
+				</div>
+			</div>
+
 			{{if .SignedUser.IsAdmin}}
 			<div class="divider"></div>
 

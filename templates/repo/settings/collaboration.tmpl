@@ -14,6 +14,9 @@
 						<div class="item-main">
 							<div class="item-title">
 								{{template "shared/user/name" .}}
+								{{if and $.CollaboratorsTwoFaStatus (not .IsAdmin) (not (index $.CollaboratorsTwoFaStatus .ID))}}
+									<span class="ui red basic small label">{{ctx.Locale.Tr "org.members.two_factor_no_access"}}</span>
+								{{end}}
 							</div>
 						</div>
 						<div class="item-trailing">

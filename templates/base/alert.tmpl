@@ -6,4 +6,8 @@
 <div class="ui error message flash-message flash-error">
 	<a href="{{AppSubUrl}}/user/settings/security/two_factor/enroll">{{ctx.Locale.Tr "auth.twofa_required"}}</a>
 </div>
+{{- else if and .PageGlobalData (not .HideOrgTwoFactorRequiredMessage) (call .PageGlobalData.GetOrgTwoFactorRequired) -}}
+<div class="ui error message flash-message flash-error">
+	<a href="{{AppSubUrl}}/user/settings/security/two_factor/enroll">{{ctx.Locale.Tr "auth.org_twofa_required"}}</a>
+</div>
 {{- end -}}
