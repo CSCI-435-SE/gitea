@@ -1,7 +1,7 @@
 ---
 source: docs/testing.md
-source-hash: e39355d2ef234ad0
-verified-at: 916a29ba28
+source-hash: de7f6cc0bc06f9c5
+verified-at: 2629e98ef9
 ---
 
 <!-- Derived from docs/testing.md. Do not edit by hand: fix the reference doc and regenerate
@@ -167,6 +167,10 @@ a counter column no longer matches.
 finds a row by turning the struct you pass into the SQL `WHERE`, and it silently drops zero values
 and fields tagged `xorm:"-"`. So asking for `{ID: 1, Bar: 0}` checks only the ID. Load the row by
 ID, then compare its fields, as `models/issues/issue_close_reason_test.go` does.
+
+**Your test user with 2FA is never actually signed in.** `loginUser` stops at the code-entry step,
+so the user is left signed out. Sign them in first, then add their `TwoFactor` row; the session
+keeps working (`tests/integration/org_two_factor_test.go`).
 
 **A browser test only passes when you raise `GITEA_TEST_E2E_TIMEOUT_FACTOR`.** That multiplier
 defaults to 4 on CI and 1 locally. Needing more is a flaky test — usually waiting on the wrong

@@ -1,7 +1,7 @@
 ---
 source: docs/models-user-org-perm.md
-source-hash: 86c1ed1979ba9ae5
-verified-at: c0092050a4
+source-hash: 51b4b7b78979621d
+verified-at: 2629e98ef9
 ---
 
 <!-- Derived from docs/models-user-org-perm.md. Do not edit by hand: fix the reference doc and
@@ -46,6 +46,12 @@ to file issues without pushing code. A single per-repository permission cannot e
 - **computed permission** — the worked-out answer for one user and one repository.
 - **token scope** — how much an API token may do, independent of what its owner may do.
 - **hash algorithm** — how passwords are stored so they cannot be read back.
+- **2FA (two-factor authentication)** — a second proof at sign-in besides the password: a code from an
+  authenticator app (TOTP) or a security key (WebAuthn).
+- **fail-closed** — when in doubt, deny. A new piece of code gets the safe answer without having to
+  remember to ask for it.
+- **SQL twin** — the same rule written as a database condition, for lists and searches that never
+  compute a permission one row at a time.
 
 ## What's in these files
 
@@ -55,7 +61,9 @@ to file issues without pushing code. A single per-repository permission cannot e
 | `models/organization/org.go`, `team.go` | The organisation view, and teams. |
 | `models/organization/team_unit.go` | A team's permission per repository feature. |
 | `models/perm/access_mode.go` | The permission scale. |
-| `models/perm/access/repo_permission.go` | The computed permission for one user and one repository. |
+| `models/perm/access/repo_permission.go` | The computed permission for one user and one repository. `GetDoerRepoPermission` is the one request code uses. |
+| `models/organization/org_two_factor.go` | An organisation's "require 2FA" rule: who it blocks, and the opt-out for clean-up code. |
+| `models/user/two_factor_policy.go` | The same rule as SQL, so repository lists in `models/repo/repo_list.go` agree with it. |
 | `models/auth/access_token.go`, `access_token_scope.go` | API tokens and their scopes. |
 | `models/asymkey/ssh_key.go`, `gpg_key.go` | SSH and GPG keys. |
 
@@ -86,6 +94,15 @@ answer.
 accounts can be upgraded. There is also a flag forcing a password change after an
 administrator-created account.
 
+**An organisation can require 2FA, and then a member without it counts as a stranger.** Members and
+outside collaborators who have neither an authenticator app nor a security key lose everything that
+membership gave them: private repositories, team permissions, member-only pages, repository creation.
+The rule is applied fail-closed in the shared places — the permission calculation, organisation
+visibility, organisation unit permissions, the "can create a repository here" check and the
+repository list conditions — so a new page or API endpoint inherits it. Site admins, and an
+organisation pushing through its own deploy key, are never blocked. Nothing is deleted, which is why
+setting up 2FA gives everything back on the next request.
+
 **API tokens carry their own scopes.** A token is not simply "acting as its owner" — it may be
 limited to a subset, which is what the API's scope guard enforces (`routers-api-v1.md`).
 
@@ -97,6 +114,10 @@ for the specific unit.
 
 **Add a per-user setting.** There is a key/value settings table for exactly this. Prefer it to a new
 column on the user row, which is wide and read constantly.
+
+**Remove something because a user lost access** — unassign them, unwatch, trim an allowlist. Check
+access inside `organization.IgnoreTwoFactorPolicy(ctx)`, as `services/repository/collaboration.go`
+does. Without it, a user who is only blocked until they set up 2FA would lose those rows for good.
 
 **List an organisation's members.** Go through the organisation package rather than joining the user
 table yourself — membership is not a column on the user.
@@ -113,6 +134,10 @@ instead of `>=`.
 **Two imports look like the same package.** The permission *scale* and the permission *computation*
 are different packages, usually aliased to something like `perm_model` and `access_model`. Match
 whatever the file already uses.
+
+**You look for `GetUserRepoPermission` and it is not there.** This fork splits it in two: request
+code calls `GetDoerRepoPermission`, which also understands Actions' temporary users, and
+`GetIndividualUserRepoPermission` takes any explicit user.
 
 **You delete a user row directly and things break afterwards.** Deleting a user touches many tables.
 Go through the service (`services-user-org-auth.md`); the model layer does not do the cleanup.
