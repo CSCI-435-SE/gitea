@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"strings"
@@ -35,8 +36,9 @@ func enrolTOTP(t *testing.T, userName string) {
 	tfa := &auth_model.TwoFactor{UID: u.ID}
 	require.NoError(t, tfa.SetSecret("JBSWY3DPEHPK3PXP"))
 	require.NoError(t, auth_model.NewTwoFactor(t.Context(), tfa))
+	cleanupCtx := context.WithoutCancel(t.Context()) // t.Context() is canceled before cleanups run
 	t.Cleanup(func() {
-		_, _, err := auth_model.DisableTwoFactor(t.Context(), u.ID)
+		_, _, err := auth_model.DisableTwoFactor(cleanupCtx, u.ID)
 		assert.NoError(t, err)
 	})
 }
