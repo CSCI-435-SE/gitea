@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/common"
+	shared_issue "gitea.dev/routers/web/shared/issue"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/issue"
@@ -260,7 +261,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 
-	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, optional.None[bool]())
+	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, optional.None[bool](), shared_issue.DueDateFilter{}) // the due date filter is only offered on the issue and pull request lists
 
 	ret := issue.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.Data["NewIssueChooseTemplate"] = len(ret.IssueTemplates) > 0

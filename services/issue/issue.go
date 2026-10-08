@@ -17,8 +17,10 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/gitrepo"
+	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/storage"
+	"gitea.dev/modules/timeutil"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -131,6 +133,16 @@ func ChangeTimeEstimate(ctx context.Context, issue *issues_model.Issue, doer *us
 	issue.TimeEstimate = timeEstimate
 
 	return issues_model.ChangeIssueTimeEstimate(ctx, issue, doer, timeEstimate)
+}
+
+// ChangeDeadline changes the due date of this issue, as the given user.
+func ChangeDeadline(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, deadlineUnix timeutil.TimeStamp) error {
+	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, doer); err != nil {
+		return err
+	}
+	// the search indexers filter on deadline_unix, and no notifier re-indexes on a due date change
+	issue_indexer.UpdateIssueIndexer(ctx, issue.ID)
+	return nil
 }
 
 // ChangeIssueRef changes the branch of this issue, as the given user.

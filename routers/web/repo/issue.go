@@ -393,8 +393,8 @@ func UpdateIssueDeadline(ctx *context.Context) {
 	}
 
 	deadlineUnix, _ := common.ParseDeadlineDateToEndOfDay(ctx.FormString("deadline"))
-	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, "UpdateIssueDeadline", err.Error())
+	if err := issue_service.ChangeDeadline(ctx, issue, ctx.Doer, deadlineUnix); err != nil {
+		ctx.HTTPError(http.StatusInternalServerError, "ChangeDeadline", err.Error())
 		return
 	}
 

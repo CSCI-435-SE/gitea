@@ -106,6 +106,10 @@ direction, `pr.Issue` after the PR's own loader.
   rows contiguous, once in Go to split that page. Their ordering rules must stay identical, and
   both tie-break on `label.id`, never `label.name`: SQL collation does not match Go's string
   comparison, so a name tie-break silently disagrees across a page boundary.
+- Lists filter through `applyConditions` (`models/issues/issue_search.go`), but `GetIssueStats` and
+  `GetIssueTotalTrackedTime` use `applyIssuesOptions` (`models/issues/issue_stats.go`), so a new
+  `IssuesOptions` filter goes in both or the Open/Closed counts ignore it. "No deadline" is
+  `deadline_unix` 0 or NULL: the column has no default and fixture rows omit it.
 
 ## Related
 

@@ -33,6 +33,7 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/web/feed"
 	"gitea.dev/routers/web/shared/issue"
@@ -512,6 +513,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	isShowClosed := ctx.FormString("state") == "closed"
 	opts.IsClosed = optional.Some(isShowClosed)
 
+	dueFilter := issue.ParseDueDateFilter(ctx.FormString("due"), timeutil.TimeStampNow().AsTime())
+	dueFilter.Apply(opts)
+
 	// Make sure page number is at least 1. Will be posted to ctx.Data.
 	page := max(ctx.FormInt("page"), 1)
 	opts.Paginator = &db.ListOptions{
@@ -625,6 +629,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
+	ctx.Data["DueDateFilter"] = dueFilter.Name
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["SearchModes"] = issue_indexer.SupportedSearchModes()
 	ctx.Data["SelectedSearchMode"] = ctx.FormTrim("search_mode")

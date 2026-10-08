@@ -215,6 +215,14 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.Must(q)
 	}
 
+	if minDeadline, maxDeadline, ok := options.DeadlineRange(); ok {
+		q := es.NewRangeQuery("deadline_unix").Gte(minDeadline.Value())
+		if maxDeadline.Has() {
+			q.Lte(maxDeadline.Value())
+		}
+		query.Must(q)
+	}
+
 	if options.SortBy == "" {
 		options.SortBy = internal.SortByCreatedAsc
 	}

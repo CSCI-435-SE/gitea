@@ -495,6 +495,72 @@ var cases = []*testIndexerCase{
 		},
 	},
 	{
+		Name: "deadline before never matches no deadline",
+		ExtraData: []*internal.IndexerData{
+			{ID: 1000, Title: "no deadline"},
+		},
+		SearchOptions: &internal.SearchOptions{
+			Paginator:          &db.ListOptionsAll,
+			DeadlineBeforeUnix: optional.Some(int64(30)),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.NotEmpty(t, result.Hits)
+			for _, v := range result.Hits {
+				assert.Positive(t, data[v.ID].DeadlineUnix)
+				assert.LessOrEqual(t, data[v.ID].DeadlineUnix, timeutil.TimeStamp(30))
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return v.DeadlineUnix > 0 && v.DeadlineUnix <= 30
+			}), result.Total)
+		},
+	},
+	{
+		Name: "deadline range",
+		SearchOptions: &internal.SearchOptions{
+			Paginator:          &db.ListOptionsAll,
+			DeadlineAfterUnix:  optional.Some(int64(20)),
+			DeadlineBeforeUnix: optional.Some(int64(30)),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.NotEmpty(t, result.Hits)
+			for _, v := range result.Hits {
+				assert.GreaterOrEqual(t, data[v.ID].DeadlineUnix, timeutil.TimeStamp(20))
+				assert.LessOrEqual(t, data[v.ID].DeadlineUnix, timeutil.TimeStamp(30))
+			}
+			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
+				return v.DeadlineUnix >= 20 && v.DeadlineUnix <= 30
+			}), result.Total)
+		},
+	},
+	{
+		Name: "has a deadline",
+		ExtraData: []*internal.IndexerData{
+			{ID: 1000, Title: "no deadline"},
+		},
+		SearchOptions: &internal.SearchOptions{
+			Paginator:   &db.ListOptionsAll,
+			HasDeadline: optional.Some(true),
+		},
+		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
+			assert.Len(t, result.Hits, len(data)-1)
+			for _, v := range result.Hits {
+				assert.NotEqual(t, int64(1000), v.ID)
+			}
+			assert.Equal(t, int64(len(data)-1), result.Total)
+		},
+	},
+	{
+		Name: "has no deadline",
+		ExtraData: []*internal.IndexerData{
+			{ID: 1000, Title: "no deadline"},
+		},
+		SearchOptions: &internal.SearchOptions{
+			HasDeadline: optional.Some(false),
+		},
+		ExpectedIDs:   []int64{1000},
+		ExpectedTotal: 1,
+	},
+	{
 		Name: "SortByCreatedDesc",
 		SearchOptions: &internal.SearchOptions{
 			Paginator: &db.ListOptionsAll,

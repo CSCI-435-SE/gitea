@@ -4,7 +4,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<div class="flex-container">
-			{{$queryLink := QueryBuild "?" "type" $.ViewType "sort" $.SortType "state" $.State "q" $.Keyword "labels" .SelectLabels "search_mode" $.SelectedSearchMode}}
+			{{$queryLink := QueryBuild "?" "type" $.ViewType "sort" $.SortType "state" $.State "q" $.Keyword "labels" .SelectLabels "search_mode" $.SelectedSearchMode "due" $.DueDateFilter}}
 			<div class="flex-container-nav">
 				<div class="ui secondary vertical filter menu tw-bg-transparent">
 					<a class="{{if eq .ViewType "your_repositories"}}active{{end}} item" href="{{QueryBuild $queryLink "type" "your_repositories"}}">
@@ -53,6 +53,7 @@
 						<input type="hidden" name="type" value="{{$.ViewType}}">
 						<input type="hidden" name="sort" value="{{$.SortType}}">
 						<input type="hidden" name="state" value="{{$.State}}">
+						<input type="hidden" name="due" value="{{$.DueDateFilter}}">
 						{{template "shared/search/combo" (dict
 							"Value" $.Keyword
 							"Placeholder" (ctx.Locale.Tr (Iif .PageIsPulls "search.pull_kind" "search.issue_kind"))
@@ -86,6 +87,8 @@
 								"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_assignee")
 							}}
 						{{end}}
+
+						{{template "repo/issue/filter_item_due_date" dict "QueryLink" $queryLinkWithFilter "DueDateFilter" $.DueDateFilter}}
 
 						<!-- Sort -->
 						<div class="item ui small dropdown jump">

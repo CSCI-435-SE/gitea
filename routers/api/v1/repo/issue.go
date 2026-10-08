@@ -847,7 +847,7 @@ func EditIssue(ctx *context.APIContext) {
 			}
 		}
 
-		if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
+		if err := issue_service.ChangeDeadline(ctx, issue, ctx.Doer, deadlineUnix); err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
@@ -1037,7 +1037,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	}
 
 	deadlineUnix, _ := common.ParseAPIDeadlineToEndOfDay(form.Deadline)
-	if err := issues_model.UpdateIssueDeadline(ctx, issue, deadlineUnix, ctx.Doer); err != nil {
+	if err := issue_service.ChangeDeadline(ctx, issue, ctx.Doer, deadlineUnix); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
