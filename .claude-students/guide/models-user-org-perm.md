@@ -1,6 +1,6 @@
 ---
 source: docs/models-user-org-perm.md
-source-hash: 51b4b7b78979621d
+source-hash: 5194230ca692535c
 verified-at: 2629e98ef9
 ---
 
@@ -101,7 +101,14 @@ The rule is applied fail-closed in the shared places — the permission calculat
 visibility, organisation unit permissions, the "can create a repository here" check and the
 repository list conditions — so a new page or API endpoint inherits it. Site admins, and an
 organisation pushing through its own deploy key, are never blocked. Nothing is deleted, which is why
-setting up 2FA gives everything back on the next request.
+setting up 2FA gives everything back on the next request. Because nothing is deleted, a blocked user can
+still be on a branch-protection allowlist, so those entries grant nothing while they are blocked
+(`models/git/protected_branch.go`). And an owner may not remove their own last second factor, or the
+organisation would lock out its owner.
+
+**The check does not ask "are you a member?".** It treats everyone without 2FA as blocked, so it is only
+safe where the access being taken away came from membership. A list of public repositories, which anyone
+may read, uses a narrower version that only hides a *private* organisation's repositories.
 
 **API tokens carry their own scopes.** A token is not simply "acting as its owner" — it may be
 limited to a subset, which is what the API's scope guard enforces (`routers-api-v1.md`).

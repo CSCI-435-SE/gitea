@@ -54,8 +54,12 @@ verified-at: 2629e98ef9
 - **An org can require 2FA** (`User.RequireTwoFactor`). A member or outside collaborator without TOTP or
   WebAuthn is then treated as a non-member, fail-closed: `GetIndividualUserRepoPermission`,
   `HasOrgOrUserVisible`, `Organization.UnitPermission`, `CanCreateOrgRepo` and the per-user conditions
-  in `models/repo/repo_list.go` all apply it. Site admins and non-person identities (an org pushing
-  through a deploy key) are exempt. Nothing is deleted, so enrolling restores access.
+  in `models/repo/repo_list.go` all apply it, and branch-protection allowlist entries grant nothing while
+  their user is blocked (`models/git/protected_branch.go`). Site admins and non-person identities (an
+  org pushing through a deploy key) are exempt. Nothing is deleted, so enrolling restores access. An
+  owner of such an org cannot remove their last second factor.
+- The policy check does not test membership, so `NotTwoFactorBlockedRepoCond` only belongs on
+  membership-derived conditions; conditions that match public repos use the private-org-only variant.
 
 ## Recipes
 
