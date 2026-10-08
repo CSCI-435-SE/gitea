@@ -286,6 +286,13 @@ func (org *Organization) CustomAvatarRelativePath() string {
 
 // UnitPermission returns unit permission
 func (org *Organization) UnitPermission(ctx context.Context, doer *user_model.User, unitType unit.Type) perm.AccessMode {
+	if blocked, err := org.IsTwoFactorBlocked(ctx, doer); err != nil {
+		log.Error("IsTwoFactorBlocked: %v", err)
+		return perm.AccessModeNone
+	} else if blocked {
+		doer = nil // team access needs the 2FA the org requires; what is left is a non-member's access
+	}
+
 	if doer != nil {
 		teams, err := GetUserOrgTeams(ctx, org.ID, doer.ID)
 		if err != nil {
@@ -457,14 +464,31 @@ func HasOrgOrUserVisible(ctx context.Context, orgOrUser, user *user_model.User) 
 		return true
 	}
 
+	if HasOrgOrUserVisibleToNonMember(orgOrUser, user) {
+		return true
+	}
+	org := OrgFromUser(orgOrUser)
+	if !org.hasMemberWithUserID(ctx, user.ID) {
+		return false
+	}
+	blocked, err := org.IsTwoFactorBlocked(ctx, user) // a member without the 2FA the org requires sees what a non-member sees
+	if err != nil {
+		log.Error("IsTwoFactorBlocked: %v", err)
+		return false
+	}
+	return !blocked
+}
+
+// HasOrgOrUserVisibleToNonMember tells if the given signed-in user could see the given org or user without
+// being a member of it, which is what a user blocked by the org's two-factor policy gets
+func HasOrgOrUserVisibleToNonMember(orgOrUser, user *user_model.User) bool {
+	if user == nil || user.IsGhost() {
+		return orgOrUser.Visibility == structs.VisibleTypePublic
+	}
 	if !setting.Service.RequireSignInViewStrict && orgOrUser.Visibility == structs.VisibleTypePublic {
 		return true
 	}
-
-	if (orgOrUser.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !OrgFromUser(orgOrUser).hasMemberWithUserID(ctx, user.ID) {
-		return false
-	}
-	return true
+	return orgOrUser.Visibility != structs.VisibleTypePrivate && !user.IsRestricted
 }
 
 // HasOrgsVisible tells if the given user can see at least one of the orgs provided

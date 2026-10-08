@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
 // Organization contains organization context
@@ -144,6 +145,20 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			// Fake data.
 			ctx.Data["SignedUser"] = &user_model.User{}
 		}
+
+		// A member without the 2FA the org requires is treated as a non-member until they enrol
+		twoFactorBlocked := false
+		if ctx.Org.IsMember {
+			twoFactorBlocked, err = org.IsTwoFactorBlocked(ctx, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("IsTwoFactorBlocked", err)
+				return
+			}
+			if twoFactorBlocked {
+				ctx.Org.IsOwner, ctx.Org.IsMember, ctx.Org.IsTeamMember, ctx.Org.IsTeamAdmin, ctx.Org.CanCreateOrgRepo = false, false, false, false, false
+			}
+		}
+
 		if (opts.RequireMember && !ctx.Org.IsMember) || (opts.RequireOwner && !ctx.Org.IsOwner) {
 			ctx.NotFound(err)
 			return
@@ -192,7 +207,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			// for org members), and any team they directly belong to.
 			ctx.Org.Teams, _, err = organization.SearchTeam(ctx, &organization.SearchTeamOptions{
 				OrgID:               org.ID,
-				UserID:              ctx.Doer.ID,
+				UserID:              util.Iif(twoFactorBlocked, 0, ctx.Doer.ID), // a 2FA-blocked member sees only what non-members see
 				IncludeVisibilities: organization.VisibleTeamVisibilitiesFor(ctx.Org.IsMember, true),
 			})
 			if err != nil {
@@ -224,7 +239,7 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 			// Membership in a visible team is not implied by its presence in
 			// ctx.Org.Teams; admins/org owners keep the privileged flag set
 			// earlier in this function.
-			if !ctx.Org.IsOwner {
+			if !ctx.Org.IsOwner && !twoFactorBlocked {
 				ctx.Org.IsTeamMember, err = organization.IsTeamMember(ctx, org.ID, ctx.Org.Team.ID, ctx.Doer.ID)
 				if err != nil {
 					ctx.ServerError("IsTeamMember", err)

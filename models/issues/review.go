@@ -362,7 +362,8 @@ func RecalculateReviewsOfficial(ctx context.Context, issue *Issue) error {
 			if review.Reviewer == nil {
 				continue
 			}
-			official, err := IsOfficialReviewer(ctx, issue, review.Reviewer)
+			// a reviewer only blocked by a 2FA policy until they enrol keeps their official approval
+			official, err := IsOfficialReviewer(organization.IgnoreTwoFactorPolicy(ctx), issue, review.Reviewer)
 			if err != nil {
 				return err
 			}

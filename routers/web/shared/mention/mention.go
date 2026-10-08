@@ -53,6 +53,9 @@ func (c *Collector) AddMentionableTeams(ctx context.Context, doer, owner *user_m
 	}
 
 	org := organization.OrgFromUser(owner)
+	if blocked, err := org.IsTwoFactorBlocked(ctx, doer); err != nil || blocked {
+		return err // a member without the 2FA the org requires gets no team mentions, like a non-member
+	}
 	isAdmin := doer.IsAdmin
 	if !isAdmin {
 		var err error

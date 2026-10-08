@@ -10,6 +10,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -100,7 +101,8 @@ func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, colla
 }
 
 func ReconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Repository, user *user_model.User) error {
-	if canAssigned, err := access_model.CanBeAssigned(ctx, user, repo); err != nil || canAssigned {
+	// a user only blocked by a 2FA policy until they enrol keeps their assignments
+	if canAssigned, err := access_model.CanBeAssigned(organization.IgnoreTwoFactorPolicy(ctx), user, repo); err != nil || canAssigned {
 		return err
 	}
 
@@ -113,7 +115,8 @@ func ReconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Reposito
 }
 
 func ReconsiderWatches(ctx context.Context, repo *repo_model.Repository, user *user_model.User) error {
-	if has, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo); err != nil || has {
+	// a user only blocked by a 2FA policy until they enrol keeps their watches and stopwatches
+	if has, err := access_model.HasAnyUnitAccess(organization.IgnoreTwoFactorPolicy(ctx), user.ID, repo); err != nil || has {
 		return err
 	}
 	if err := repo_model.WatchRepo(ctx, user, repo, false); err != nil {
