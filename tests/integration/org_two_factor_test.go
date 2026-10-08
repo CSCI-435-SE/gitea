@@ -173,6 +173,11 @@ func TestOrgTwoFactorPolicy(t *testing.T) {
 		postSettings(true)
 		assert.True(t, orgRequires())
 
+		// the owner can't remove their only second factor while the org requires one
+		session.MakeRequest(t, NewRequest(t, "POST", "/user/settings/security/two_factor/disable"), http.StatusSeeOther)
+		assert.Contains(t, session.GetCookieFlashMessage().ErrorMsg, "You own an organization that requires two-factor authentication (org3)")
+		unittest.AssertExistsAndLoadBean(t, &auth_model.TwoFactor{UID: 2})
+
 		settingsPage := session.MakeRequest(t, NewRequest(t, "GET", "/org/org3/settings"), http.StatusOK).Body.String()
 		assert.Contains(t, settingsPage, `name="require_two_factor" checked`)
 		assert.Contains(t, settingsPage, "Without two-factor authentication: 2 members and 1 outside collaborators")

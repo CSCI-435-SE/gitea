@@ -913,6 +913,7 @@
   "settings.twofa_disable_desc": "Disabling two-factor authentication will make your account less secure. Continue?",
   "settings.regenerate_scratch_token_desc": "If you misplaced your recovery key or have already used it to sign in, you can reset it here.",
   "settings.twofa_disabled": "Two-factor authentication has been disabled.",
+  "settings.twofa_last_factor_owner": "You own an organization that requires two-factor authentication (%s). Keep at least one second factor, or turn the requirement off first, so the organization does not lock you out.",
   "settings.scan_this_image": "Scan this image with your authentication application:",
   "settings.or_enter_secret": "Or enter the secret: %s",
   "settings.then_enter_passcode": "And enter the passcode shown in the application:",

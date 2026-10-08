@@ -179,6 +179,23 @@ func WebauthnDelete(ctx *context.Context) {
 		return
 	}
 
+	hasTOTP, err := auth.HasTwoFactorByUID(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("HasTwoFactorByUID", err)
+		return
+	}
+	creds, err := auth.GetWebAuthnCredentialsByUID(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
+		return
+	}
+	if refuseRemovingLastFactor(ctx, hasTOTP || len(creds) > 1) {
+		if !ctx.Written() {
+			ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
+		}
+		return
+	}
+
 	if _, err := auth.DeleteCredential(ctx, ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
 		return

@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"gitea.dev/models/auth"
+	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/session"
@@ -82,6 +83,18 @@ func DisableTwoFactor(ctx *context.Context) {
 		return
 	}
 
+	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("HasWebAuthnRegistrationsByUID", err)
+		return
+	}
+	if refuseRemovingLastFactor(ctx, hasWebAuthn) {
+		if !ctx.Written() {
+			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+		}
+		return
+	}
+
 	if err = auth.DeleteTwoFactorByID(ctx, t.ID, ctx.Doer.ID); err != nil {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			// There is a potential DB race here - we must have been disabled by another request in the intervening period
@@ -97,6 +110,29 @@ func DisableTwoFactor(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+}
+
+// refuseRemovingLastFactor flashes an error and returns true when removing a second factor would leave the
+// doer with none while they own an organization that requires 2FA: the org would lock out its own owner.
+// Members may still remove theirs; only an owner's lockout cannot be undone without another owner or an admin.
+func refuseRemovingLastFactor(ctx *context.Context, hasOtherFactor bool) bool {
+	if hasOtherFactor || ctx.Doer.IsAdmin {
+		return false
+	}
+	orgs, err := organization.GetOwnedOrgsRequiringTwoFactor(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetOwnedOrgsRequiringTwoFactor", err)
+		return true
+	}
+	if len(orgs) == 0 {
+		return false
+	}
+	names := make([]string, 0, len(orgs))
+	for _, org := range orgs {
+		names = append(names, org.Name)
+	}
+	ctx.Flash.Error(ctx.Tr("settings.twofa_last_factor_owner", strings.Join(names, ", ")))
+	return true
 }
 
 // refreshSessionTwoFactorFlag re-reads whether the doer still has a second factor after removing one,
