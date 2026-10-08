@@ -1,0 +1,11 @@
+# an individual user and an organization
+-
+  id: 1
+  lower_name: user1
+  name: user1
+  type: 0
+-
+  id: 2
+  lower_name: org2
+  name: org2
+  type: 1
