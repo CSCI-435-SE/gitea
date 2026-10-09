@@ -177,6 +177,25 @@ function attachStaticElements(dropdown: HTMLElement, focusable: HTMLElement, men
   if (tooltipContent && !dropdown.getAttribute('aria-label')) {
     dropdown.setAttribute('aria-label', tooltipContent);
   }
+
+  // the name belongs in the template, next to what it describes, so only point at the gap
+  if (!window.config.runModeIsProd && !hasAccessibleName(dropdown, focusable)) {
+    console.warn('Dropdown trigger has no accessible name, add an aria-label in its template:', dropdown);
+  }
+}
+
+// role=menu takes no name from its content, but a trigger with visible text is at least not icon-only
+function hasAccessibleName(dropdown: HTMLElement, focusable: HTMLElement): boolean {
+  for (const el of [dropdown, focusable]) {
+    if (['aria-label', 'aria-labelledby', 'title', 'placeholder'].some((attr) => el.getAttribute(attr))) return true;
+  }
+  if ((focusable as HTMLInputElement).labels?.length) return true; // a search input with <label for>
+  for (const node of dropdown.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE && node.textContent!.trim()) return true;
+    if (!(node instanceof Element) || node.matches('.menu, select')) continue; // popup items and a wrapped <select>'s options are not the trigger
+    if (node.textContent.trim() || node.matches('img[alt]:not([alt=""])') || node.querySelector('img[alt]:not([alt=""])')) return true;
+  }
+  return false;
 }
 
 function attachInitElements(dropdown: HTMLElement) {

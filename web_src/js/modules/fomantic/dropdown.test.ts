@@ -205,3 +205,67 @@ describe('multiple selection aria', {concurrent: false}, () => {
     expect(el.querySelector('.item')!.hasAttribute('aria-selected')).toBe(false);
   });
 });
+
+// these tests switch the run mode and spy on console.warn, so they must not run concurrently
+describe('icon-only trigger names', {concurrent: false}, () => {
+  const iconTrigger = '<svg class="svg octicon-kebab-horizontal"></svg><div class="menu"><div class="item">Edit</div></div>';
+
+  function initDropdown(html: string) {
+    const wrapper = createElementFromHTML<HTMLElement>(`<div>${html}</div>`);
+    document.body.append(wrapper);
+    const el = wrapper.querySelector<HTMLElement>('.ui.dropdown')!;
+    $(el).dropdown();
+    return el;
+  }
+  // count only this element's warnings, other dropdowns in the file are unnamed too
+  const warningsAbout = (el: Element) => vi.mocked(console.warn).mock.calls.filter((args) => args.includes(el)).length;
+
+  beforeEach(() => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.config.runModeIsProd = true;
+    document.body.replaceChildren();
+  });
+
+  test('AC1: an icon-only trigger keeps the name given in its template', () => {
+    const el = initDropdown(`<div class="ui dropdown" aria-label="More Operations">${iconTrigger}</div>`);
+    expect(el.getAttribute('aria-label')).toBe('More Operations');
+  });
+
+  test('AC4: an existing aria-label is not overwritten by the tooltip', () => {
+    const el = initDropdown(`<div class="ui dropdown" aria-label="Theme" data-tooltip-content="Other">${iconTrigger}</div>`);
+    expect(el.getAttribute('aria-label')).toBe('Theme');
+  });
+
+  test('AC4: a tooltip still becomes the aria-label when there is none', () => {
+    const el = initDropdown(`<div class="ui dropdown" data-tooltip-content="More Operations">${iconTrigger}</div>`);
+    expect(el.getAttribute('aria-label')).toBe('More Operations');
+  });
+
+  test('AC5: an unnamed icon-only trigger is reported once in development', () => {
+    window.config.runModeIsProd = false;
+    const el = initDropdown(`<div class="ui dropdown">${iconTrigger}</div>`);
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('no accessible name'), el);
+    $(el).dropdown(); // re-initialising the module does not repeat it
+    expect(warningsAbout(el)).toBe(1);
+  });
+
+  test('AC5: nothing is reported in production', () => {
+    const el = initDropdown(`<div class="ui dropdown">${iconTrigger}</div>`);
+    expect(warningsAbout(el)).toBe(0);
+  });
+
+  test.each([
+    ['an aria-label', `<div class="ui dropdown" aria-label="More Operations">${iconTrigger}</div>`],
+    ['a tooltip', `<div class="ui dropdown" data-tooltip-content="More Operations">${iconTrigger}</div>`],
+    ['visible text', `<div class="ui dropdown"><span class="text">Sort</span>${iconTrigger}</div>`],
+    ['a linked label', `<label for="icon-trigger-search">Owner</label>
+<div class="ui search selection dropdown"><input class="search" id="icon-trigger-search"><div class="text"></div>${iconTrigger}</div>`],
+  ])('AC5: a trigger named by %s is not reported', (_, html) => {
+    window.config.runModeIsProd = false;
+    const el = initDropdown(html);
+    expect(warningsAbout(el)).toBe(0);
+  });
+});
