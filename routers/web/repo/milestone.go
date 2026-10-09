@@ -4,12 +4,14 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/renderhelper"
+	"gitea.dev/models/unit"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -260,6 +262,8 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
+	ctx.PageData["milestoneBurndownLink"] = fmt.Sprintf("%s/milestone/%d/burndown", ctx.Repo.RepoLink, milestone.ID)
+	ctx.PageData["repoLink"] = ctx.Repo.RepoLink // the chart links each changed item
 
 	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, optional.None[bool](), shared_issue.DueDateFilter{}) // the due date filter is only offered on the issue and pull request lists
 
@@ -270,4 +274,31 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["CanWritePulls"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(true)
 
 	ctx.HTML(http.StatusOK, tplMilestoneIssues)
+}
+
+// MilestoneBurndownData returns the milestone's burndown as JSON for the chart on its page
+func MilestoneBurndownData(ctx *context.Context) {
+	milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	if err != nil {
+		if issues_model.IsErrMilestoneNotExist(err) {
+			ctx.NotFound(err)
+			return
+		}
+		ctx.ServerError("GetMilestoneByRepoID", err)
+		return
+	}
+
+	// issues by default, pull requests on request, and neither kind unless the viewer may read it: the route
+	// lets in a reader of either, and the chart must not count or list the other. A reader of pull requests
+	// only gets them by default, or their chart would always claim the milestone is empty.
+	canReadIssues := ctx.Repo.Permission.CanRead(unit.TypeIssues)
+	burndown, err := issue.GetMilestoneBurndown(ctx, milestone, issue.BurndownOptions{
+		Issues: canReadIssues,
+		Pulls:  ctx.Repo.Permission.CanRead(unit.TypePullRequests) && (ctx.FormBool("include_pulls") || !canReadIssues),
+	})
+	if err != nil {
+		ctx.ServerError("GetMilestoneBurndown", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, burndown)
 }

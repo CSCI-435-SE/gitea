@@ -27,6 +27,7 @@ function resolveColors(obj: Record<string, string>): Record<string, string> {
 
 export const chartJsColors = resolveColors({
   text: '--color-text',
+  textLight: '--color-text-light-2',
   border: '--color-secondary-alpha-60',
   commits: '--color-primary-alpha-60',
   additions: '--color-green',

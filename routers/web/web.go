@@ -1316,6 +1316,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/labels", repo.RetrieveLabelsForList, repo.Labels)
 		m.Get("/milestones", repo.Milestones)
 		m.Get("/milestone/{id}", repo.MilestoneIssuesAndPulls)
+		m.Get("/milestone/{id}/burndown", repo.MilestoneBurndownData)
 		m.Get("/issues/suggestions", repo.IssueSuggestions)
 		m.Get("/issues/similar", repo.SimilarIssues)
 	}, optSignIn, context.RepoAssignment, reqRepoIssuesOrPullsReader) // issue/pull attachments, labels, milestones

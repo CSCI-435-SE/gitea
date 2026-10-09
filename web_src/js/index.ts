@@ -53,6 +53,7 @@ import {initRepoContributors} from './features/contributors.ts';
 import {initRepoCodeFrequency} from './features/code-frequency.ts';
 import {initRepoRecentCommits} from './features/recent-commits.ts';
 import {initRepoIssuesChart} from './features/issues-chart.ts';
+import {initRepoMilestoneBurndown} from './features/milestone-burndown.ts';
 import {initRepoDiffCommitBranchesAndTags} from './features/repo-diff-commit.ts';
 import {initGlobalSelectorObserver} from './modules/observer.ts';
 import {initRepositorySearch} from './features/repo-search.ts';
@@ -149,6 +150,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoCodeFrequency,
   initRepoRecentCommits,
   initRepoIssuesChart,
+  initRepoMilestoneBurndown,
 
   initCommitStatuses,
   initAvatarStackPopup,

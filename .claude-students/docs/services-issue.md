@@ -25,6 +25,7 @@ call this package; they must not call `models/issues` directly.
 | `services/issue/content.go` | `ChangeContent` |
 | `services/issue/status.go` | `CloseIssueWithReason`, `CloseIssue` (the default-reason wrapper), `ReopenIssue` |
 | `services/issue/comments.go`, `reaction.go`, `milestone.go` | comment, reaction and milestone operations |
+| `services/issue/milestone_burndown.go` | `CalcMilestoneBurndown` (pure: takes `now` and a zone), `GetMilestoneBurndown` — the milestone page's chart |
 | `services/issue/review_request.go` | `ReviewRequest`, `TeamReviewRequest`, `CanDoerChangeReviewRequests` |
 | `services/issue/commit.go` | `UpdateIssuesCommit` — acts on `fixes #123` in pushed commit messages |
 | `services/issue/template.go` | issue template parsing |
@@ -82,6 +83,10 @@ an unhandled type renders as nothing.
 - A merged pull request is closed by `services/pull/merge.go` → `SetMerged` calling
   `issues_model.SetIssueAsClosed` directly, skipping `CloseIssue`. Close-time behaviour that must
   cover merges belongs in `SetIssueAsClosed`, not here.
+- `GetMilestoneBurndown` counts and lists only the kinds in `BurndownOptions`, and the caller must
+  leave out any kind the viewer cannot read: the milestone routes in `routers/web/web.go` let in a
+  reader of issues *or* pulls, so `MilestoneBurndownData` intersects the toggle with permissions,
+  and defaults to pull requests for a viewer who can read only those.
 
 ## Related
 

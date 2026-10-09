@@ -1,6 +1,6 @@
 ---
 source: docs/services-issue.md
-source-hash: c3ec8bea6d3cf734
+source-hash: 0a1bb80b6f44beb1
 verified-at: 94dfae067e
 ---
 
@@ -59,6 +59,7 @@ timeline entry and the notification.
 | `services/issue/content.go` | Editing the issue body. |
 | `services/issue/status.go` | Opening and closing: `CloseIssueWithReason` records why, `CloseIssue` is the form for callers with no reason to give and fills in a default. |
 | `services/issue/comments.go`, `reaction.go`, `milestone.go` | Comments, reactions, milestones. |
+| `services/issue/milestone_burndown.go` | The milestone page's burndown chart. `CalcMilestoneBurndown` is handed the time and zone instead of reading the clock, so tests can pin both. |
 | `services/issue/review_request.go` | Requesting a review from a person or a team. |
 | `services/issue/commit.go` | Acting on `fixes #123` in a pushed commit message. |
 | `services/issue/template.go` | Issue templates. |
@@ -129,6 +130,13 @@ effect was skipped.
 **You called the wrong `NewIssue`.** There is one here and one in `models/issues`, and they differ
 by exactly this wrapper. This is what the import aliases are for — `issue_service` and
 `issues_model` — so the call site says which you meant.
+
+**A milestone chart shows someone pull requests (or issues) they cannot open.** The milestone pages
+let in anyone who can read issues *or* pull requests, so a viewer may be able to read only one kind.
+`GetMilestoneBurndown` counts and lists exactly the kinds its `BurndownOptions` asks for and does not
+check permissions itself. Its caller in `routers/web/web.go`'s milestone routes, the
+`MilestoneBurndownData` handler, has to switch off any kind the viewer cannot read. It also shows
+pull requests by default to someone who can read only those, or their chart would always look empty.
 
 **Users are emailed about something that did not happen.** A notify call ended up inside the
 transaction and the transaction rolled back.

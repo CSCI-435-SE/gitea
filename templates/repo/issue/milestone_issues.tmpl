@@ -60,6 +60,38 @@
 					</div>
 				{{end}}
 			</div>
+			<div id="milestone-burndown-chart"
+				{{if .Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}data-can-read-issues="true"{{end}}
+				{{if .Permission.CanRead ctx.Consts.RepoUnitTypePullRequests}}data-can-read-pulls="true"{{end}}
+				data-locale-loading-title="{{ctx.Locale.Tr "graphs.component_loading" (ctx.Locale.Tr "repo.milestones.burndown.what")}}"
+				data-locale-loading-title-failed="{{ctx.Locale.Tr "graphs.component_loading_failed" (ctx.Locale.Tr "repo.milestones.burndown.what")}}"
+				data-locale-loading-info="{{ctx.Locale.Tr "graphs.component_loading_info"}}"
+				data-locale-component-failed-to-load="{{ctx.Locale.Tr "graphs.component_failed_to_load"}}"
+				data-locale-title="{{ctx.Locale.Tr "repo.milestones.burndown.title"}}"
+				data-locale-remaining="{{ctx.Locale.Tr "repo.milestones.burndown.remaining"}}"
+				data-locale-scope="{{ctx.Locale.Tr "repo.milestones.burndown.scope"}}"
+				data-locale-ideal="{{ctx.Locale.Tr "repo.milestones.burndown.ideal"}}"
+				data-locale-projection="{{ctx.Locale.Tr "repo.milestones.burndown.projection"}}"
+				data-locale-scope-added="{{ctx.Locale.Tr "repo.milestones.burndown.scope_added"}}"
+				data-locale-scope-removed="{{ctx.Locale.Tr "repo.milestones.burndown.scope_removed"}}"
+				data-locale-include-pulls="{{ctx.Locale.Tr "repo.milestones.burndown.include_pulls"}}"
+				data-locale-changes-on="{{ctx.Locale.Tr "repo.milestones.burndown.changes_on"}}"
+				data-locale-change-closed="{{ctx.Locale.Tr "repo.milestones.burndown.change_closed"}}"
+				data-locale-change-reopened="{{ctx.Locale.Tr "repo.milestones.burndown.change_reopened"}}"
+				data-locale-changes-more="{{ctx.Locale.Tr "repo.milestones.burndown.changes_more"}}"
+				data-locale-empty="{{ctx.Locale.Tr "repo.milestones.burndown.empty"}}"
+				data-locale-no-deadline="{{ctx.Locale.Tr "repo.milestones.burndown.no_deadline"}}"
+				data-locale-status-done="{{ctx.Locale.Tr "repo.milestones.burndown.status_done"}}"
+				data-locale-status-closed="{{ctx.Locale.Tr "repo.milestones.burndown.status_closed"}}"
+				data-locale-status-not-burning="{{ctx.Locale.Tr "repo.milestones.burndown.status_not_burning"}}"
+				data-locale-status-insufficient="{{ctx.Locale.Tr "repo.milestones.burndown.status_insufficient"}}"
+				data-locale-projected="{{ctx.Locale.Tr "repo.milestones.burndown.projected"}}"
+				data-locale-projected-on-time="{{ctx.Locale.Tr "repo.milestones.burndown.projected_on_time_n"}}"
+				data-locale-projected-on-time-one="{{ctx.Locale.Tr "repo.milestones.burndown.projected_on_time_1"}}"
+				data-locale-projected-on-due-date="{{ctx.Locale.Tr "repo.milestones.burndown.projected_on_due_date"}}"
+				data-locale-projected-late="{{ctx.Locale.Tr "repo.milestones.burndown.projected_late_n"}}"
+				data-locale-projected-late-one="{{ctx.Locale.Tr "repo.milestones.burndown.projected_late_1"}}"
+			></div>
 		</div>
 		<div class="divider"></div>
 
