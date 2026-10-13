@@ -2,7 +2,7 @@
 
 **GiCoffee · Gitea · CSCI 435 New-Tech Showcase 1**
 
-- **Tutorial video:** [watch on YouTube](https://youtu.be/REPLACE_ME)
+- **Tutorial video:** [watch on YouTube](https://youtu.be/oWojvsn6u-Y)
 - **Tool's website:** <https://www.coderabbit.ai> · **Docs:** <https://docs.coderabbit.ai>
 - **Version:** hosted GitHub App (no version number; used October 2026)
 
