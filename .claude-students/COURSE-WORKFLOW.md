@@ -31,7 +31,8 @@ AI disclosure has its own page: `AI-ASSISTANCE.md`.
 | D10 | Reflection survey | 8 | Individual | Blackboard/Zulip link |
 
 - **D1 load:** each CSCI 435 student owns at least 2 medium issues; each CSCI 535 student owns at
-  least 2 medium and 1 small. Every issue has exactly **one** assignee. Unfinished Sprint 1 issues
+  least 2 medium and 1 small. Either load can be met with equivalent story points instead. Every
+  issue has exactly **one** assignee. Unfinished Sprint 1 issues
   go into the backlog before new work. To skip one, write the reason on that issue (closed, made
   invalid by later changes, or no longer relevant).
 - **D3:** each decision names at least two concrete alternatives and why one won; this is graded
@@ -210,7 +211,8 @@ below 7 needs a note saying what would raise it.
 
 ## UML diagrams (D6)
 
-The person who resolved a medium issue draws a class diagram and a sequence diagram for it. Files:
+The person who resolved a medium issue draws a class diagram and a sequence diagram for it. Several
+small issues that together equal one medium issue are drawn together instead. Files:
 
 - `docs/sprint2/diagrams/<issue#>-<github-username>-class.png` (or `.pdf`)
 - `docs/sprint2/diagrams/<issue#>-<github-username>-sequence.png` (or `.pdf`)
@@ -238,7 +240,8 @@ transparency 2.
 
 - Team: names, GitHub usernames, project name, repository link.
 - Sprint overview.
-- Backlog: milestone link, plus a table of title, owner, points, scope and status.
+- Backlog: milestone link, why the team chose these issues, plus a table of title, owner, points,
+  scope and status.
 - Requirements and design: when specs were done, what surprised you, design rationale.
 - Completed issues: title, owner, PR link, author, reviewer, what changed.
 - Test strategy, including untestable changes and why.
