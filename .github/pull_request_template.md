@@ -26,6 +26,14 @@ Closes #
 
 <!-- Point to the Design Decision in the issue, or say how it changed during implementation. -->
 
+## Tech Debt
+
+<!-- Both fields are required; "None." is a valid answer. -->
+
+**Introduced:** <!-- Shortcuts, workarounds or design compromises this PR makes, and why. -->
+
+**Encountered:** <!-- Tech debt that was already there and that you ran into, and how you handled it. -->
+
 ## AI assistance
 
 <!-- Tool and model, what AI did, what you did and how you verified it. No log link. "No AI used" if none. -->

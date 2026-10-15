@@ -7,35 +7,53 @@ same formats; if they ever disagree with this page, fix the template.
 
 AI disclosure has its own page: `AI-ASSISTANCE.md`.
 
-## Current sprint: Sprint 1
+## Current sprint: Sprint 2
 
-- **Dates:** Sep 22 – Oct 8, 2026. Everything pushed and merged by **Oct 8, 11:59 PM**.
-- **Points:** 100 (10% of the course grade).
-- **Zero rule:** no merged PR (D4), no sprint report (D6) or no release (D7) means **0 for the
+- **Dates:** Oct 13 – Oct 29, 2026. Everything pushed and merged by **Oct 29, 11:59 PM**, except
+  the D7 check-in, due **Oct 22, 11:59 PM**.
+- **Points:** 100.
+- **Zero rule:** no merged PR (D4), no sprint report (D8) or no release (D9) means **0 for the
   whole sprint**.
-- **Carries forward:** every Sprint 0 standard and convention still applies.
+- **Carries forward:** anything the Sprint 2 page doesn't change comes from the Sprint 1 page, and
+  every Sprint 0 standard still applies.
 
 | # | Deliverable | Points | Who | Where |
 | --- | --- | --- | --- | --- |
-| D1 | Sprint backlog: a `Sprint 1` milestone with every selected issue on it | 10 | Team | GitHub milestone |
-| D2 | Requirements spec for each issue (formats below), peer-reviewed by a teammate | 20 | Individual | Issue body |
-| D3 | At least one non-trivial design decision per issue | 7 | Individual | Issue body |
-| D4 | Code changes and PRs | 36 | Individual | PRs |
-| D5 | AI logs | 7 | Individual | `ai-logs/sprint1/<github-username>/` |
-| D6 | Sprint report | 10 | Team | `docs/sprint1/report.md` |
-| D7 | Release: tag `v1.27.3-csci435-s1` plus a GitHub release | 2 | Team | Tags / Releases |
-| D8 | Reflection survey | 8 | Individual | Blackboard/Zulip link |
+| D1 | Sprint backlog: a `Sprint 2` milestone with every selected issue on it | 10 | Team | GitHub milestone |
+| D2 | Requirements spec for each issue (formats below), peer-reviewed by a teammate before coding | 20 | Individual | Issue body |
+| D3 | At least one non-trivial design decision per issue, with **at least two alternatives** | 5 | Individual | Issue body |
+| D4 | Code changes and PRs, each with a `## Tech Debt` section | 20 | Individual | PRs |
+| D5 | AI logs | 5 | Individual | `ai-logs/sprint2/<github-username>/` |
+| D6 | UML class and sequence diagrams plus Q&A for one medium issue you resolved | 15 | Individual | `docs/sprint2/diagrams/` |
+| D7 | Mid-sprint check-in | 5 | Individual | `docs/sprint2/checkin/<github-username>.md` |
+| D8 | Sprint report | 10 | Team | `docs/sprint2/report.md` |
+| D9 | Release: tag `v1.27.3-csci435-s2` plus a GitHub release | 2 | Team | Tags / Releases |
+| D10 | Reflection survey | 8 | Individual | Blackboard/Zulip link |
 
 - **D1 load:** each CSCI 435 student owns at least 2 medium issues; each CSCI 535 student owns at
-  least 2 medium and 1 small. Every issue has exactly **one** assignee. Specs should be final by
-  Sep 27.
-- **D5:** conventions are in `ai-logs/README.md`. The folder must exist even if no AI was used. In
-  that case, post an issue comment saying so. Log links go in **issue comments only**, never in PRs
-  (`AI-ASSISTANCE.md`).
-- **D7:** keep Sprint 0's base version (`v1.27.3-csci435-s0` → `v1.27.3-csci435-s1`), push the tag
-  to origin, and write release notes listing the features, fixes and improvements.
-- **Reviews:** each student reviews at least one PR per sprint. Over the semester, each student
-  reviews every teammate at least once.
+  least 2 medium and 1 small. Every issue has exactly **one** assignee. Unfinished Sprint 1 issues
+  go into the backlog before new work. To skip one, write the reason on that issue (closed, made
+  invalid by later changes, or no longer relevant).
+- **D3:** each decision names at least two concrete alternatives and why one won; this is graded
+  strictly. The site also accepts the decision in an issue comment or the PR description; the team
+  keeps it in the issue body. Decisions that span issues go in `docs/sprint2/design.md`.
+- **D4:** every PR description has the Tech Debt section (see "Pull request format"). A PR without
+  it loses points.
+- **D5:** conventions are in `ai-logs/README.md`. Logs hold the full prompts and output: summaries,
+  screenshots and share links are not logs. The link must open the log file itself, not a folder or
+  another issue. The folder must exist even if no AI was used; in that case, post a comment saying
+  so. The site accepts the link in an issue or a PR comment this sprint; the team keeps it in
+  **issue comments only** (`AI-ASSISTANCE.md`).
+- **D6:** see "UML diagrams (D6)" below.
+- **D7:** about 150 words on each of: what you have done and what remains; one thing you learned
+  about the codebase or about software engineering; one thing you would do differently. Late or
+  thin scores 3 of 5.
+- **D9:** keep the base version (`v1.27.3-csci435-s1` → `v1.27.3-csci435-s2`), tag after every
+  Sprint 2 PR is merged, push the tag to origin, and write release notes listing the features,
+  fixes and improvements. The site's example says `v2.17.2`; this fork's base is `v1.27.3`.
+- **Reviews:** nobody approves or merges their own PR. Reviewers leave substantive comments, not a
+  bare approval. Tell the reviewer on Zulip or by email, and aim to review within 24 hours. Each
+  student reviews at least one PR per sprint, and every teammate at least once per semester.
 - **Extra credit:** up to 3 points per PR accepted by upstream Gitea.
 
 ## Branches and commits
@@ -109,7 +127,7 @@ As a <role>, I want <capability> so that <benefit>.
 
 ## Design Decision
 **Decision:** <what was chosen>
-**Alternatives Considered:** <at least one other option>
+**Alternatives Considered:** <at least two concrete options, and why each lost>
 **Rationale:** <why this one>
 **Consequences:** <trade-offs, follow-up work, what it makes harder>
 
@@ -151,10 +169,21 @@ Template: `.github/pull_request_template.md`. Title uses Conventional Commits, e
    needs a new or updated test.
 5. **CI / manual verification:** CI status, or the commands run and their results.
 6. **Design:** one line pointing at the Design Decision in the issue, or a note on how it changed.
-7. **AI assistance:** format in `AI-ASSISTANCE.md` §2, with **no log link**.
+7. **Tech Debt:** required from Sprint 2. Both fields are required, and `None.` is a valid answer:
+
+   ```markdown
+   ## Tech Debt
+
+   **Introduced:** <shortcuts, workarounds or design compromises this PR makes, and why>
+
+   **Encountered:** <tech debt that was already there and that you ran into, and how you handled it>
+   ```
+
+8. **AI assistance:** format in `AI-ASSISTANCE.md` §2, with **no log link**.
 
 Per-PR grading (20 points): correctness against the acceptance criteria 6, test strategy with
-explanation 5, description quality 4, CI or manual verification 3, review rubric posted 2.
+explanation 5, description quality including the Tech Debt section 4, CI or manual verification 3,
+review rubric posted 2.
 
 ## Code review rubric
 
@@ -179,7 +208,31 @@ below 7 needs a note saying what would raise it.
 | Overall — merge as-is? | | |
 ```
 
-## Sprint report (D6) sections
+## UML diagrams (D6)
+
+The person who resolved a medium issue draws a class diagram and a sequence diagram for it. Files:
+
+- `docs/sprint2/diagrams/<issue#>-<github-username>-class.png` (or `.pdf`)
+- `docs/sprint2/diagrams/<issue#>-<github-username>-sequence.png` (or `.pdf`)
+- `docs/sprint2/diagrams/<issue#>-<github-username>.md`, which embeds both and answers the Q&A
+
+What the diagrams need:
+
+- Show the existing code found during concept location and impact analysis, and the new or changed
+  code, and tell the two apart with a legend, colour or label.
+- Show only the fields and methods that matter to the issue.
+- Annotate the diagrams with the key design decisions and calls. Diagrams without annotations lose
+  points.
+- Add a short note on how Go maps to UML: structs, interfaces, and embedding.
+- The `.md` follows the course template: `# Issue #<N> -- <title>`, `## Class Diagram`,
+  `## Sequence Diagram`, `## Q&A`. The Q&A has 3 class-diagram questions, 3 sequence-diagram
+  questions and 1 question on AI use, answered "N/A" if no AI was used. Copy the questions from the
+  Sprint 2 page.
+
+Grading (15 points): existing code 2, solution code 2, annotations 3, UML notation 2, Q&A 4, AI
+transparency 2.
+
+## Sprint report (D8) sections
 
 `docs/sprint<N>/report.md`, following `docs/sprint0/report.md`:
 
@@ -192,5 +245,7 @@ below 7 needs a note saying what would raise it.
 - AI tool usage per member: tools, session count, AI log folder link, and 2–3 sentences on lessons
   learned.
 - Release: tag and release link.
-- Risks and retrospective: what worked, what slowed the team down, Sprint 2 changes.
-- Sprint 2 plan: initial ideas and carryover issues.
+- Risks and retrospective: what worked, what slowed the team down, next-sprint changes.
+- Next sprint plan: initial ideas and carryover issues.
+- From Sprint 2: Sprint 1 carryovers (which were taken, which were skipped and why), and D6 and D7
+  in the deliverables summary. The report covers this sprint's work only.
