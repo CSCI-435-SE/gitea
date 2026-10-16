@@ -50,7 +50,7 @@ body:
     id: design
     attributes:
       label: Design Decision
-      description: At least one non-trivial decision. Fill it in once an approach is chosen, before the PR.
+      description: At least one non-trivial decision. Name at least two alternatives. Fill it in once an approach is chosen, before the PR.
       value: |
         **Decision:**
         **Alternatives Considered:**

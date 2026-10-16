@@ -90,6 +90,16 @@ reviews:
         - Avoid `!important`. Where it can't be avoided, a comment says why.
         - Add a new, prefixed class rather than restyling a Fomantic class.
         - Colours come from the theme's `var(--color-*)` variables, never a literal colour, or the other themes break (.claude-students/docs/frontend-css.md).
+    - path: "docs/sprint2/diagrams/**"
+      instructions: |
+        Course deliverable D6 (.claude-students/COURSE-WORKFLOW.md, "UML diagrams (D6)"); review it as a course submission, not as code.
+        - Files are named `<issue#>-<github-username>-class.png`, `<issue#>-<github-username>-sequence.png` (or `.pdf`) and `<issue#>-<github-username>.md`.
+        - The `.md` embeds both diagrams under "## Class Diagram" and "## Sequence Diagram", and answers every question under "## Q&A": 3 class-diagram, 3 sequence-diagram and 1 AI-use question ("N/A" is valid for AI use).
+        - Flag class or method names in the diagram or answers that do not exist in the code or in the linked PR.
+        - Flag a missing note on how Go structs, interfaces and embedding map to UML.
+    - path: "docs/sprint2/checkin/**"
+      instructions: |
+        Course deliverable D7: `docs/sprint2/checkin/<github-username>.md`, due Oct 22. It answers three questions in about 150 words each: what is done and what remains, one thing learned, one thing to do differently. Flag a missing answer or one only a sentence or two long. Do not comment on writing style.
     - path: "options/locale/**"
       instructions: |
         - Only `locale_en-US.json` is edited by hand. Edits to any other locale file are overwritten by the Crowdin sync and must be reverted (CONTRIBUTING.md, "Translation").
@@ -121,8 +131,10 @@ reviews:
         instructions: |
           Judge only the PR description. Pass only if all of these hold, otherwise fail and list what is missing:
           - Each issue the PR closes is on its own line, as "Closes #<number>", "Fixes #<number>" or "Resolves #<number>".
-          - It has these sections, each with the author's own text rather than only the template's comments: "What changed", "Why", "How it was tested", "CI / manual verification", "Design", "AI assistance".
+          - It has these sections, each with the author's own text rather than only the template's comments: "What changed", "Why", "How it was tested", "CI / manual verification", "Design", "Tech Debt", "AI assistance".
           - When the linked issue lists acceptance criteria, "Why" names the ones the PR satisfies (AC1, AC2, ...).
+          - "Tech Debt" has an "Introduced:" line and an "Encountered:" line, each with the author's own text or "None.". Missing this section costs grading points (Sprint 2, D4).
+          - When "Design" states a design decision rather than pointing at the issue's, it names at least two alternatives (Sprint 2, D3).
           - "AI assistance" either says "No AI used", or names the tool and model, what the AI did, and what the author did to check it.
           - Nothing links to a file under ai-logs/. AI logs belong in the issue's AI Assistance comment (.claude-students/AI-ASSISTANCE.md).
       - name: Screenshots for UI changes
