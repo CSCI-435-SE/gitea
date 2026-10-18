@@ -52,6 +52,7 @@ export class ShortcutRegistry {
       return;
     }
     if (e.key === 'Shift') return; // not a press of its own, e.g. on the way to "?"
+    if (e.repeat) return; // a held key runs its shortcut once, and doesn't start over after a sequence
 
     if (Date.now() - this.pendingTime > sequenceTimeoutMs) this.pendingKeys = '';
     const key = e.key.toLowerCase();

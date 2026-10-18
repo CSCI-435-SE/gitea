@@ -61,6 +61,20 @@ describe('ShortcutRegistry', {concurrent: false}, () => {
     expect(single).not.toHaveBeenCalled();
   });
 
+  test('AC3 AC4 holding a key down runs its shortcut once', () => {
+    const help = ctx.add('?');
+    const sequence = ctx.add('g c');
+    const single = ctx.add('c');
+    press(ctx.button, '?', {shiftKey: true});
+    press(ctx.button, '?', {shiftKey: true, repeat: true});
+    press(ctx.button, 'g');
+    press(ctx.button, 'c');
+    press(ctx.button, 'c', {repeat: true});
+    expect(help).toHaveBeenCalledTimes(1);
+    expect(sequence).toHaveBeenCalledTimes(1);
+    expect(single).not.toHaveBeenCalled();
+  });
+
   test('AC5 waiting longer than the timeout drops the first key', () => {
     const sequence = ctx.add('g c');
     const single = ctx.add('c');
