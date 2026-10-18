@@ -36,6 +36,16 @@ test('s and t focus their boxes, and Escape clears them', async ({page}) => {
   await assertNoJsError(page);
 });
 
+test('a key the language menu uses for type-ahead runs no shortcut', async ({page}) => {
+  await page.goto(await createRepo(page));
+  await page.locator('aria-menu:has(.language-menu) > button').focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('s'); // jumps to a language starting with "s", such as Suomi
+  await expect(page.locator('.language-menu .item:focus')).toHaveText(/^s/i);
+  await expect(page.locator('.repo-home-sidebar-top input[name="q"]')).not.toBeFocused();
+  await assertNoJsError(page);
+});
+
 test('t keeps working after moving through the file tree', async ({page}) => {
   const repoLink = await createRepo(page);
   await page.goto(`${repoLink}/src/branch/main/README.md`); // the file tree is shown by default
