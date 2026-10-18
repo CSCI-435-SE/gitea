@@ -38,6 +38,7 @@ test('s and t focus their boxes, and Escape clears them', async ({page}) => {
 
 test('a key the language menu uses for type-ahead runs no shortcut', async ({page}) => {
   await page.goto(await createRepo(page));
+  await expect(page.locator('.repo-home-sidebar-top kbd')).toHaveAttribute('aria-keyshortcuts', 's'); // s is a live shortcut here
   await page.locator('aria-menu:has(.language-menu) > button').focus();
   await page.keyboard.press('Enter');
   await page.keyboard.press('s'); // jumps to a language starting with "s", such as Suomi

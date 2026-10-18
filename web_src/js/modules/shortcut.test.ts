@@ -43,12 +43,19 @@ describe('ShortcutRegistry', {concurrent: false}, () => {
     expect(press(ctx.button, 'x').defaultPrevented).toBe(false);
   });
 
-  test('AC3 keys match regardless of case, and Shift alone is not a press', () => {
+  test('AC3 keys match regardless of case', () => {
     const action = ctx.add('S');
-    press(ctx.button, 'Shift', {shiftKey: true});
     press(ctx.button, 'S', {shiftKey: true});
     press(ctx.button, 's');
     expect(action).toHaveBeenCalledTimes(2);
+  });
+
+  test('AC4 pressing Shift in the middle of a sequence does not drop it', () => {
+    const sequence = ctx.add('g c');
+    press(ctx.button, 'g');
+    press(ctx.button, 'Shift', {shiftKey: true});
+    press(ctx.button, 'C', {shiftKey: true});
+    expect(sequence).toHaveBeenCalledTimes(1);
   });
 
   test('AC4 a sequence runs once and its keys run no single-key shortcut', () => {
@@ -143,7 +150,7 @@ describe('ShortcutRegistry', {concurrent: false}, () => {
     expect(() => ctx.add('c')).not.toThrow();
   });
 
-  test('AC8 a shortcut whose element left the page gives way to a new one', () => {
+  test('AC8 a shortcut whose element left the page stops working and gives way to a new one', () => {
     const oldElem = document.createElement('kbd');
     const newElem = document.createElement('kbd');
     ctx.root.append(oldElem, newElem);
@@ -151,6 +158,8 @@ describe('ShortcutRegistry', {concurrent: false}, () => {
     expect(() => ctx.add('t', {element: newElem})).toThrow('conflicts with "t"');
 
     oldElem.remove();
+    expect(press(ctx.button, 't').defaultPrevented).toBe(false); // before anything new registers
+    expect(oldAction).not.toHaveBeenCalled();
     const newAction = ctx.add('t', {element: newElem});
     press(ctx.button, 't');
     expect(oldAction).not.toHaveBeenCalled();
