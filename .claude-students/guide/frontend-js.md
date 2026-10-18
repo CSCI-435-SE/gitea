@@ -1,7 +1,7 @@
 ---
 source: docs/frontend-js.md
-source-hash: e1d561edfc25e3c9
-verified-at: 2629e98ef9
+source-hash: 31d2efa252209bd3
+verified-at: b32c95c2b0
 ---
 
 <!-- Derived from docs/frontend-js.md. Do not edit by hand: fix the reference doc and regenerate
@@ -11,8 +11,7 @@ verified-at: 2629e98ef9
 
 **In one sentence:** Gitea ships one JavaScript bundle to every page, so the interesting question is
 not "what does my code do" but "how does it know it is on the right page".
-**Come here when:** you are making something on a page respond to a click, load data, or show and
-hide.
+**Come here when:** you want something on a page to respond to a click, load data, or show and hide.
 
 ## What this is
 
@@ -61,6 +60,7 @@ newer of the two wiring mechanisms exists.
 | `web_src/js/modules/fetch.ts` | The HTTP wrappers every request must go through. |
 | `web_src/js/utils/dom.ts` | Finding elements, showing and hiding them, building them. |
 | `web_src/js/modules/i18n.ts` | Translated strings on the frontend. |
+| `web_src/js/modules/shortcut.ts` | Keyboard shortcuts: the list of them, and the `<kbd>` hints beside search boxes. |
 
 ## The rules, and why
 
@@ -119,16 +119,18 @@ functions that actually await something.
 ## How to actually do it
 
 **Make an element do something.** Register a global init function in the relevant `features/` file
-and add `data-global-init="yourFuncName"` to the element in its template. `index.ts` does not
-change.
+and add `data-global-init="yourFuncName"` to the element in its template. No change to `index.ts`.
 
 **Add a whole-page feature.** Create `features/<name>.ts` exporting `initName()`. Find your root
 element first and **return immediately if it is missing**. Then add the import and the list entry in
 `index.ts`.
 
 **Find out why a page feels slow.** Add `?_ui_performance_trace=1` to the URL and the timings for
-every init function are printed. `index.ts` already logs an error if the total exceeds 500
-milliseconds.
+every init function are printed. `index.ts` already logs an error if the total exceeds 500ms.
+
+**Add a keyboard shortcut.** Call `registerShortcut` (`modules/shortcut.ts`); keys `g c` mean `g`
+then `c`. Tie it to an element and it lasts only while that element is on the page, even if hidden.
+Two live shortcuts that clash throw at once, instead of one quietly winning.
 
 **Run one test file.** `pnpm exec vitest <path-filter>`.
 
@@ -145,8 +147,7 @@ return, so your feature's setup cost is now paid on every page in Gitea. The 500
 console exists to catch exactly this.
 
 **Your code works on load and not on new elements.** A comment posted without a page reload does not
-get your behaviour. You used page-load init; use the declarative mechanism, which sees later
-elements.
+get your behaviour. You used page-load init; use the declarative mechanism, which sees them.
 
 **Your `data-` attribute reads as undefined.** You used `dataset` and the property name was
 silently camel-cased. Use `getAttribute` with the literal attribute name.
