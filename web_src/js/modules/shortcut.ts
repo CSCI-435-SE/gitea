@@ -98,6 +98,7 @@ export function initShortcutKbd(kbd: HTMLElement) {
   registerShortcut({
     keys: kbd.getAttribute('data-shortcut-keys')!,
     description: elem.placeholder,
+    section: kbd.getAttribute('data-shortcut-section') ?? undefined,
     element: kbd,
     action: () => elem.focus(),
   });

@@ -1,4 +1,4 @@
-import {ShortcutRegistry, initGlobalShortcut, initShortcutKbd} from './shortcut.ts';
+import {ShortcutRegistry, getShortcuts, initGlobalShortcut, initShortcutKbd} from './shortcut.ts';
 
 function setup() {
   const registry = new ShortcutRegistry();
@@ -159,13 +159,14 @@ describe('ShortcutRegistry', {concurrent: false}, () => {
 });
 
 // the markup of templates/repo/home_sidebar_top.tmpl and RepoFileSearch.vue
-function renderHint(key: string, placeholder: string) {
+function renderHint(key: string, placeholder: string, section?: string) {
   const wrapper = document.createElement('div');
   wrapper.className = 'ui input global-shortcut-wrapper';
   wrapper.innerHTML = `<input placeholder="${placeholder}"><kbd data-shortcut-keys="${key}">${key.toUpperCase()}</kbd>`;
   document.body.append(wrapper);
   const input = wrapper.querySelector('input')!;
   const kbd = wrapper.querySelector('kbd')!;
+  if (section) kbd.setAttribute('data-shortcut-section', section);
   initShortcutKbd(kbd);
   return {wrapper, input, kbd};
 }
@@ -213,5 +214,16 @@ describe('shortcut hints', {concurrent: false}, () => {
   test('AC8 a second hint for the same key on the page throws', () => {
     renderHint('s', 'Search code…');
     expect(() => renderHint('s', 'Search issues…')).toThrow('conflicts with "s"');
+  });
+
+  test('AC9 a hint is listed with its box\'s placeholder and its section', () => {
+    renderHint('s', 'Search code…', 'Repository');
+    renderHint('t', 'Go to file', 'Repository');
+    renderHint('x', 'No section');
+    expect(getShortcuts()).toEqual([
+      {keys: 's', description: 'Search code…', section: 'Repository'},
+      {keys: 't', description: 'Go to file', section: 'Repository'},
+      {keys: 'x', description: 'No section', section: undefined},
+    ]);
   });
 });

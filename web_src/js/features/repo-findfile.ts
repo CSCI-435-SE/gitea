@@ -76,6 +76,7 @@ export function initRepoFileSearch() {
       treeListUrl: el.getAttribute('data-tree-list-url'),
       noResultsText: el.getAttribute('data-no-results-text'),
       placeholder: el.getAttribute('data-placeholder'),
+      shortcutSection: el.getAttribute('data-shortcut-section'),
     }).mount(el);
   });
 }
