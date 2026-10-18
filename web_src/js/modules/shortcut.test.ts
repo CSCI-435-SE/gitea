@@ -1,4 +1,4 @@
-import {ShortcutRegistry} from './shortcut.ts';
+import {ShortcutRegistry, initGlobalShortcut, initShortcutKbd} from './shortcut.ts';
 
 function setup() {
   const registry = new ShortcutRegistry();
@@ -155,5 +155,63 @@ describe('ShortcutRegistry', {concurrent: false}, () => {
 
     elem.remove();
     expect(ctx.registry.list().map((s) => s.keys)).toEqual(['g c']);
+  });
+});
+
+// the markup of templates/repo/home_sidebar_top.tmpl and RepoFileSearch.vue
+function renderHint(key: string, placeholder: string) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'ui input global-shortcut-wrapper';
+  wrapper.innerHTML = `<input placeholder="${placeholder}"><kbd data-shortcut-keys="${key}">${key.toUpperCase()}</kbd>`;
+  document.body.append(wrapper);
+  const input = wrapper.querySelector('input')!;
+  const kbd = wrapper.querySelector('kbd')!;
+  initShortcutKbd(kbd);
+  return {wrapper, input, kbd};
+}
+
+// these tests share document.body and its focus, so they must not run concurrently (see vitest.config.ts)
+describe('shortcut hints', {concurrent: false}, () => {
+  beforeAll(() => {
+    initGlobalShortcut();
+  });
+  afterEach(() => {
+    document.body.replaceChildren();
+  });
+
+  test('AC1 pressing a hint key focuses its box and hides the hint', () => {
+    const search = renderHint('s', 'Search code…');
+    const findFile = renderHint('t', 'Go to file');
+    expect(press(document.body, 's').defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(search.input);
+    expect(search.kbd.classList.contains('tw-hidden')).toBe(true);
+
+    search.input.blur();
+    press(document.body, 't');
+    expect(document.activeElement).toBe(findFile.input);
+    expect(findFile.kbd.classList.contains('tw-hidden')).toBe(true);
+  });
+
+  test('AC2 Escape in a box with a hint clears it and moves focus away', () => {
+    const {input, kbd} = renderHint('s', 'Search code…');
+    input.focus();
+    input.value = 'needle';
+    press(input, 'Escape');
+    expect(input.value).toBe('');
+    expect(document.activeElement).not.toBe(input);
+    expect(kbd.classList.contains('tw-hidden')).toBe(false);
+  });
+
+  test('AC8 a hint that loads again keeps its key working', () => {
+    const before = renderHint('t', 'Go to file');
+    before.wrapper.remove(); // as moving through the file tree replaces the page content
+    const after = renderHint('t', 'Go to file');
+    press(document.body, 't');
+    expect(document.activeElement).toBe(after.input);
+  });
+
+  test('AC8 a second hint for the same key on the page throws', () => {
+    renderHint('s', 'Search code…');
+    expect(() => renderHint('s', 'Search issues…')).toThrow('conflicts with "s"');
   });
 });

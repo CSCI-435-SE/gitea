@@ -88,13 +88,19 @@ export function getShortcuts(): ShortcutInfo[] {
   return globalRegistry.list();
 }
 
-function initShortcutKbd(kbd: HTMLElement) {
+export function initShortcutKbd(kbd: HTMLElement) {
   // Handle initial state: hide the kbd hint if the associated input already has a value
   // (e.g., from browser autofill or back/forward navigation cache)
-  const elem = elemFromKbd(kbd);
-  if (elem?.value) hideElem(kbd);
+  const elem = elemFromKbd(kbd)!;
+  if (elem.value) hideElem(kbd);
   kbd.setAttribute('aria-hidden', 'true');
   kbd.setAttribute('aria-keyshortcuts', kbd.getAttribute('data-shortcut-keys')!);
+  registerShortcut({
+    keys: kbd.getAttribute('data-shortcut-keys')!,
+    description: elem.placeholder,
+    element: kbd,
+    action: () => elem.focus(),
+  });
 }
 
 function shortcutWrapper(el: HTMLElement): HTMLElement | null {
@@ -131,21 +137,7 @@ export function initGlobalShortcut() {
         (target as HTMLInputElement).value = '';
         (target as HTMLInputElement).blur();
       }
-      return;
     }
-
-    // Don't trigger shortcuts when typing in input fields or contenteditable areas
-    if (target.matches('input, textarea, select') || target.isContentEditable) {
-      return;
-    }
-
-    // Find kbd element with matching shortcut (case-insensitive), then focus its sibling input
-    const key = e.key.toLowerCase();
-    // At the moment, only a simple match. In the future, it can be extended to support modifiers and key combinations
-    const kbd = document.querySelector<HTMLElement>(`.global-shortcut-wrapper > kbd[data-shortcut-keys="${CSS.escape(key)}"]`);
-    if (!kbd) return;
-    e.preventDefault();
-    elemFromKbd(kbd)!.focus();
   });
 
   // Toggle kbd shortcut hint visibility on input focus/blur
