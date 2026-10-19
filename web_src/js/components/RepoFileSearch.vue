@@ -13,6 +13,7 @@ const props = defineProps({
   treeListUrl: { type: String, required: true },
   noResultsText: { type: String, required: true },
   placeholder: { type: String, required: true },
+  shortcutSection: { type: String, required: true },
 });
 
 const refElemInput = useTemplateRef('searchInput') as Readonly<ShallowRef<HTMLInputElement>>;
@@ -151,7 +152,7 @@ watch([searchQuery, filteredFiles], async () => {
         role="combobox" aria-autocomplete="list" :aria-expanded="searchQuery ? 'true' : 'false'"
         @input="handleSearchInput" @keydown="handleKeyDown"
       >
-      <kbd data-global-init="onGlobalShortcut" data-shortcut-keys="t">T</kbd>
+      <kbd data-global-init="onGlobalShortcut" data-shortcut-keys="t" :data-shortcut-section="shortcutSection">T</kbd>
     </div>
 
     <Teleport to="body">

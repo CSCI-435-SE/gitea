@@ -1,6 +1,6 @@
 ---
 scope: web_src/js/index.ts, web_src/js/features, web_src/js/modules, web_src/js/utils, web_src/js/webcomponents, web_src/js/markup, web_src/js/render
-verified-at: 2629e98ef9
+verified-at: b32c95c2b0
 ---
 
 # web_src/js — page features and how they get wired up
@@ -28,6 +28,7 @@ verified-at: 2629e98ef9
 | `web_src/js/modules/fetch.ts` | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` |
 | `web_src/js/utils/dom.ts` | `showElem`, `hideElem`, `toggleElem`, `queryElems`, `createElementFromHTML` |
 | `web_src/js/modules/i18n.ts` | `trN` — the frontend side of the locale system |
+| `web_src/js/modules/shortcut.ts` | `registerShortcut` (keys like `'g c'`), `getShortcuts`, and the `<kbd data-shortcut-keys data-shortcut-section>` hints that register themselves |
 
 ## Conventions & invariants
 
@@ -43,8 +44,7 @@ verified-at: 2629e98ef9
    `_giteaGlobalInited` flag), so re-adding a node does not re-initialise it.
 
 `registerGlobalSelectorFunc(selector, handler)` also exists, but `observer.ts` marks it as "less
-efficient and less maintainable" — it is for element types already spread across many pages, not
-for new work.
+efficient and less maintainable" — it is for element types already on many pages, not new work.
 
 - **Ordering rule:** every `registerGlobalInitFunc` must run *before* `initGlobalSelectorObserver`,
   which `index.ts` deliberately calls last. Registering after it throws.
@@ -82,6 +82,9 @@ is left out. Keyword matches are limited to the kinds the viewer may read
 (`routers/web/repo/issue_suggestions.go`), but the match by number (`GetIssueByIndex`) is not, so a
 viewer who can't read pull requests still gets one typed by its number. The duplicate close
 reason's preview in `features/repo-issue-status-button.ts` uses it.
+
+**Add a keyboard shortcut.** Call `registerShortcut` (`modules/shortcut.ts`). One given an `element`
+exists while that element is in the document, hidden or not; a clash with a live one throws.
 
 **Run one test file.** `pnpm exec vitest <path-filter>` (`testing.md`).
 
