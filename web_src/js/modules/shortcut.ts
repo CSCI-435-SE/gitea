@@ -27,12 +27,12 @@ function matchKeys(shortcuts: Shortcut[], keys: string): Shortcut | 'prefix' | n
 }
 
 export class ShortcutRegistry {
-  shortcuts: Shortcut[] = [];
-  pendingKeys = ''; // the start of a sequence pressed so far
-  pendingTime = 0;
+  private shortcuts: Shortcut[] = [];
+  private pendingKeys = ''; // the start of a sequence pressed so far
+  private pendingTime = 0;
 
   register(shortcut: Shortcut) {
-    const keys = shortcut.keys.toLowerCase();
+    const keys = shortcut.keys.trim().split(/\s+/).join(' ').toLowerCase(); // "g  c" would otherwise never match a press
     // a shortcut whose element has left the page, e.g. a hint replaced by file tree navigation, gives way to the new one
     this.shortcuts = this.shortcuts.filter(isActive);
     const conflict = this.shortcuts.find((s) => s.keys === keys || s.keys.startsWith(`${keys} `) || keys.startsWith(`${s.keys} `));
@@ -123,11 +123,11 @@ export function initGlobalShortcut() {
   document.addEventListener('keydown', (e: KeyboardEvent) => globalRegistry.handleKeyDown(e));
 
   // A <kbd> element next to an <input> declares a keyboard shortcut for that input.
-  // When the matching key is pressed, the sibling input is focused.
+  // initShortcutKbd registers it, so pressing the matching key focuses the sibling input.
   // When Escape is pressed inside such an input, the input is cleared and blurred.
   // The <kbd> element is shown/hidden automatically based on input focus and value.
   document.addEventListener('keydown', (e: KeyboardEvent) => {
-    // Modifier keys are not supported yet
+    // Ctrl/Alt/Cmd+Escape is left alone
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
     const target = e.target as HTMLElement;

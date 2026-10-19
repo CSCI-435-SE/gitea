@@ -150,6 +150,14 @@ describe('ShortcutRegistry', {concurrent: false}, () => {
     expect(() => ctx.add('c')).not.toThrow();
   });
 
+  test('AC4 AC8 extra spaces in the keys are ignored', () => {
+    const sequence = ctx.add(' g  c ');
+    expect(() => ctx.add('g c')).toThrow('conflicts with "g c"');
+    press(ctx.button, 'g');
+    press(ctx.button, 'c');
+    expect(sequence).toHaveBeenCalledTimes(1);
+  });
+
   test('AC8 a shortcut whose element left the page stops working and gives way to a new one', () => {
     const oldElem = document.createElement('kbd');
     const newElem = document.createElement('kbd');
