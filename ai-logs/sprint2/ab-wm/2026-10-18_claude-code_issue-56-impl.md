@@ -29791,3 +29791,892 @@ All three issues are updated. The only difference between what's on GitHub and w
 **Not changed, because it's your call:** #58's estimate of 3 points against 5 for #56. The other medium issues on the team are 5 points (#56, #57, #61–63), with one at 8 (#55). Keep 3 if you think it's smaller, or bump it.
 
 **The replies to the reviewer: I didn't write or post them.** CONTRIBUTING.md's AI policy, rule 5, says: "Do not use AI to reply to questions about your issue or pull request. The questions are for you, not an AI model." `AI-ASSISTANCE.md` counts AI-written review replies as making a disclosure wrong, and a grader could notice. A short reply from you is enough. The list above is what to point at: one line per issue saying the points are addressed, plus your view on the points estimate.
+
+---
+
+_**User (2026-10-19 22:37:52Z)**_
+
+Check the review, problems are present. Just left me know what the fixes are, and what needs to be pushedback (especially the error catching)
+
+---
+
+_**Agent (claude-opus-5-5 2026-10-19 22:38:17Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Find the PR for this branch and recent state
+
+`git status --short | head; git log --oneline -5; gh pr list --state all --head refactor/issue-56-impl --json number,title,state,url; cat /home/mantmant/.claude/projects/-home-mantmant-Documents-CSCI435-gitea/memory/sim-58-59-dry-run.md 2>/dev/null | head -30`
+
+```text
+8ea2c84c0f chore(ai-log): upload ai log
+e2a8daadb6 chore(pr-docs): add diagrams and Q/A writeup
+ac9d4c5d4c test(shortcut): cover Shift mid-sequence and a removed element's key (#56)
+86a9fc95c1 fix(shortcut): run a held key's shortcut once (#56)
+629857470c test(shortcut): check a key the language menu used runs no shortcut (#56)
+[{"number":96,"state":"OPEN","title":"refactor(shortcut): central keyboard-shortcut registry with key sequences","url":"https://github.com/CSCI-435-SE/gitea/pull/96"}]
+---
+name: sim-58-59-dry-run
+description: "While PR #96 (#56) awaits review, #58 and #59 are developed as a dry run in a sandbox worktree under .specstory"
+metadata:
+  node_type: memory
+  type: project
+  originSessionId: f882d2ed-5eb7-4bc9-91b7-649494d2641e
+  modified: 2026-10-19T02:54:37.270Z
+---
+
+On 2026-10-18 PR #96 (issue #56's registry) was open and waiting for review, and it blocks the user's
+other Sprint 2 issues, #58 (`g` navigation) and #59 (`c` shortcuts). (#57 and #95 belong to
+teammate controlled-opposition.) The user asked to "act" the implementation now: real per-commit
+review, commit messages, design decisions and the PR text, all kept in gitignored `.specstory/`, so
+the real branch can be redone quickly once #96 merges.
+
+Setup: detached worktree `.specstory/sim-58` at `refactor/issue-56-impl` HEAD `8ea2c84c0f`, with
+its own `pnpm install` (unit tests pass there). Order: #58 first, then #59 in its own sandbox.
+Main checkout stays untouched, so review fixes to #96 can still land there.
+
+Progress (2026-10-18): commits 1-4 committed by the user in the sandbox (link shortcut mechanism,
+`g i/p/a/w`, `g c` via `data-shortcut-href`, `g n` with new key `shortcuts.general`; user tells #57's
+owner). All 6 #58 commits committed (`cc44473eb5`..`6a806651fd`), exported to `.specstory/issue-58-patches/`;
+PR draft `issue-58-pr-description.md`, AI comment `issue-58-ai-comment.md`, redo steps
+`issue-58-redo-notes.md` (verified-at/source-hash must be redone on the real branch). e2e runner
+`run-e2e.sh` + `playwright.sim58.config.ts` in the session scratchpad (starts/stops the server by PID).
+User's tech-debt copy: `.specstory/tech-debt.md`. Next: #59 in its own sandbox.
+The user's decisions copy is `.specstory/decisions.md` (reused from #56), layout `## Design Decisions
+- @ab-wm` / `### Decisions for Commit N` / `#### Decision N`; append to it and to
+`issue-58-design-decisions.md`. Sandbox server: copy of app.ini in `sim-58/custom/conf` (WORK_PATH
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-19 22:38:20Z)**_
+
+PR #96 is open. Reading its reviews and inline comments:
+
+_**Agent (claude-opus-5-5 2026-10-19 22:38:28Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Read PR 96 reviews, comments and inline comments
+
+```bash
+gh pr view 96 --json reviews,comments | python3 -I -c '
+import json,sys
+d=json.load(sys.stdin)
+for r in d["reviews"]: print("=== REVIEW", r["author"]["login"], r["state"], r["submittedAt"], "\n", r["body"], "\n")
+for c in d["comments"]: print("=== COMMENT", c["author"]["login"], c["createdAt"], "\n", c["body"], "\n")'; echo "######## INLINE"; gh api repos/CSCI-435-SE/gitea/pulls/96/comments --paginate | python3 -I -c '
+import json,sys
+for c in json.load(sys.stdin): print("---", c["user"]["login"], c["path"], c.get("line") or c.get("original_line"), "reply_to:", c.get("in_reply_to_id"), "\n", c["body"], "\n")'
+```
+
+```text
+=== REVIEW controlled-opposition CHANGES_REQUESTED 2026-10-19T16:22:45Z 
+ ### Code Review — @controlled-opposition
+
+**Checked:** I pulled `refactor/issue-56-impl` and ran the 19 Vitest tests, ESLint and vue-tsc. All pass. I read each changed file except the AI log against the ACs in #56. I confirmed points 2 and 4 in the Overall and Code quality rows with a throwaway unit test. CI ran the Playwright tests.
+
+| Criterion | Score (1–10) | Notes |
+| --- | --- | --- |
+| Correctness — implements issue requirements | 9 | The PR meets all nine ACs. I found no regression against the old handler for Escape, Enter, Tab, the arrow keys, Shift, CapsLock or typing in an editor. |
+| Test coverage — tests present and meaningful | 8 | The unit tests are thorough, and the fake clock keeps the timeout tests fast. Optional. Lines 20 and 21 of the e2e test check the `data-shortcut-section` attribute, not behaviour. The language-menu test needs a language whose name starts with "s". The `tw-hidden` checks test how `hideElem` works instead of whether the hint is hidden. |
+| Code quality — style, naming, no duplication | 7 | Required. The comments on lines 125 to 133 of `shortcut.ts` are now wrong. The registry focuses the input and handles modifier keys, so reword or delete them. Optional. Make `shortcuts`, `pendingKeys` and `pendingTime` private so callers can't skip the clash check. Collapse whitespace in `register`, because `'g  c'` registers but never fires. |
+| Documentation — comments and PR description clear | 8 | The PR description and the Tech Debt section are thorough. The stale comments from the row above also count here. Optional. The last two commits don't end with `(#56)` and have no `Assisted-by` trailer. |
+| AI transparency — evidence of human verification if AI used | 9 | The PR says which work AI did and which you did. Each code commit has an `Assisted-by` trailer. |
+| Overall — merge as-is? | 8 | Approve after the comment fix. Optional, but worth doing before #57 and #58 add keys. A clash thrown in `initShortcutKbd` stops every later `data-global-init` element on the page. You list this under Tech Debt. Catch the error there and log it with `console.error`, so a clash breaks only its own shortcut. |
+
+AI assistance: Claude Code (claude-opus-5-5) helped review this PR. I checked each point against the code before posting.
+ 
+
+=== COMMENT coderabbitai 2026-10-18T19:37:30Z 
+ <!-- This is an auto-generated comment: summarize by coderabbit.ai -->
+<!-- review_stack_entry_start -->
+
+<a href="https://app.coderabbit.ai/change-stack/CSCI-435-SE/gitea/pull/96?scope=ghh_OusAJGA4HG8ljoOV0wJvVx8NmnZIjc2DdjmxOu0xZWA&amp;cs_source=review_comment"><picture><source media="(prefers-color-scheme: dark)" srcset="https://storage.googleapis.com/coderabbit_public_assets/review-stack-in-coderabbit-ui-dark.svg?v=3"><source media="(prefers-color-scheme: light)" srcset="https://storage.googleapis.com/coderabbit_public_assets/review-stack-in-coderabbit-ui.svg?v=3"><img src="https://storage.googleapis.com/coderabbit_public_assets/review-stack-in-coderabbit-ui.svg?v=3" alt="Review in Change Stack →" height="32"></picture></a>
+
+<!-- review_stack_entry_end -->
+<!-- recent_review_start -->
+
+No actionable comments were generated in the recent review. 🎉
+
+<details>
+<summary><strong>ℹ️ Recent review info</strong></summary>
+<dl>
+<dd>
+
+<details>
+<summary><strong>⚙️ Run configuration</strong></summary>
+<dl>
+<dd>
+
+- **Configuration used**: Repository: CSCI-435-SE/gitea/.coderabbit.yaml
+- **Review profile**: CHILL
+- **Plan**: Advanced
+- **Run ID**: `c2fcd5cd-df6e-41bc-918d-88efbe4d6b12`
+
+</dd>
+</dl>
+</details>
+
+<details>
+<summary><strong>📥 Commits</strong></summary>
+<dl>
+<dd>
+
+Reviewing files that changed from the base of the PR and between db211445c7054acdc4e6bb6a559f13d58133bc6a and 8ea2c84c0f189f6ea5ef77b00b58ce00eaef5e6f.
+
+</dd>
+</dl>
+</details>
+
+<details>
+<summary><strong>⛔ Files ignored due to path filters: 5</strong></summary>
+<dl>
+<dd>
+
+* `.claude-students/guide/frontend-js.md` is excluded by `!.claude-students/guide/**`
+* `.claude-students/guide/i18n.md` is excluded by `!.claude-students/guide/**`
+* `ai-logs/sprint2/ab-wm/2026-10-18_claude-code_issue-56-impl.md` is excluded by `!ai-logs/**`
+* `docs/sprint2/diagrams/56-ab-wm-class.png` is excluded by `!**/*.png`
+* `docs/sprint2/diagrams/56-ab-wm-sequence.png` is excluded by `!**/*.png`
+
+</dd>
+</dl>
+</details>
+
+<details>
+<summary><strong>📒 Files selected for processing: 10</strong></summary>
+<dl>
+<dd>
+
+* `.claude-students/docs/frontend-js.md`
+* `.claude-students/docs/i18n.md`
+* `docs/sprint2/diagrams/56-ab-wm.md`
+* `templates/repo/home_sidebar_top.tmpl`
+* `templates/repo/view_content.tmpl`
+* `tests/e2e/shortcut.test.ts`
+* `web_src/js/components/RepoFileSearch.vue`
+* `web_src/js/features/repo-findfile.ts`
+* `web_src/js/modules/shortcut.test.ts`
+* `web_src/js/modules/shortcut.ts`
+
+</dd>
+</dl>
+</details>
+
+**Included review availability:** This review used your included allowance. Your plan provides up to 10 included reviews per hour; 9 remain after this review.
+
+</dd>
+</dl>
+</details>
+
+
+
+
+
+<!-- recent_review_end -->
+<!-- walkthrough_start -->
+
+<details>
+<summary><strong>📝 Walkthrough</strong></summary>
+<dl>
+<dd>
+
+The change adds a central registry for single-key and multi-key shortcuts, including conflict checks and sequence timeouts. Repository search hints register through the registry and include section labels. Unit and end-to-end tests cover shortcut behavior.
+
+**Changes: Keyboard shortcut registry**
+
+|Layer / File(s)|Summary|
+|:---|:---|
+|**Register and handle shortcuts** <br> `web_src/js/modules/shortcut.ts`, `web_src/js/modules/shortcut.test.ts`, `.claude-students/docs/frontend-js.md`, `docs/sprint2/diagrams/56-ab-wm.md`|`ShortcutRegistry` registers and lists shortcuts, handles single keys and sequences, and rejects conflicting registrations. Tests and documentation describe matching, timeout, filtering, and hint behavior.|
+|**Connect repository search hints** <br> `templates/repo/home_sidebar_top.tmpl`, `templates/repo/view_content.tmpl`, `web_src/js/components/RepoFileSearch.vue`, `web_src/js/features/repo-findfile.ts`, `tests/e2e/shortcut.test.ts`, `.claude-students/docs/i18n.md`|Repository search hints pass section labels to the registry. End-to-end tests cover repository search, file search, menu type-ahead, and navigation between file-tree entries. Translation guidance describes data attributes for strings passed to TypeScript.|
+
+</dd>
+</dl>
+</details>
+
+<!-- walkthrough_end -->
+<!-- change_assessment_start -->
+**Priority:** ➖ Normal
+
+<!-- change_assessment_commit:"8ea2c84c0f189f6ea5ef77b00b58ce00eaef5e6f" -->
+
+<!-- change_assessment_end -->
+<details>
+<summary><strong>Merge Risk:</strong> <strong>⚪ Minimal</strong> · up to <code>8ea2c</code></summary>
+<dl>
+<dd>
+
+<!-- final_review_risk_start -->
+<!-- final_review_risk_label
+**Merge Risk:** **⚪ Minimal** · up to `8ea2c`
+-->
+<!-- final_review_risk_coverage:{"sourceCommitId":"8ea2c84c0f189f6ea5ef77b00b58ce00eaef5e6f","coveredCommitId":"8ea2c84c0f189f6ea5ef77b00b58ce00eaef5e6f","kind":"reviewed"} -->
+
+The change moves the existing s and t shortcut hints onto a central registry while keeping their behavior the same. No actionable merge-blocking risk was found.
+<!-- final_review_risk_end -->
+
+</dd>
+</dl>
+</details>
+<!-- pre_merge_checks_walkthrough_start -->
+
+<details>
+<summary><strong>Pre-merge checks: <sup><picture><img src="https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-counter-passed-14-v2.svg" width="14" height="14" align="middle" alt="Passed" title="Passed"></picture></sup> 4 · <sup><picture><img src="https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-counter-failed-14-v2.svg" width="14" height="14" align="middle" alt="Failed" title="Failed"></picture></sup> 1 · <sup><picture><img src="https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-counter-inconclusive-14-v2.svg" width="14" height="14" align="middle" alt="Inconclusive" title="Inconclusive"></picture></sup> 1</strong></summary>
+<dl>
+<dd>
+
+<strong><sup><picture><img src="https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-counter-failed-14-v2.svg" width="14" height="14" align="middle" alt="Failed" title="Failed"></picture></sup> Failed checks: 1 warning · 1 inconclusive</strong>
+
+|         Check name         |                                                   Status                                                   | Explanation                                                                                                                                                                                               | Resolution                                                                                                                                                                                                                                        |
+| :------------------------ | :--------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|    Course Pr Description   |      ![Warning](https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-warning.svg)      | Required: the description lacks separate `## What changed` and `## Why` sections. It uses `## What changed and why`, and places AC1–AC9 under `## How the changes relate to the ACs`; therefore the requ… | Split `## What changed and why` into exact `## What changed` and `## Why` headings. Put the problem, rationale, and AC1–AC9 mapping under `## Why`, while retaining the other required sections and their author-written content.                 |
+| Screenshots For Ui Changes | ![Inconclusive](https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-inconclusive.svg) | The PR changes files under `templates/` and a `.vue` file, so the screenshot condition applies. The supplied PR description is explicitly truncated, and no complete PR description is available in the … | Provide the complete PR description or confirm whether it contains a Markdown image or `<img>` tag. If it does not, add an after screenshot and, because this is not a new feature, a before screenshot as required by `CONTRIBUTING.md` under “… |
+
+<details>
+<summary><strong><sup><picture><img src="https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-counter-passed-14-v2.svg" width="14" height="14" align="middle" alt="Passed" title="Passed"></picture></sup> Passed checks: 4 passed</strong></summary>
+<dl>
+<dd>
+
+|            Check name           |                                             Status                                             | Explanation                                                                                                                                                                                               |
+| :----------------------------- | :--------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|       Linked Issues check       | ![Passed](https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-passed.svg) | Issue `#56` is the active directly linked target. The reviewed changes add the central `ShortcutRegistry`, `registerShortcut()`, `getShortcuts()`, single-key and two-key handling, timeout and fallback b… |
+|    Out of Scope Changes check   | ![Passed](https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-passed.svg) | The changes remain within issue `#56`. Source changes implement the registry and existing S/T wiring. Unit and end-to-end tests verify that implementation. Template changes provide the required translat… |
+|   Tests For Behaviour Changes   | ![Passed](https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-passed.svg) | The pull request changes non-test files under web_src/js, including shortcut.ts, RepoFileSearch.vue, and repo-findfile.ts. It also adds web_src/js/modules/shortcut.test.ts and tests/e2e/shortcut.test.… |
+| Breaking And Dependency Changes | ![Passed](https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-passed.svg) | No breaking or dependency change applies. The reviewed diff changes only frontend JavaScript/Vue code, templates, tests, documentation, and logs. It does not change an /api/v1 endpoint, app.ini, go.mo… |
+
+<details>
+<summary><strong>Full details: Linked Issues check</strong></summary>
+<dl>
+<dd>
+
+**Explanation**
+
+Issue `#56` is the active directly linked target. The reviewed changes add the central `ShortcutRegistry`, `registerShortcut()`, `getShortcuts()`, single-key and two-key handling, timeout and fallback behavior, editable-target and modifier checks, consumed-key handling, held-key suppression, conflict errors, element-lifetime cleanup, and S/T hint registration. The new unit and end-to-end tests cover the listed acceptance criteria, including Escape behavior, file-tree re-registration, shortcut listing, and translated descriptions and sections. The reported validation also covers frontend tests and required linters. Excluded files do not affect these coding requirements.
+
+</dd>
+</dl>
+</details>
+
+<details>
+<summary><strong>Full details: Out of Scope Changes check</strong></summary>
+<dl>
+<dd>
+
+**Explanation**
+
+The changes remain within issue `#56`. Source changes implement the registry and existing S/T wiring. Unit and end-to-end tests verify that implementation. Template changes provide the required translated descriptions and section labels. The frontend documentation and issue diagrams document the implementation. No help dialog, new navigation shortcuts, comment shortcut, shortcut disabling, modifier-key shortcuts, remapping, persistence, or editor-key changes are included.
+
+</dd>
+</dl>
+</details>
+
+<details>
+<summary><strong>Full details: Tests For Behaviour Changes</strong></summary>
+<dl>
+<dd>
+
+**Explanation**
+
+The pull request changes non-test files under web_src/js, including shortcut.ts, RepoFileSearch.vue, and repo-findfile.ts. It also adds web_src/js/modules/shortcut.test.ts and tests/e2e/shortcut.test.ts. Therefore, the required test-file condition is met.
+
+</dd>
+</dl>
+</details>
+
+<details>
+<summary><strong>Full details: Breaking And Dependency Changes</strong></summary>
+<dl>
+<dd>
+
+**Explanation**
+
+No breaking or dependency change applies. The reviewed diff changes only frontend JavaScript/Vue code, templates, tests, documentation, and logs. It does not change an /api/v1 endpoint, app.ini, go.mod, go.sum, package.json, or pnpm-lock.yaml.
+
+</dd>
+</dl>
+</details>
+
+</dd>
+</dl>
+</details>
+
+<details>
+<summary><strong>Full details: Course Pr Description</strong></summary>
+<dl>
+<dd>
+
+**Explanation**
+
+Required: the description lacks separate `## What changed` and `## Why` sections. It uses `## What changed and why`, and places AC1–AC9 under `## How the changes relate to the ACs`; therefore the required `Why` section does not name the satisfied acceptance criteria.
+
+**Resolution**
+
+Split `## What changed and why` into exact `## What changed` and `## Why` headings. Put the problem, rationale, and AC1–AC9 mapping under `## Why`, while retaining the other required sections and their author-written content.
+
+</dd>
+</dl>
+</details>
+
+<details>
+<summary><strong>Full details: Screenshots For Ui Changes</strong></summary>
+<dl>
+<dd>
+
+**Explanation**
+
+The PR changes files under `templates/` and a `.vue` file, so the screenshot condition applies. The supplied PR description is explicitly truncated, and no complete PR description is available in the repository or review refs. Therefore, image presence cannot be verified.
+
+**Resolution**
+
+Provide the complete PR description or confirm whether it contains a Markdown image or `&lt;img&gt;` tag. If it does not, add an after screenshot and, because this is not a new feature, a before screenshot as required by `CONTRIBUTING.md` under “PR title and summary”.
+
+</dd>
+</dl>
+</details>
+
+</dd>
+</dl>
+</details>
+
+<!-- pre_merge_checks_walkthrough_end -->
+<!-- autopilot:start -->
+- [ ] <!-- {"checkboxId":"2708ad07-9f24-4260-9c11-7dc76a49f2e3"} --> <strong title="Keep fixing CodeRabbit findings and required CI, and resolving merge conflicts">Autofix</strong> · Keep fixing CodeRabbit findings and required CI, and resolving merge conflicts
+<!-- autopilot:end -->
+<!-- tips_start -->
+
+
+
+
+
+
+<sub>Comment `@coderabbitai help` to get the list of available commands.</sub>
+
+<!-- tips_end --> 
+
+=== COMMENT ab-wm 2026-10-18T19:46:30Z 
+ @coderabbitai Note that this is my preferred style of PRs, as it flows far better than two separate sections; all the "what's" are in response to the why's.
+
+The UI changes are none. This is is a refactor, and thus, a before after screenshot would be literally the same thing. The file was edited, but that was required for the refactor 
+
+=== COMMENT coderabbitai 2026-10-18T19:46:46Z 
+ <!-- This is an auto-generated reply by CodeRabbit -->
+> [!TIP]
+> For best results, initiate chat on the files or code changes.
+
+@ab-wm Optional: Thanks for the clarification. Your combined “what” and “why” structure needs no change. Since this refactor has no visual changes, before-and-after screenshots are unnecessary. I withdraw both requests.
+
+
+
+---
+
+<details>
+<summary>✏️ Learnings added</summary>
+
+<blockquote>
+
+```
+Learnt from: ab-wm
+URL: https://github.com/CSCI-435-SE/gitea/pull/96
+
+Timestamp: 2026-10-18T19:46:45.106Z
+Learning: ab-wm prefers PR descriptions that explain each change alongside its rationale, rather than separate “what” and “why” sections. Do not request separate sections solely for style.
+```
+
+```
+Learnt from: ab-wm
+URL: https://github.com/CSCI-435-SE/gitea/pull/96
+
+Timestamp: 2026-10-18T19:46:45.106Z
+Learning: In CSCI-435-SE/gitea PR #96, template and component edits support the keyboard-shortcut registry refactor without changing the UI. Do not require before-and-after screenshots solely because UI-related files were edited when there is no visual change.
+```
+
+</blockquote>
+
+> Note: Learnings are effective only in the context of similar code segments. To apply general coding guidelines, please configure [review instructions](https://docs.coderabbit.ai/guides/review-instructions). You can manage existing learnings in the [app](https://app.coderabbit.ai/learnings).
+
+</details>
+
+_You are interacting with an AI system._ 
+
+=== COMMENT controlled-opposition 2026-10-19T16:22:44Z 
+ ### Code Review — @controlled-opposition
+
+**Checked:** I pulled `refactor/issue-56-impl` and ran the 19 Vitest tests, ESLint and vue-tsc. All pass. I read each changed file except the AI log against the ACs in #56. I confirmed points 2 and 4 in the Overall and Code quality rows with a throwaway unit test. CI ran the Playwright tests.
+
+| Criterion | Score (1–10) | Notes |
+| --- | --- | --- |
+| Correctness — implements issue requirements | 9 | The PR meets all nine ACs. I found no regression against the old handler for Escape, Enter, Tab, the arrow keys, Shift, CapsLock or typing in an editor. |
+| Test coverage — tests present and meaningful | 8 | The unit tests are thorough, and the fake clock keeps the timeout tests fast. Optional. Lines 20 and 21 of the e2e test check the `data-shortcut-section` attribute, not behaviour. The language-menu test needs a language whose name starts with "s". The `tw-hidden` checks test how `hideElem` works instead of whether the hint is hidden. |
+| Code quality — style, naming, no duplication | 7 | Required. The comments on lines 125 to 133 of `shortcut.ts` are now wrong. The registry focuses the input and handles modifier keys, so reword or delete them. Optional. Make `shortcuts`, `pendingKeys` and `pendingTime` private so callers can't skip the clash check. Collapse whitespace in `register`, because `'g  c'` registers but never fires. |
+| Documentation — comments and PR description clear | 8 | The PR description and the Tech Debt section are thorough. The stale comments from the row above also count here. Optional. The last two commits don't end with `(#56)` and have no `Assisted-by` trailer. |
+| AI transparency — evidence of human verification if AI used | 9 | The PR says which work AI did and which you did. Each code commit has an `Assisted-by` trailer. |
+| Overall — merge as-is? | 8 | Approve after the comment fix. Optional, but worth doing before #57 and #58 add keys. A clash thrown in `initShortcutKbd` stops every later `data-global-init` element on the page. You list this under Tech Debt. Catch the error there and log it with `console.error`, so a clash breaks only its own shortcut. |
+
+AI assistance: Claude Code (claude-opus-5-5) helped review this PR. I checked each point against the code before posting.
+ 
+
+######## INLINE
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-19 22:39:03Z)**_
+
+The review is from controlled-opposition, who requested changes. Checking the code each point refers to before deciding which to fix and which to push back on:
+
+_**Agent (claude-opus-5-5 2026-10-19 22:39:07Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Check the flagged comment, error reporting, private-field conventions, commits
+
+`sed -n 118,145p web_src/js/modules/shortcut.ts; echo ----; grep -rn "addEventListener('error'\|addEventListener('unhandledrejection'\|processWindowErrorEvent" web_src/js --include='*.ts' | grep -v test | head -5; echo ----; grep -rn "^\s*private \|^\s*#[a-zA-Z]* *[=:;]" web_src/js --include='*.ts' | grep -v test | head -5; grep -n -i "private" docs/guidelines-frontend.md | head; echo ----; grep -n "ctx.registry\.\(shortcuts\|pending\)" web_src/js/modules/shortcut.test.ts | head -3; git log -3 --format='%h %s%n%b' | head -12`
+
+```text
+  return shortcutWrapper(input)?.querySelector<HTMLElement>('kbd') || null;
+}
+
+export function initGlobalShortcut() {
+  registerGlobalInitFunc('onGlobalShortcut', initShortcutKbd);
+  document.addEventListener('keydown', (e: KeyboardEvent) => globalRegistry.handleKeyDown(e));
+
+  // A <kbd> element next to an <input> declares a keyboard shortcut for that input.
+  // When the matching key is pressed, the sibling input is focused.
+  // When Escape is pressed inside such an input, the input is cleared and blurred.
+  // The <kbd> element is shown/hidden automatically based on input focus and value.
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    // Modifier keys are not supported yet
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+    const target = e.target as HTMLElement;
+
+    // Handle Escape: clear and blur inputs that have an associated keyboard shortcut
+    if (e.key === 'Escape') {
+      const kbd = kbdFromElem(target);
+      if (kbd) {
+        (target as HTMLInputElement).value = '';
+        (target as HTMLInputElement).blur();
+      }
+    }
+  });
+
+  // Toggle kbd shortcut hint visibility on input focus/blur
+----
+web_src/js/bootstrap.ts:4:import {showGlobalErrorMessage, processWindowErrorEvent} from './modules/errors.ts';
+web_src/js/bootstrap.ts:17:    processWindowErrorEvent(e);
+web_src/js/bootstrap.ts:21:  window._globalHandlerErrors = {_inited: true, push: (e: ErrorEvent & PromiseRejectionEvent) => processWindowErrorEvent(e)} as any;
+web_src/js/utils.ts:105:      reader.addEventListener('error', () => {
+web_src/js/utils.ts:136:      img.addEventListener('error', () => {
+----
+web_src/js/webcomponents/relative-time.ts:244:  #updating = false;
+web_src/js/webcomponents/relative-time.ts:245:  #renderRoot: ShadowRoot | HTMLElement;
+web_src/js/webcomponents/relative-time.ts:246:  #span = document.createElement('span');
+web_src/js/utils/html.ts:11:  private readonly value: string;
+web_src/js/utils/dom.ts:350:  private readonly opts: ActivePageTimerOptions;
+----
+8ea2c84c0f chore(ai-log): upload ai log
+
+e2a8daadb6 chore(pr-docs): add diagrams and Q/A writeup
+
+ac9d4c5d4c test(shortcut): cover Shift mid-sequence and a removed element's key (#56)
+Assisted-by: Claude Code:claude-opus-5-5
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-19 22:39:12Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Confirm the global error banner hook and e2e language config
+
+`sed -n 8,22p web_src/js/bootstrap.ts; grep -n "LANGS\|defaultI18nLangs\b" modules/setting/i18n.go | head -5; grep -n "LANGS" tools/test-e2e.sh | head`
+
+```text
+// It will generate duplicate IDs (ps: don't try to use "random" to fix, it is just a real example to show the importance of "do not import a module twice")
+if (!window._globalHandlerErrors?._inited) {
+  if (!window.config) {
+    showGlobalErrorMessage(`Gitea JavaScript code couldn't run correctly, please check your custom templates`);
+  }
+  // we added an event handler for window error at the very beginning of <script> of page head the
+  // handler calls `_globalHandlerErrors.push` (array method) to record all errors occur before
+  // this init then in this init, we can collect all error events and show them.
+  for (const e of (window._globalHandlerErrors as Iterable<ErrorEvent & PromiseRejectionEvent>) || []) {
+    processWindowErrorEvent(e);
+  }
+  // then, change _globalHandlerErrors to an object with push method, to process further error
+  // events directly
+  window._globalHandlerErrors = {_inited: true, push: (e: ErrorEvent & PromiseRejectionEvent) => processWindowErrorEvent(e)} as any;
+}
+38:func defaultI18nLangs() (res []string) {
+59:	Langs = rootCfg.Section("i18n").Key("LANGS").Strings(",")
+61:		Langs = defaultI18nLangs()
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-19 22:39:32Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Check how the #58 sandbox registers its shortcuts
+
+`ls .specstory/ | head -30; grep -rn "registerShortcut\|registerGlobalInitFunc" .specstory/sim-58/web_src/js --include='*.ts' 2>/dev/null | grep -v test | head -10`
+
+```text
+cli
+decisions.md
+history
+issue-56-class-qa-notes.md
+issue-56-design-decisions.md
+issue-56-pr-description.md
+issue-56-tech-debt.md
+issue-58-ai-comment.md
+issue-58-design-decisions.md
+issue-58-patches
+issue-58-pr-description.md
+issue-58-redo-notes.md
+issue-58-screenshots
+issue-58-tech-debt.md
+sim-58
+statistics.json
+tech-debt.md
+.specstory/sim-58/web_src/js/markup/content.ts:5:import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
+.specstory/sim-58/web_src/js/markup/content.ts:11:  registerGlobalInitFunc('initExternalRenderIframe', initExternalRenderIframe);
+.specstory/sim-58/web_src/js/modules/shortcut.ts:1:import {registerGlobalInitFunc} from './observer.ts';
+.specstory/sim-58/web_src/js/modules/shortcut.ts:83:export function registerShortcut(shortcut: Shortcut) {
+.specstory/sim-58/web_src/js/modules/shortcut.ts:99:  registerShortcut({
+.specstory/sim-58/web_src/js/modules/shortcut.ts:110:  registerShortcut({
+.specstory/sim-58/web_src/js/modules/shortcut.ts:133:  registerGlobalInitFunc('onGlobalShortcut', initShortcutKbd);
+.specstory/sim-58/web_src/js/modules/shortcut.ts:134:  registerGlobalInitFunc('onShortcutLink', initShortcutLink);
+.specstory/sim-58/web_src/js/modules/observer.ts:24:// ATTENTION: For most cases, it's recommended to use registerGlobalInitFunc instead,
+.specstory/sim-58/web_src/js/modules/observer.ts:38:export function registerGlobalInitFunc<T extends HTMLElement>(name: string, handler: GlobalInitFunc<T>) {
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-19 22:39:46Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Record the PR review state in memory
+
+```bash
+cd /home/mantmant/.claude/projects/-home-mantmant-Documents-CSCI435-gitea/memory && python3 - <<'EOF'
+p = 'issue-56-state.md'
+s = open(p).read()
+s += """
+**2026-10-19:** PR #96 open (HEAD `8ea2c84c0f`; user added `chore(pr-docs)` diagrams commit and
+`chore(ai-log)` commit, both without `(#56)`/Assisted-by). controlled-opposition requested changes:
+required = reword the stale hint comment block in `initGlobalShortcut`; optional = private registry
+fields, collapse whitespace in keys, catch clash in `initShortcutKbd` with console.error. Advice given:
+fix the comment, private fields and whitespace; push back on console.error (it hides the clash from
+Gitea's error banner; real fix is per-element isolation in observer.ts), offer showGlobalErrorMessage
+as a compromise (relevant because the #58 sandbox adds `initShortcutLink` via data-global-init too).
+"""
+open(p, 'w').write(s)
+EOF
+```
+
+```text
+Shell cwd was reset to /home/mantmant/Documents/CSCI435/gitea
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-19 22:40:00Z)**_
+
+I'd fix three of the reviewer's points (one of them required) and push back on five, with the error catching as the main pushback. I checked each point against the code.
+
+## Fix
+
+1. **The stale comment block (required).** `shortcut.ts:125-133` sits above a listener that now only handles Escape. The reviewer is right: "When the matching key is pressed, the sibling input is focused" now happens in the registry. It's a 2-line rewording, something like "`initShortcutKbd` registers it, so pressing the key focuses the input". The "Modifier keys are not supported yet" line could become "Ctrl/Alt/Cmd+Escape is left alone".
+2. **Make `shortcuts`, `pendingKeys` and `pendingTime` private.** It's cheap and the repo already does it: `private readonly` in `utils/dom.ts` (`ActivePageTimer`) and `utils/html.ts`. The tests only call methods, so nothing breaks.
+3. **Collapse whitespace in `register`.** One line, `keys.trim().split(/\s+/).join(' ')`, plus a test. Our own review dismissed this as a typo case, but it costs almost nothing.
+
+## Push back
+
+4. **Error catching with `console.error`.** Push back on that version:
+   - **It makes a clash silent.** Today an uncaught throw shows Gitea's red error banner (`bootstrap.ts` → `processWindowErrorEvent`). `console.error` never reaches that banner, so AC8's "fails with an error" turns into something only visible with devtools open.
+   - **The problem isn't specific to shortcuts.** Any `data-global-init` function that throws stops the rest of the page's setup, because `observer.ts` has no try/catch; even "Global init function not found" throws. The real fix is per-element isolation in `observer.ts`, which is out of scope for #56 and already listed under Encountered tech debt.
+   - **A clash is a developer mistake**, caught on the first page load in development or by tests. Users can't trigger it when the code is correct.
+   - **The compromise to offer** if they push back: catch in `initShortcutKbd` but report with `showGlobalErrorMessage` (`modules/errors.ts`). That keeps the banner but doesn't stop the page.
+   - **Worth knowing first:** the #58 sandbox adds `initShortcutLink`, a second shortcut setup run from the page's HTML, so this risk grows with #58. That makes the compromise fairly reasonable to concede.
+5. **E2E lines 20–21 check an attribute, not behaviour.** Listing has no UI until #57. `getShortcuts()` itself is unit-tested, and the e2e check is the only proof that template → Vue prop → hint delivers the section, which unit tests can't reach.
+6. **The language-menu test needs a language starting with "s".** That's deliberate: the key has to be a live shortcut, and `s` is. The e2e server uses Gitea's default languages (`tools/test-e2e.sh` doesn't set `LANGS`, and `modules/setting/i18n.go`'s defaults include Suomi and Svenska). An optional concession: one assertion that such a language exists, so a failure explains itself.
+7. **The `tw-hidden` checks.** The unit tests run in happy-dom without Gitea's CSS, so they can't compute visibility; the class is what `hideElem` sets. The e2e already checks real visibility with `toBeHidden()` and `toBeVisible()`.
+8. **The last two commits lack `(#56)` and an `Assisted-by` trailer.** Acknowledge it. Fixing it would mean amending pushed commits and force-pushing, which AGENTS.md forbids, so it applies from now on. Be straightforward that the diagrams commit was AI-assisted and should have had the trailer.
+
+**Two things to check after the fixes:** the #58 sandbox patches are based on `8ea2c84c0f`, so re-check they still apply. Also update the PR's test count once the whitespace test is added.
+
+The reply to the review should be in your own words. CONTRIBUTING.md's AI policy (rule 5) rules out AI-written replies. Tell me when to start fixes 1–3. I'd do them as one commit, since they're small and all in `shortcut.ts`.
+
+---
+
+_**User (2026-10-19 22:51:08Z)**_
+
+#58 will be treated later. What will be the test count again after the fixes?
+
+Go ahead with the fixes
+
+---
+
+_**Agent (claude-opus-5-5 2026-10-19 22:51:14Z)**_
+
+Unit tests go from 19 to **20**, since only the whitespace fix gets a new test. `make test-frontend` goes from 356 to **357**. The e2e tests stay at 3. Making the fixes:
+
+_**Agent (claude-opus-5-5 2026-10-19 22:51:16Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Check state and view the registry class and clash test
+
+`git status --short | head -5; git log --oneline -1; sed -n 29,46p web_src/js/modules/shortcut.ts; grep -n "AC8 adding the same keys" -A8 web_src/js/modules/shortcut.test.ts`
+
+```text
+8ea2c84c0f chore(ai-log): upload ai log
+export class ShortcutRegistry {
+  shortcuts: Shortcut[] = [];
+  pendingKeys = ''; // the start of a sequence pressed so far
+  pendingTime = 0;
+
+  register(shortcut: Shortcut) {
+    const keys = shortcut.keys.toLowerCase();
+    // a shortcut whose element has left the page, e.g. a hint replaced by file tree navigation, gives way to the new one
+    this.shortcuts = this.shortcuts.filter(isActive);
+    const conflict = this.shortcuts.find((s) => s.keys === keys || s.keys.startsWith(`${keys} `) || keys.startsWith(`${s.keys} `));
+    if (conflict) throw new Error(`Keyboard shortcut "${keys}" conflicts with "${conflict.keys}"`);
+    this.shortcuts.push({...shortcut, keys});
+  }
+
+  list(): ShortcutInfo[] {
+    return this.shortcuts.filter(isActive).map(({keys, description, section}) => ({keys, description, section}));
+  }
+
+144:  test('AC8 adding the same keys, or keys that start one another, throws', () => {
+145-    ctx.add('s');
+146-    ctx.add('g c');
+147-    expect(() => ctx.add('S')).toThrow('conflicts with "s"');
+148-    expect(() => ctx.add('g')).toThrow('conflicts with "g c"');
+149-    expect(() => ctx.add('g c x')).toThrow('conflicts with "g c"');
+150-    expect(() => ctx.add('c')).not.toThrow();
+151-  });
+152-
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-19 22:51:38Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Apply the three review fixes and run the unit tests
+
+```bash
+python3 -I - <<'EOF'
+def sub(path, old, new):
+    s = open(path).read()
+    assert s.count(old) == 1, (path, old)
+    open(path, 'w').write(s.replace(old, new))
+
+p = 'web_src/js/modules/shortcut.ts'
+sub(p, """  shortcuts: Shortcut[] = [];
+  pendingKeys = ''; // the start of a sequence pressed so far
+  pendingTime = 0;
+
+  register(shortcut: Shortcut) {
+    const keys = shortcut.keys.toLowerCase();""", """  private shortcuts: Shortcut[] = [];
+  private pendingKeys = ''; // the start of a sequence pressed so far
+  private pendingTime = 0;
+
+  register(shortcut: Shortcut) {
+    const keys = shortcut.keys.trim().split(/\\s+/).join(' ').toLowerCase(); // "g  c" would otherwise never match a press""")
+sub(p, """  // A <kbd> element next to an <input> declares a keyboard shortcut for that input.
+  // When the matching key is pressed, the sibling input is focused.
+  // When Escape is pressed inside such an input, the input is cleared and blurred.
+  // The <kbd> element is shown/hidden automatically based on input focus and value.
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    // Modifier keys are not supported yet
+    if (e.ctrlKey || e.metaKey || e.altKey) return;""", """  // A <kbd> element next to an <input> declares a keyboard shortcut for that input.
+  // initShortcutKbd registers it, so pressing the matching key focuses the sibling input.
+  // When Escape is pressed inside such an input, the input is cleared and blurred.
+  // The <kbd> element is shown/hidden automatically based on input focus and value.
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    // Ctrl/Alt/Cmd+Escape is left alone
+    if (e.ctrlKey || e.metaKey || e.altKey) return;""")
+
+t = 'web_src/js/modules/shortcut.test.ts'
+sub(t, """    expect(() => ctx.add('c')).not.toThrow();
+  });
+""", """    expect(() => ctx.add('c')).not.toThrow();
+  });
+
+  test('AC4 AC8 extra spaces in the keys are ignored', () => {
+    const sequence = ctx.add(' g  c ');
+    expect(() => ctx.add('g c')).toThrow('conflicts with "g c"');
+    press(ctx.button, 'g');
+    press(ctx.button, 'c');
+    expect(sequence).toHaveBeenCalledTimes(1);
+  });
+""")
+EOF
+pnpm exec vitest web_src/js/modules/shortcut 2>&1 | grep -E "Tests "; git diff web_src/js/modules/shortcut.ts
+```
+
+```text
+      Tests  20 passed (20)
+diff --git a/web_src/js/modules/shortcut.ts b/web_src/js/modules/shortcut.ts
+index 5be72a46c9..793b432e3b 100644
+--- a/web_src/js/modules/shortcut.ts
++++ b/web_src/js/modules/shortcut.ts
+@@ -27,12 +27,12 @@ function matchKeys(shortcuts: Shortcut[], keys: string): Shortcut | 'prefix' | n
+ }
+ 
+ export class ShortcutRegistry {
+-  shortcuts: Shortcut[] = [];
+-  pendingKeys = ''; // the start of a sequence pressed so far
+-  pendingTime = 0;
++  private shortcuts: Shortcut[] = [];
++  private pendingKeys = ''; // the start of a sequence pressed so far
++  private pendingTime = 0;
+ 
+   register(shortcut: Shortcut) {
+-    const keys = shortcut.keys.toLowerCase();
++    const keys = shortcut.keys.trim().split(/\s+/).join(' ').toLowerCase(); // "g  c" would otherwise never match a press
+     // a shortcut whose element has left the page, e.g. a hint replaced by file tree navigation, gives way to the new one
+     this.shortcuts = this.shortcuts.filter(isActive);
+     const conflict = this.shortcuts.find((s) => s.keys === keys || s.keys.startsWith(`${keys} `) || keys.startsWith(`${s.keys} `));
+@@ -123,11 +123,11 @@ export function initGlobalShortcut() {
+   document.addEventListener('keydown', (e: KeyboardEvent) => globalRegistry.handleKeyDown(e));
+ 
+   // A <kbd> element next to an <input> declares a keyboard shortcut for that input.
+-  // When the matching key is pressed, the sibling input is focused.
++  // initShortcutKbd registers it, so pressing the matching key focuses the sibling input.
+   // When Escape is pressed inside such an input, the input is cleared and blurred.
+   // The <kbd> element is shown/hidden automatically based on input focus and value.
+   document.addEventListener('keydown', (e: KeyboardEvent) => {
+-    // Modifier keys are not supported yet
++    // Ctrl/Alt/Cmd+Escape is left alone
+     if (e.ctrlKey || e.metaKey || e.altKey) return;
+ 
+     const target = e.target as HTMLElement;
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-19 22:51:45Z)**_
+
+20/20 pass. The break-it check for the whitespace fix, then lint and the full frontend suite:
+
+_**Agent (claude-opus-5-5 2026-10-19 22:52:47Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Mutation-check whitespace fix, restore, lint and run all frontend tests
+
+`S=/tmp/claude-1000/-home-mantmant-Documents-CSCI435-gitea/9365aaa8-2060-49df-89d0-5f0ee4f8a378/scratchpad; cd /home/mantmant/Documents/CSCI435/gitea && f=web_src/js/modules/shortcut.ts; cp $f $S/sc.bak; sed -i "s|const keys = shortcut.keys.trim().split(/\\\\s+/).join(' ').toLowerCase();|const keys = shortcut.keys.toLowerCase();|" $f; grep -c "const keys = shortcut.keys.toLowerCase();" $f; pnpm exec vitest web_src/js/modules/shortcut 2>&1 | grep -E "^ +×|Tests "; cp $S/sc.bak $f; git diff --stat; make lint-js 2>&1 | tail -2; make test-frontend 2>&1 | grep -E "Tests "; git diff --check && echo ws-ok`
+
+```text
+1
+     × AC4 AC8 extra spaces in the keys are ignored 4ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  1 failed | 19 passed (20)
+ web_src/js/modules/shortcut.test.ts |  8 ++++++++
+ web_src/js/modules/shortcut.ts      | 12 ++++++------
+ 2 files changed, 14 insertions(+), 6 deletions(-)
+pnpm exec eslint --color --max-warnings=0 --concurrency 2 web_src/js tools *.ts tests/e2e
+pnpm exec vue-tsc
+      Tests  357 passed (357)
+ws-ok
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-19 22:52:54Z)**_
+
+<think><details><summary>Thought Process</summary>
+Everything checks out: the test fails without the fix, lint and type checks pass, and all 357 frontend tests succeed. I just need to update the class diagram to mark those three fields as private (`-`) instead of public (`+`).
+
+</details></think>
+
+_**Agent (claude-opus-5-5 2026-10-19 22:53:18Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Mark the registry fields private in the class diagram and re-render
+
+```bash
+U=/tmp/claude-1000/-home-mantmant-Documents-CSCI435-gitea/9365aaa8-2060-49df-89d0-5f0ee4f8a378/scratchpad/uml; cd /home/mantmant/Documents/CSCI435/gitea && python3 -I - $U/class_diagram.py <<'EOF'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+old = "attrs=['+ shortcuts : Shortcut[]', '+ pendingKeys : string', '+ pendingTime : number'],"
+new = "attrs=[('- shortcuts : Shortcut[]', True), ('- pendingKeys : string', True), ('- pendingTime : number', True)],"
+assert s.count(old) == 1
+open(p, 'w').write(s.replace(old, new))
+EOF
+python3 -I $U/class_diagram.py $U $U/class.svg && node $U/render.cjs $U/class.svg $U/class.png && python3 -I -c "
+from PIL import Image
+Image.open('$U/class.png').crop((1170, 950, 1600, 1220)).save('$U/crop.png')" && cp $U/class.png docs/sprint2/diagrams/56-ab-wm-class.png && git status --short
+```
+
+```text
+ M docs/sprint2/diagrams/56-ab-wm-class.png
+ M web_src/js/modules/shortcut.test.ts
+ M web_src/js/modules/shortcut.ts
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-19 22:53:18Z)**_
+
+<tool-use data-tool-type="read" data-tool-name="Read"><details>
+<summary>Tool use: **Read**</summary>
+ `/tmp/claude-1000/-home-mantmant-Documents-CSCI435-gitea/9365aaa8-2060-49df-89d0-5f0ee4f8a378/scratchpad/uml/crop.png`
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-19 22:53:28Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Record the prepared review fixes in memory
+
+```bash
+cd /home/mantmant/.claude/projects/-home-mantmant-Documents-CSCI435-gitea/memory && python3 - <<'EOF'
+p = 'issue-56-state.md'
+s = open(p).read()
+s += """Review fixes prepared 2026-10-19 (uncommitted): comment reword, private registry fields, keys
+whitespace collapse + test (20 unit / 357 frontend tests), class diagram re-rendered with `-` fields.
+PR #96 body still says 19 / 356 and needs updating by the user. #58 is deferred until later.
+"""
+open(p, 'w').write(s)
+EOF
+```
+
+```text
+Shell cwd was reset to /home/mantmant/Documents/CSCI435/gitea
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-19 22:53:36Z)**_
+
+The three review fixes are made and uncommitted. I've split them into two commits, since one is code and the other is the diagram.
+
+**Commit 1: code and test**
+- **`web_src/js/modules/shortcut.ts`:**
+  - **Comment (the required fix):** the block above the Escape listener now says "`initShortcutKbd` registers it, so pressing the matching key focuses the sibling input", and "Modifier keys are not supported yet" is now "Ctrl/Alt/Cmd+Escape is left alone".
+  - **Private fields:** `shortcuts`, `pendingKeys` and `pendingTime` are now `private`.
+  - **Whitespace:** `register()` collapses extra spaces in the keys, so `' g  c '` becomes `g c`.
+- **`web_src/js/modules/shortcut.test.ts`:** a new test, "AC4 AC8 extra spaces in the keys are ignored". `' g  c '` runs on `g` then `c`, and registering `g c` afterwards counts as a clash.
+
+**Checks:** 20/20 unit tests pass. With the whitespace fix removed, only the new test fails, and the fix is restored. `make lint-js` passes, and vue-tsc confirms nothing outside the class uses the private fields. `make test-frontend` passes with 357 tests, and `git diff --check` is clean.
+
+```
+fix(shortcut): address review on comments, private state and key spacing (#56)
+
+Assisted-by: Claude Code:claude-opus-5-5
+```
+
+**Commit 2: diagram.** `docs/sprint2/diagrams/56-ab-wm-class.png` is re-rendered with the three registry fields marked `-` (private), so it matches the code again.
+
+```
+docs(diagrams): show the registry's state as private (#56)
+
+Assisted-by: Claude Code:claude-opus-5-5
+```
+
+**The PR #96 description needs two updates**, since it still has the old numbers:
+- "19 tests in `web_src/js/modules/shortcut.test.ts`" → 20.
+- "`make test-frontend`: 356 tests pass, including the 19 new ones" → 357 and 20.
+
+The reply to controlled-opposition is yours to write, and I've left #58 alone as you asked.
