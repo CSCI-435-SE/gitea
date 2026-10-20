@@ -203,12 +203,13 @@ function renderHint(key: string, placeholder: string, section?: string) {
 }
 
 // a tab link, whose text also holds an open count
-function renderLink(keys: string, href: string, description: string, section?: string) {
+function renderLink(keys: string, href: string, description: string, section?: string, shortcutHref?: string) {
   const link = document.createElement('a');
   link.href = href;
   link.setAttribute('data-shortcut-keys', keys);
   link.setAttribute('data-shortcut-description', description);
   if (section) link.setAttribute('data-shortcut-section', section);
+  if (shortcutHref) link.setAttribute('data-shortcut-href', shortcutHref);
   link.innerHTML = `${description} <span class="ui small label">3</span>`;
   document.body.append(link);
   initShortcutLink(link);
@@ -278,6 +279,14 @@ describe('shortcut hints and links', {concurrent: false}, () => {
     press(document.body, 'g');
     press(document.body, 'i');
     expect(assign).toHaveBeenCalledExactlyOnceWith('https://gitea.example/owner/repo/issues');
+  });
+
+  test('#58 AC2 a link\'s shortcut can go to an address of its own instead', () => {
+    const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
+    renderLink('g c', 'https://gitea.example/owner/repo/src/branch/feature', 'Code', 'Repository', 'https://gitea.example/owner/repo');
+    press(document.body, 'g');
+    press(document.body, 'c');
+    expect(assign).toHaveBeenCalledExactlyOnceWith('https://gitea.example/owner/repo');
   });
 
   test('#58 AC5 a link moved to another part of the page keeps its shortcut', () => {

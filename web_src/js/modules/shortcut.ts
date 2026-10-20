@@ -112,7 +112,7 @@ export function initShortcutLink(link: HTMLAnchorElement) {
     description: link.getAttribute('data-shortcut-description')!,
     section: link.getAttribute('data-shortcut-section') ?? undefined,
     element: link,
-    action: () => window.location.assign(link.href),
+    action: () => window.location.assign(link.getAttribute('data-shortcut-href') ?? link.href), // e.g. "g c" goes to the default branch, not the browsed one
   });
 }
 
