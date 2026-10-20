@@ -11,7 +11,7 @@
 		</div>
 	</a>
 	{{end}}
-	<a class="item {{$itemExtraClass}}" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}">
+	<a class="item {{$itemExtraClass}}" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}"{{if .WithShortcut}} data-global-init="onShortcutLink" data-shortcut-keys="g n" data-shortcut-description="{{ctx.Locale.Tr "notifications"}}" data-shortcut-section="{{ctx.Locale.Tr "shortcuts.general"}}"{{end}}>
 		<div class="tw-relative flex-text-block">
 			{{svg "octicon-bell"}}
 			<span class="notification_count{{if not $notificationUnreadCount}} tw-hidden{{end}}">{{$notificationUnreadCount}}</span>
