@@ -105,6 +105,17 @@ export function initShortcutKbd(kbd: HTMLElement) {
   });
 }
 
+// a link declares a shortcut that goes where it leads, described separately because its text may hold more, e.g. a count
+export function initShortcutLink(link: HTMLAnchorElement) {
+  registerShortcut({
+    keys: link.getAttribute('data-shortcut-keys')!,
+    description: link.getAttribute('data-shortcut-description')!,
+    section: link.getAttribute('data-shortcut-section') ?? undefined,
+    element: link,
+    action: () => window.location.assign(link.href),
+  });
+}
+
 function shortcutWrapper(el: HTMLElement): HTMLElement | null {
   const parent = el.parentElement;
   return parent?.matches('.global-shortcut-wrapper') ? parent : null;
@@ -120,6 +131,7 @@ function kbdFromElem(input: HTMLElement): HTMLElement | null {
 
 export function initGlobalShortcut() {
   registerGlobalInitFunc('onGlobalShortcut', initShortcutKbd);
+  registerGlobalInitFunc('onShortcutLink', initShortcutLink);
   document.addEventListener('keydown', (e: KeyboardEvent) => globalRegistry.handleKeyDown(e));
 
   // A <kbd> element next to an <input> declares a keyboard shortcut for that input.

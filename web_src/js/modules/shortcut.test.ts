@@ -1,4 +1,4 @@
-import {ShortcutRegistry, getShortcuts, initGlobalShortcut, initShortcutKbd} from './shortcut.ts';
+import {ShortcutRegistry, getShortcuts, initGlobalShortcut, initShortcutKbd, initShortcutLink} from './shortcut.ts';
 
 function setup() {
   const registry = new ShortcutRegistry();
@@ -202,13 +202,27 @@ function renderHint(key: string, placeholder: string, section?: string) {
   return {wrapper, input, kbd};
 }
 
+// a tab link, whose text also holds an open count
+function renderLink(keys: string, href: string, description: string, section?: string) {
+  const link = document.createElement('a');
+  link.href = href;
+  link.setAttribute('data-shortcut-keys', keys);
+  link.setAttribute('data-shortcut-description', description);
+  if (section) link.setAttribute('data-shortcut-section', section);
+  link.innerHTML = `${description} <span class="ui small label">3</span>`;
+  document.body.append(link);
+  initShortcutLink(link);
+  return link;
+}
+
 // these tests share document.body and its focus, so they must not run concurrently (see vitest.config.ts)
-describe('shortcut hints', {concurrent: false}, () => {
+describe('shortcut hints and links', {concurrent: false}, () => {
   beforeAll(() => {
     initGlobalShortcut();
   });
   afterEach(() => {
     document.body.replaceChildren();
+    vi.restoreAllMocks();
   });
 
   test('AC1 pressing a hint key focuses its box and hides the hint', () => {
@@ -256,5 +270,30 @@ describe('shortcut hints', {concurrent: false}, () => {
       {keys: 't', description: 'Go to file', section: 'Repository'},
       {keys: 'x', description: 'No section', section: undefined},
     ]);
+  });
+
+  test('#58 AC1 a link\'s shortcut goes where the link leads', () => {
+    const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
+    renderLink('g i', 'https://gitea.example/owner/repo/issues', 'Issues');
+    press(document.body, 'g');
+    press(document.body, 'i');
+    expect(assign).toHaveBeenCalledExactlyOnceWith('https://gitea.example/owner/repo/issues');
+  });
+
+  test('#58 AC5 a link moved to another part of the page keeps its shortcut', () => {
+    const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
+    const link = renderLink('g p', 'https://gitea.example/owner/repo/pulls', 'Pull requests');
+    const menu = document.createElement('div'); // as a narrow tab bar moves tabs into its "more" menu
+    menu.style.display = 'none'; // closed
+    document.body.append(menu);
+    menu.append(link);
+    press(document.body, 'g');
+    press(document.body, 'p');
+    expect(assign).toHaveBeenCalledExactlyOnceWith('https://gitea.example/owner/repo/pulls');
+  });
+
+  test('#58 AC8 a link is listed with its own description, not its text, and its section', () => {
+    renderLink('g i', 'https://gitea.example/owner/repo/issues', 'Issues', 'Repository');
+    expect(getShortcuts()).toEqual([{keys: 'g i', description: 'Issues', section: 'Repository'}]);
   });
 });
