@@ -1,7 +1,7 @@
 ---
 source: docs/frontend-js.md
-source-hash: 31d2efa252209bd3
-verified-at: b32c95c2b0
+source-hash: 2502295c22398189
+verified-at: 07a6be3788
 ---
 
 <!-- Derived from docs/frontend-js.md. Do not edit by hand: fix the reference doc and regenerate
@@ -60,7 +60,7 @@ newer of the two wiring mechanisms exists.
 | `web_src/js/modules/fetch.ts` | The HTTP wrappers every request must go through. |
 | `web_src/js/utils/dom.ts` | Finding elements, showing and hiding them, building them. |
 | `web_src/js/modules/i18n.ts` | Translated strings on the frontend. |
-| `web_src/js/modules/shortcut.ts` | Keyboard shortcuts: the list of them, and the `<kbd>` hints beside search boxes. |
+| `web_src/js/modules/shortcut.ts` | Keyboard shortcuts: the list of them, the `<kbd>` hints beside search boxes, and links that declare one. |
 
 ## The rules, and why
 
@@ -80,13 +80,11 @@ exists — no per-page cost anywhere else. And it also catches elements added to
 the old way cannot. It runs once per element, guarded internally, so a node removed and re-added is
 not initialised twice.
 
-There is a third function that registers by CSS selector. The code that defines it calls it "less
-efficient and less maintainable" in its own comment. It exists for element types already scattered
-across many pages. Do not reach for it in new work.
+A third function registers by CSS selector; its own comment calls it "less efficient and less
+maintainable". It exists for element types already scattered across many pages, not for new work.
 
 **Registration must happen before the observer starts.** `index.ts` deliberately starts the observer
-last, after everything has registered. Registering afterwards throws an error rather than failing
-quietly — which is the kind thing for it to do.
+last, after everything has registered. Registering afterwards throws rather than failing quietly.
 
 **One element gets one function.** The attribute is looked up whole, so `data-global-init` names a
 single function; listing two separated by a space is a TODO in the code, not something that works
@@ -130,7 +128,9 @@ every init function are printed. `index.ts` already logs an error if the total e
 
 **Add a keyboard shortcut.** Call `registerShortcut` (`modules/shortcut.ts`); keys `g c` mean `g`
 then `c`. Tie it to an element and it lasts only while that element is on the page, even if hidden.
-Two live shortcuts that clash throw at once, instead of one quietly winning.
+Two live shortcuts that clash throw at once, instead of one quietly winning. A shortcut that only
+follows a link is marked on the link in its template (see `templates/repo/header.tmpl`), so it exists
+exactly while the link is on the page; if the page renders that markup twice, mark one copy, or they clash.
 
 **Run one test file.** `pnpm exec vitest <path-filter>`.
 
