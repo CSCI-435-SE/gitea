@@ -56,6 +56,7 @@ test('issue labels can be selected and deselected by keyboard', async ({page}) =
 
 // separate from the test above because a label change replaces the whole sidebar, which drops focus
 test('issue label picker exposes its combobox state', async ({page}) => {
+  await page.clock.install();
   await withLabeledIssue(page, ['bug'], async () => {
     const dropdown = labelPicker(page);
     const menu = dropdown.locator('> .menu');
@@ -73,6 +74,7 @@ test('issue label picker exposes its combobox state', async ({page}) => {
     const activeId = (await dropdown.getAttribute('aria-activedescendant'))!;
     await expect(menu.locator(`[id="${activeId}"]`)).toHaveAttribute('role', 'option');
 
+    await page.clock.runFor(200); // the same delayed Escape as the test below, so its setup is checked here
     await page.keyboard.press('Escape');
     await expect(menu).toBeHidden();
     await expect(dropdown).toBeFocused();
@@ -89,9 +91,7 @@ test('issue label picker reports collapsed after Escape', async ({page}) => {
     await expect(dropdown).toHaveAttribute('aria-expanded', 'true');
     await page.clock.runFor(200); // past the refresh that focus schedules, which otherwise hides the bug
     await page.keyboard.press('Escape');
-    await expect(dropdown.locator('> .menu')).toBeHidden();
     await expect(dropdown).toHaveAttribute('aria-expanded', 'false', {timeout: 1000}); // keeps the expected failure under 2s
-    await assertNoJsError(page);
   });
 });
 

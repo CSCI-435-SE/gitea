@@ -37,13 +37,15 @@ test('profile menu is operable by keyboard', async ({page}) => {
 test('navbar menu triggers name their menus', async ({page}) => {
   await login(page);
   await page.goto('/');
-  const triggers = await page.locator('#navbar aria-menu > :not(.menu)').all();
-  expect(triggers.length).toBeGreaterThan(0);
-  for (const trigger of triggers) {
+  const ariaMenus = await page.locator('#navbar aria-menu').all();
+  expect(ariaMenus.length).toBeGreaterThan(0);
+  for (const ariaMenu of ariaMenus) {
+    const trigger = ariaMenu.locator('> :not(.menu)');
+    const popup = ariaMenu.locator('> .menu');
     const name = await trigger.evaluate((el) => el.getAttribute('aria-label') || el.getAttribute('data-tooltip-content'));
     await expect(trigger, `${name} trigger`).toHaveAttribute('aria-haspopup', 'menu');
-    const menuId = (await trigger.getAttribute('aria-controls'))!;
-    await expect(page.locator(`[id="${menuId}"]`), `${name} trigger's aria-controls`).toHaveAttribute('role', 'menu');
+    await expect(popup, `${name} menu`).toHaveAttribute('role', 'menu');
+    await expect(popup, `${name} trigger's aria-controls`).toHaveAttribute('id', (await trigger.getAttribute('aria-controls'))!); // its own menu, not any menu
   }
   await assertNoJsError(page);
 });
