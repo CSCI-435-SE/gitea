@@ -34,12 +34,14 @@ AI disclosure has its own page: `AI-ASSISTANCE.md`.
   least 2 medium and 1 small. Either load can be met with equivalent story points instead. Every
   issue has exactly **one** assignee. Unfinished Sprint 1 issues
   go into the backlog before new work. To skip one, write the reason on that issue (closed, made
-  invalid by later changes, or no longer relevant).
+  invalid by later changes, or no longer relevant). If the backlog is too thin to meet the load,
+  find areas that still need work (features, improvements, test gaps, bugs) and write new issues
+  for them the usual way: user story, acceptance criteria and an estimate.
 - **D3:** each decision names at least two concrete alternatives and why one won; this is graded
   strictly. The site also accepts the decision in an issue comment or the PR description; the team
   keeps it in the issue body. Decisions that span issues go in `docs/sprint2/design.md`.
 - **D4:** every PR description has the Tech Debt section (see "Pull request format"). A PR without
-  it loses points.
+  it loses points. Per-PR scores are combined across your issues and scaled to 20.
 - **D5:** conventions are in `ai-logs/README.md`. Logs hold the full prompts and output: summaries,
   screenshots and share links are not logs. The link must open the log file itself, not a folder or
   another issue. The folder must exist even if no AI was used; in that case, post a comment saying
@@ -47,15 +49,18 @@ AI disclosure has its own page: `AI-ASSISTANCE.md`.
   **issue comments only** (`AI-ASSISTANCE.md`).
 - **D6:** see "UML diagrams (D6)" below.
 - **D7:** about 150 words on each of: what you have done and what remains; one thing you learned
-  about the codebase or about software engineering; one thing you would do differently. Late or
-  thin scores 3 of 5.
+  about the codebase or about software engineering; one thing you would do differently. On time and
+  substantive scores 5, late or thin 3, missing 0.
+- **D8:** graded on completeness, specificity and quality of evidence; sections are in "Sprint
+  report (D8) sections" below.
 - **D9:** keep the base version (`v1.27.3-csci435-s1` → `v1.27.3-csci435-s2`), tag after every
   Sprint 2 PR is merged, push the tag to origin, and write release notes listing the features,
   fixes and improvements. The site's example says `v2.17.2`; this fork's base is `v1.27.3`.
 - **Reviews:** nobody approves or merges their own PR. Reviewers leave substantive comments, not a
   bare approval. Tell the reviewer on Zulip or by email, and aim to review within 24 hours. Each
   student reviews at least one PR per sprint, and every teammate at least once per semester.
-- **Extra credit:** up to 3 points per PR accepted by upstream Gitea.
+- **Extra credit:** up to 3 points per PR submitted to upstream Gitea that is accepted or under
+  active review, at the instructor's discretion.
 
 ## Branches and commits
 
@@ -227,12 +232,33 @@ What the diagrams need:
   points.
 - Add a short note on how Go maps to UML: structs, interfaces, and embedding.
 - The `.md` follows the course template: `# Issue #<N> -- <title>`, `## Class Diagram`,
-  `## Sequence Diagram`, `## Q&A`. The Q&A has 3 class-diagram questions, 3 sequence-diagram
-  questions and 1 question on AI use, answered "N/A" if no AI was used. Copy the questions from the
-  Sprint 2 page.
+  `## Sequence Diagram`, `## Q&A`, each diagram embedded with
+  `![Class diagram](<issue#>-<github-username>-class.png)` under its heading. The Q&A has 3
+  class-diagram questions, 3 sequence-diagram questions and 1 question on AI use, answered "N/A" if
+  no AI was used. The questions, copied from the Sprint 2 page:
 
-Grading (15 points): existing code 2, solution code 2, annotations 3, UML notation 2, Q&A 4, AI
-transparency 2.
+```markdown
+**Class diagram:**
+
+1. Among all the classes shown in the diagram, which 1--2 are most central to understanding the codebase and solving the issue? Explain what role each one plays.
+2. What is the most significant relationship shown in the diagram? Explain what it represents in the system and why it matters for understanding the solution.
+3. Looking back at your implementation, is there anything in this design you would change, and why?
+
+**Sequence diagram:**
+
+1. What user action or system event starts the sequence, and what is the expected outcome when it completes successfully?
+2. Identify the 2--3 most important steps in the sequence. For each one, describe what is happening and note whether it involves existing code or new/modified code from your solution.
+3. What error cases or alternative paths are not shown in the diagram, and why did you leave them out?
+
+**Cross-cutting:**
+
+4. If you used AI to create or check any part of the diagrams, describe what it produced, what you verified against the actual code, and what you had to correct or add. If AI was not used, write "N/A."
+```
+
+Grading (15 points): existing code 2, solution code 2, annotations 3, UML notation (relationships,
+cardinality, lifelines; minor errors are fine) 2, Q&A 4, AI transparency 2. The Q&A points are for
+understanding that goes beyond what the diagram already shows, so answer with reasons, not a
+re-description of the boxes.
 
 ## Sprint report (D8) sections
 
