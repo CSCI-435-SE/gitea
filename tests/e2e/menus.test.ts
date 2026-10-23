@@ -34,6 +34,22 @@ test('profile menu is operable by keyboard', async ({page}) => {
   await assertNoJsError(page);
 });
 
+test('navbar menu triggers name their menus', async ({page}) => {
+  await login(page);
+  await page.goto('/');
+  const ariaMenus = await page.locator('#navbar aria-menu').all();
+  expect(ariaMenus.length).toBeGreaterThan(0);
+  for (const ariaMenu of ariaMenus) {
+    const trigger = ariaMenu.locator('> :not(.menu)');
+    const popup = ariaMenu.locator('> .menu');
+    const name = await trigger.evaluate((el) => el.getAttribute('aria-label') || el.getAttribute('data-tooltip-content'));
+    await expect(trigger, `${name} trigger`).toHaveAttribute('aria-haspopup', 'menu');
+    await expect(popup, `${name} menu`).toHaveAttribute('role', 'menu');
+    await expect(popup, `${name} trigger's aria-controls`).toHaveAttribute('id', (await trigger.getAttribute('aria-controls'))!); // its own menu, not any menu
+  }
+  await assertNoJsError(page);
+});
+
 test('profile menu is reached by Tab', async ({page, browserName}) => {
   test.skip(browserName === 'webkit', 'macOS WebKit, like Safari, skips buttons on Tab by default'); // eslint-disable-line playwright/no-skipped-test
   await login(page);
