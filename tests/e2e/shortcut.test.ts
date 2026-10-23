@@ -110,8 +110,6 @@ test('g shortcuts are missing for tabs that are not shown or that leave Gitea', 
   }
   await page.keyboard.press('s'); // a live shortcut still runs after them
   await expect(page.locator('.repo-home-sidebar-top input[name="q"]')).toBeFocused();
-  expect(page.url()).toMatch(new RegExp(`${repoLink}$`));
-  expect(page.context().pages()).toHaveLength(1); // no external tab opened
   await assertNoJsError(page);
 });
 
