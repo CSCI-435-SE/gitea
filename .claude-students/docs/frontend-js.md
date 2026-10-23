@@ -1,6 +1,6 @@
 ---
 scope: web_src/js/index.ts, web_src/js/features, web_src/js/modules, web_src/js/utils, web_src/js/webcomponents, web_src/js/markup, web_src/js/render
-verified-at: b32c95c2b0
+verified-at: 07a6be3788
 ---
 
 # web_src/js — page features and how they get wired up
@@ -28,7 +28,7 @@ verified-at: b32c95c2b0
 | `web_src/js/modules/fetch.ts` | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` |
 | `web_src/js/utils/dom.ts` | `showElem`, `hideElem`, `toggleElem`, `queryElems`, `createElementFromHTML` |
 | `web_src/js/modules/i18n.ts` | `trN` — the frontend side of the locale system |
-| `web_src/js/modules/shortcut.ts` | `registerShortcut` (keys like `'g c'`), `getShortcuts`, and the `<kbd data-shortcut-keys data-shortcut-section>` hints that register themselves |
+| `web_src/js/modules/shortcut.ts` | `registerShortcut` (keys like `'g c'`), `getShortcuts`, and the `<kbd data-shortcut-keys data-shortcut-section>` hints and `onShortcutLink` links that register themselves |
 
 ## Conventions & invariants
 
@@ -73,8 +73,7 @@ put `data-global-init="yourFuncName"` on the element in its template. No change 
 **Add a whole-page feature.** New `features/<name>.ts` exporting `initName()`, an early return when
 its root element is missing, then add the import and the array entry in `index.ts`.
 
-**Profile a slow page.** Append `?_ui_performance_trace=1` to the URL to print per-init timings.
-`index.ts` already logs an error when total init exceeds 500ms.
+**Profile a slow page.** `?_ui_performance_trace=1` prints per-init timings; over 500ms is logged.
 
 **Look up an issue by its number.** `matchIssue` (`utils/match.ts`) is the `#` list's search: a
 number comes back first (`services/issue/suggestion.go` → `GetSuggestion`), and the current issue
@@ -84,14 +83,15 @@ viewer who can't read pull requests still gets one typed by its number. The dupl
 reason's preview in `features/repo-issue-status-button.ts` uses it.
 
 **Add a keyboard shortcut.** Call `registerShortcut` (`modules/shortcut.ts`). One given an `element`
-exists while that element is in the document, hidden or not; a clash with a live one throws.
+exists while that element is in the document, hidden or not; a clash with a live one throws. A link
+can declare one that follows it (`onShortcutLink`, `templates/repo/header.tmpl`), live while it's
+rendered; markup rendered twice (navbar icons, `templates/base/head_navbar.tmpl`) marks one copy.
 
 **Run one test file.** `pnpm exec vitest <path-filter>` (`testing.md`).
 
 ## Gotchas
 
-- Forgetting the early return in a page-load init means that feature's cost is paid on every page
-  in Gitea, which is what the 500ms warning is there to catch.
+- A page-load init without its early return costs every page in Gitea; the 500ms warning catches it.
 - Fomantic-UI (jQuery) is vendored and deprecated. Do not build new features on it, and do not mix
   it with Vue — Vue may use its CSS classes but not its JavaScript.
 - Which menu to build on, Fomantic dropdown or `<aria-menu>` (`web_src/js/webcomponents/aria-menu.ts`),

@@ -47,6 +47,13 @@ export async function apiCreateRepo(requestContext: APIRequestContext, {name, au
   }), 'apiCreateRepo');
 }
 
+export async function apiEditRepo(requestContext: APIRequestContext, owner: string, name: string, data: Record<string, unknown>) {
+  await apiRetry(() => requestContext.patch(`${baseUrl()}/api/v1/repos/${owner}/${name}`, {
+    headers: apiHeaders(),
+    data,
+  }), 'apiEditRepo');
+}
+
 export async function apiCreateOrg(requestContext: APIRequestContext, name: string, {headers}: {headers?: Record<string, string>} = {}) {
   await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/orgs`, {
     headers: headers || apiHeaders(),

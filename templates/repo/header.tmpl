@@ -84,13 +84,13 @@
 			{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
 				<div class="overflow-menu-items">
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
-					<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.RefTypeNameSubURL}}{{end}}">
+					<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.RefTypeNameSubURL}}{{end}}" data-global-init="onShortcutLink" data-shortcut-keys="g c" data-shortcut-href="{{.RepoLink}}" data-shortcut-description="{{ctx.Locale.Tr "repo.code"}}" data-shortcut-section="{{ctx.Locale.Tr "repository"}}">
 						{{svg "octicon-code"}} {{ctx.Locale.Tr "repo.code"}}
 					</a>
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}
-						<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoLink}}/issues">
+						<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoLink}}/issues" data-global-init="onShortcutLink" data-shortcut-keys="g i" data-shortcut-description="{{ctx.Locale.Tr "repo.issues"}}" data-shortcut-section="{{ctx.Locale.Tr "repository"}}">
 							{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues"}}
 							{{if .Repository.NumOpenIssues}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenIssues}}</span>
@@ -105,7 +105,7 @@
 					{{end}}
 
 					{{if and .Repository.CanEnablePulls (.Permission.CanRead ctx.Consts.RepoUnitTypePullRequests)}}
-						<a class="{{if .PageIsPullList}}active {{end}}item" href="{{.RepoLink}}/pulls">
+						<a class="{{if .PageIsPullList}}active {{end}}item" href="{{.RepoLink}}/pulls" data-global-init="onShortcutLink" data-shortcut-keys="g p" data-shortcut-description="{{ctx.Locale.Tr "repo.pulls"}}" data-shortcut-section="{{ctx.Locale.Tr "repository"}}">
 							{{svg "octicon-git-pull-request"}} {{ctx.Locale.Tr "repo.pulls"}}
 							{{if .Repository.NumOpenPulls}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenPulls}}</span>
@@ -114,7 +114,7 @@
 					{{end}}
 
 					{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions) (not .IsEmptyRepo)}}
-						<a class="{{if .PageIsActions}}active {{end}}item" href="{{.RepoLink}}/actions">
+						<a class="{{if .PageIsActions}}active {{end}}item" href="{{.RepoLink}}/actions" data-global-init="onShortcutLink" data-shortcut-keys="g a" data-shortcut-description="{{ctx.Locale.Tr "actions.actions"}}" data-shortcut-section="{{ctx.Locale.Tr "repository"}}">
 							{{svg "octicon-play"}} {{ctx.Locale.Tr "actions.actions"}}
 							{{if .Repository.NumOpenActionRuns}}
 								<span class="ui small label">{{CountFmt .Repository.NumOpenActionRuns}}</span>
@@ -148,7 +148,7 @@
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeWiki}}
-						<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki">
+						<a class="{{if .PageIsWiki}}active {{end}}item" href="{{.RepoLink}}/wiki" data-global-init="onShortcutLink" data-shortcut-keys="g w" data-shortcut-description="{{ctx.Locale.Tr "repo.wiki"}}" data-shortcut-section="{{ctx.Locale.Tr "repository"}}">
 							{{svg "octicon-book"}} {{ctx.Locale.Tr "repo.wiki"}}
 						</a>
 					{{end}}
