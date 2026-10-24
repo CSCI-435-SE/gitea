@@ -162,6 +162,27 @@ test('c starts a new issue or pull request from the lists', async ({page}) => {
   await assertNoJsError(page);
 });
 
+test('c typed into a list filter picks its item instead of starting a new issue', async ({page}) => {
+  await login(page); // the Type filter is only shown when signed in
+  const repoLink = await createRepo(page);
+  let newIssueRequests = 0;
+  await page.route('**/issues/new', (route) => {
+    newIssueRequests++;
+    return route.abort();
+  });
+  await page.goto(`${repoLink}/issues`);
+  const typeFilter = page.locator('#issue-filters .ui.dropdown', {hasText: 'Type'});
+  await typeFilter.focus();
+  await page.keyboard.press('c');
+  await expect(typeFilter.locator('.item.selected')).toHaveText('Created by you'); // the filter used the key
+  expect(newIssueRequests).toBe(0);
+  await assertNoJsError(page);
+
+  await typeFilter.blur();
+  await page.keyboard.press('c'); // outside the filter, c still starts a new issue
+  await expect.poll(() => newIssueRequests).toBe(1);
+});
+
 test('c is missing where there is nothing to create', async ({page}) => {
   const repoLink = await createRepo(page);
   await page.goto(`${repoLink}/pulls`);

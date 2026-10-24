@@ -282,6 +282,8 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
         elItem.click();
       }
     }
+    // without a search box, Fomantic jumps to the item starting with a typed letter, so the key is used here and runs no page shortcut
+    if (focusable === dropdown && e.key.length === 1 && e.key !== ' ' && !e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
   });
 
   // use setTimeout to run the refreshAria in next tick (to make sure the Fomantic UI code has finished its work)

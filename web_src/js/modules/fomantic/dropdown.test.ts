@@ -269,3 +269,35 @@ describe('icon-only trigger names', {concurrent: false}, () => {
     expect(warningsAbout(el)).toBe(0);
   });
 });
+
+describe('type-ahead keys', {concurrent: false}, () => {
+  afterEach(() => {
+    document.body.replaceChildren();
+  });
+
+  function pressIn(el: Element, key: string, opts: KeyboardEventInit = {}): KeyboardEvent {
+    const e = new KeyboardEvent('keydown', {key, bubbles: true, cancelable: true, ...opts});
+    el.dispatchEvent(e);
+    return e;
+  }
+
+  test('#59 a letter typed into a dropdown without a search box is used by the dropdown', () => {
+    const el = createElementFromHTML<HTMLElement>(`<div class="ui dropdown"><span class="text">Type</span><div class="menu">
+  <a class="item" href="#all">All issues</a>
+  <a class="item" href="#created">Created by you</a>
+</div></div>`);
+    document.body.append(el);
+    $(el).dropdown();
+    expect(pressIn(el, 'c').defaultPrevented).toBe(true); // so a page shortcut on c doesn't run
+    expect(pressIn(el, 'c', {ctrlKey: true}).defaultPrevented).toBe(false); // Ctrl+C still copies
+  });
+
+  test('#59 a letter typed into a dropdown search box is left alone', () => {
+    const el = createElementFromHTML<HTMLElement>(`<div class="ui search selection dropdown"><input class="search"><div class="text"></div><div class="menu">
+  <div class="item" data-value="1">Created by you</div>
+</div></div>`);
+    document.body.append(el);
+    $(el).dropdown();
+    expect(pressIn(el.querySelector('input.search')!, 'c').defaultPrevented).toBe(false); // it types into the box
+  });
+});
