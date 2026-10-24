@@ -1,7 +1,7 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import type {Page} from '@playwright/test';
-import {apiCreateBranch, apiCreateFile, apiCreatePR, apiCreateRepo, apiEditRepo, assertNoJsError, login, randomString} from './utils.ts';
+import {apiCreateBranch, apiCreateFile, apiCreatePR, apiCreateRepo, apiEditRepo, apiHeaders, assertNoJsError, baseUrl, login, randomString} from './utils.ts';
 
 async function createRepo(page: Page) {
   const repoName = `e2e-shortcut-${randomString(8)}`;
@@ -181,6 +181,24 @@ test('c typed into a list filter picks its item instead of starting a new issue'
   await typeFilter.blur();
   await page.keyboard.press('c'); // outside the filter, c still starts a new issue
   await expect.poll(() => newIssueRequests).toBe(1);
+});
+
+test('a list filter with its own search box still takes typing', async ({page}) => {
+  await login(page);
+  const repoLink = await createRepo(page);
+  const [, owner, repoName] = repoLink.split('/');
+  await page.request.post(`${baseUrl()}/api/v1/repos/${owner}/${repoName}/labels`, {
+    headers: apiHeaders(),
+    data: {name: 'cobalt', color: '#0000ff'}, // the Label filter is disabled without labels
+  });
+  await page.goto(`${repoLink}/issues`);
+  const labelFilter = page.locator('#issue-filters .label-filter');
+  await labelFilter.click();
+  const search = labelFilter.locator('.menu input[type="text"]');
+  await search.click();
+  await page.keyboard.type('cob'); // its box sits inside the menu, so these letters are not the dropdown's own
+  await expect(search).toHaveValue('cob');
+  await assertNoJsError(page);
 });
 
 test('c is missing where there is nothing to create', async ({page}) => {

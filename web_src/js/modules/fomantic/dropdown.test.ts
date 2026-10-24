@@ -285,11 +285,24 @@ describe('type-ahead keys', {concurrent: false}, () => {
     const el = createElementFromHTML<HTMLElement>(`<div class="ui dropdown"><span class="text">Type</span><div class="menu">
   <a class="item" href="#all">All issues</a>
   <a class="item" href="#created">Created by you</a>
+  <div class="item"><input type="text"></div>
 </div></div>`);
     document.body.append(el);
     $(el).dropdown();
     expect(pressIn(el, 'c').defaultPrevented).toBe(true); // so a page shortcut on c doesn't run
     expect(pressIn(el, 'c', {ctrlKey: true}).defaultPrevented).toBe(false); // Ctrl+C still copies
+    expect(pressIn(el.querySelector('input')!, 'c').defaultPrevented).toBe(false); // an input in an item still takes typing
+  });
+
+  test('#59 a dropdown whose search box sits in its menu leaves letters alone', () => {
+    const el = createElementFromHTML<HTMLElement>(`<div class="ui dropdown"><span class="text">Label</span><div class="menu">
+  <div class="ui icon search input"><input type="text"></div>
+  <a class="item" href="#cobalt">cobalt</a>
+</div></div>`); // as in templates/repo/issue/filter_item_label.tmpl
+    document.body.append(el);
+    $(el).dropdown();
+    expect(pressIn(el.querySelector('input')!, 'c').defaultPrevented).toBe(false); // it types into the box
+    expect(pressIn(el, 'c').defaultPrevented).toBe(false); // Fomantic doesn't jump to an item here
   });
 
   test('#59 a letter typed into a dropdown search box is left alone', () => {
