@@ -24,3 +24,66 @@ kbd {
   transform: translateY(-50%);
   pointer-events: none;
 }
+
+.shortcut-help {
+  width: min(32rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 4rem);
+  padding: 0;
+  color: var(--color-text);
+  background: var(--color-body);
+  border: none;
+  border-radius: var(--border-radius);
+  box-shadow: 1px 3px 3px 0 var(--color-shadow), 1px 3px 15px 2px var(--color-shadow); /* as .ui.modal */
+}
+
+.shortcut-help::backdrop {
+  background: var(--color-overlay-backdrop);
+}
+
+.shortcut-help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.shortcut-help-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-dark);
+}
+
+.shortcut-help-sections {
+  padding: 0.5rem 1.5rem 1.5rem;
+}
+
+.shortcut-help-sections section {
+  margin-top: 1rem;
+}
+
+.shortcut-help-sections h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+}
+
+.shortcut-help-sections dl {
+  margin: 0;
+}
+
+.shortcut-help-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.25rem 0;
+}
+
+.shortcut-help-row dd {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0;
+}

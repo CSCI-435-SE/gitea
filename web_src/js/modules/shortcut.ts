@@ -1,5 +1,6 @@
 import {registerGlobalInitFunc} from './observer.ts';
 import {hideElem, toggleElem} from '../utils/dom.ts';
+import {html, htmlRaw} from '../utils/html.ts';
 
 const sequenceTimeoutMs = 1500; // the longest wait between the keys of a sequence
 
@@ -46,8 +47,8 @@ export class ShortcutRegistry {
 
   handleKeyDown(e: KeyboardEvent) {
     const target = e.target as HTMLElement;
-    // the key was already used by a widget such as a menu, or is being typed into a field
-    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || target.matches('input, textarea, select') || target.isContentEditable) {
+    // the key was already used by a widget such as a menu, or is being typed into a field, or belongs to an open dialog, not the page behind it
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || target.matches('input, textarea, select') || target.isContentEditable || document.querySelector('dialog[open]')) {
       this.pendingKeys = '';
       return;
     }
@@ -87,6 +88,45 @@ export function registerShortcut(shortcut: Shortcut) {
 // The shortcuts available on the current page, e.g. for a help dialog
 export function getShortcuts(): ShortcutInfo[] {
   return globalRegistry.list();
+}
+
+// Groups shortcuts by section in the order each section first appears, the default section first.
+// A shortcut without a section belongs to the default one.
+export function groupShortcuts(shortcuts: ShortcutInfo[], defaultSection: string): Map<string, ShortcutInfo[]> {
+  const groups = new Map<string, ShortcutInfo[]>([[defaultSection, []]]);
+  for (const shortcut of shortcuts) {
+    const section = shortcut.section ?? defaultSection;
+    if (!groups.has(section)) groups.set(section, []);
+    groups.get(section)!.push(shortcut);
+  }
+  return groups;
+}
+
+function renderShortcutKeys(keys: string): string {
+  return keys.split(' ').map((key) => html`<kbd>${key.toUpperCase()}</kbd>`).join('');
+}
+
+// the help dialog lists the shortcuts registered when it opens, so it also shows ones added after page load
+export function initShortcutHelp(dialog: HTMLDialogElement) {
+  const general = dialog.getAttribute('data-shortcut-section')!;
+  registerShortcut({
+    keys: dialog.getAttribute('data-shortcut-keys')!,
+    description: dialog.getAttribute('data-shortcut-description')!,
+    section: general,
+    element: dialog,
+    action: () => {
+      const groups = groupShortcuts(getShortcuts(), general);
+      dialog.querySelector('.shortcut-help-sections')!.innerHTML = Array.from(groups, ([section, shortcuts]) => html`
+        <section>
+          <h3>${section}</h3>
+          <dl>${htmlRaw(shortcuts.map((s) => html`<div class="shortcut-help-row"><dt>${s.description}</dt><dd>${htmlRaw(renderShortcutKeys(s.keys))}</dd></div>`).join(''))}</dl>
+        </section>
+      `).join('');
+      const opener = document.activeElement as HTMLElement;
+      dialog.addEventListener('close', () => opener.focus(), {once: true}); // browsers differ on where focus goes when a dialog closes
+      dialog.showModal();
+    },
+  });
 }
 
 export function initShortcutKbd(kbd: HTMLElement) {
@@ -132,6 +172,7 @@ function kbdFromElem(input: HTMLElement): HTMLElement | null {
 export function initGlobalShortcut() {
   registerGlobalInitFunc('onGlobalShortcut', initShortcutKbd);
   registerGlobalInitFunc('onShortcutLink', initShortcutLink);
+  registerGlobalInitFunc('onShortcutHelp', initShortcutHelp);
   document.addEventListener('keydown', (e: KeyboardEvent) => globalRegistry.handleKeyDown(e));
 
   // A <kbd> element next to an <input> declares a keyboard shortcut for that input.

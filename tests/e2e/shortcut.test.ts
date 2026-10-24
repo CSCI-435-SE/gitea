@@ -135,3 +135,32 @@ test('g n goes to notifications when signed in, outside any repository', async (
   await goWith(page, 'g n', /\/notifications$/);
   await assertNoJsError(page);
 });
+
+test('? opens a dialog of the page\'s shortcuts, and Escape returns focus', async ({page}) => {
+  await page.goto(await createRepo(page));
+  const search = page.locator('.repo-home-sidebar-top input[name="q"]');
+  await expect(page.locator('.repo-file-search-container kbd')).toHaveAttribute('aria-keyshortcuts', 't'); // the Vue box has mounted and registered
+
+  await search.focus();
+  await page.keyboard.type('a?');
+  await expect(search).toHaveValue('a?'); // typed into the box, no dialog
+  const dialog = page.getByRole('dialog', {name: 'Keyboard shortcuts'});
+  await expect(dialog).toBeHidden();
+  await page.keyboard.press('Escape'); // clears and leaves the box
+
+  const opener = page.locator('.repo-home-sidebar-top form button');
+  await opener.focus();
+  await page.keyboard.press('?');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('heading', {name: 'General'})).toBeVisible();
+  await expect(dialog.locator('.shortcut-help-row')).toContainText(['Show keyboard shortcuts', 'Search code…', 'Go to file']);
+
+  await page.keyboard.press('s'); // the page behind the dialog takes no shortcuts
+  await expect(search).not.toBeFocused();
+  await expect(dialog).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(opener).toBeFocused();
+  await assertNoJsError(page);
+});
