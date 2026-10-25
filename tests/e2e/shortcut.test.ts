@@ -157,6 +157,8 @@ test('? opens a dialog of the page\'s shortcuts, and Escape returns focus', asyn
 
   await page.keyboard.press('s'); // the page behind the dialog takes no shortcuts
   await expect(search).not.toBeFocused();
+  await page.keyboard.press('g'); // inertness alone stops s, but g i would navigate away and fail the focus check below
+  await page.keyboard.press('i');
   await expect(dialog).toBeVisible();
 
   await page.keyboard.press('Escape');
