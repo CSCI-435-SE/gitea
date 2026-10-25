@@ -180,7 +180,7 @@ export function initRepoIssueQuoteReplyShortcut(form: HTMLElement) {
     element: editorContainer,
     action: () => {
       const editor = getComboMarkdownEditor(editorContainer);
-      if (!editor) return; // still loading
+      if (!editor?.textarea) return; // the editor attaches itself before its async init has set up the textarea
       const markup = selectedCommentMarkup(window.getSelection());
       if (markup) {
         appendQuoteReply(editor, extractSelectedMarkdown(markup));

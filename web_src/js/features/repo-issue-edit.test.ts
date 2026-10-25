@@ -54,6 +54,7 @@ test('r quotes the selection after the existing text, or only moves to the reply
   document.body.append(root, form);
   let value = 'earlier text';
   const editor = {
+    textarea: undefined as HTMLTextAreaElement | undefined, // still loading
     tabEditor: createElementFromHTML('<a class="item"></a>'), // the Preview tab is active
     value: (v?: string) => v === undefined ? value : (value = v),
     switchTabToEditor: vi.fn(() => editor.tabEditor.classList.add('active')),
@@ -65,6 +66,11 @@ test('r quotes the selection after the existing text, or only moves to the reply
   expect(getShortcuts()).toContainEqual({keys: 'r', description: 'Quote Reply', section: 'Conversation'});
 
   select(text(root, '#first p'), 0, text(root, '#first p:last-child'), 6);
+  document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'r', bubbles: true}));
+  expect(value).toBe('earlier text'); // ignored until the editor has loaded
+  expect(editor.focus).not.toHaveBeenCalled();
+
+  editor.textarea = document.createElement('textarea');
   document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'r', bubbles: true}));
   expect(value).toMatch(/^earlier text\n\n> first line\n(> \n)?> second\n/);
   const quoted = value;
