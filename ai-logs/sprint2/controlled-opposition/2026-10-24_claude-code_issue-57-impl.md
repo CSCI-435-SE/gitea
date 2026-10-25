@@ -7714,3 +7714,589 @@ Next steps, each waiting on your OK:
 3. **After this session ends:** file this session as `issue-57-impl` into the folder that already holds the screenshots. Then post #57's AI Assistance comment, linking both logs; I'll draft it once the log is filed.
 
 Push now?
+
+---
+
+_**User (2026-10-25 00:50:46Z)**_
+
+yes, push it
+
+---
+
+_**Agent (claude-opus-5-5 2026-10-25 00:50:51Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Push the #57 branch to GitHub
+
+`jj git push -b feat/issue-57-shortcut-help-dialog 2>&1`
+
+```text
+Changes to push to origin:
+  bookmark: feat/issue-57-shortcut-help-dialog [add to d4ace50775cb]
+remote: 
+remote: Create a pull request for 'feat/issue-57-shortcut-help-dialog' on GitHub by visiting:        
+remote:      https://github.com/CSCI-435-SE/gitea/pull/new/feat/issue-57-shortcut-help-dialog        
+remote:
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 00:50:54Z)**_
+
+The push reported commit `d4ace507`, but the commit I created and linked in the PR draft is `0b703f32`. Checking why they differ:
+
+_**Agent (claude-opus-5-5 2026-10-25 00:50:57Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Inspect commit ids, op log and evolution of the pushed commit
+
+`jj log -r 'main@origin..feat/issue-57-shortcut-help-dialog' --no-graph -T 'commit_id.short() ++ " " ++ change_id.short() ++ " " ++ description.first_line() ++ "\n"'; jj op log --limit 6 --no-graph -T 'id.short() ++ " " ++ description ++ "\n"'; jj evolog -r feat/issue-57-shortcut-help-dialog --no-graph -T 'commit.commit_id().short() ++ " " ++ operation.description() ++ "\n"' 2>/dev/null | head`
+
+```text
+d4ace50775cb osmrqvmsypxn chore(ai-log): add #57 spec and implementation logs and PR screenshots (#57)
+0a7b98e7f3bb xkkysootkpul docs(diagrams): add class and sequence diagrams for #57 (#57)
+cf16defda429 kxvpwqpzpotm test(e2e): prove the help dialog's key guard with a navigation shortcut (#57)
+ca8540363349 ukvsqytkluwo feat(shortcut): open a help dialog of the page's shortcuts with ? (#57)
+763b08b2b53f push bookmark feat/issue-57-shortcut-help-dialog to git remote origin
+cf99b2a52070 describe commit 7d28817dfa262e38ca561be4e134cfdf23be60a8
+97b13f42dd59 squash commits into 0b703f326d0abbd7bc59d4a544d32d5a3846f01e
+c21be33aa8ea snapshot working copy
+cc5601339617 track paths
+f792642ebb20 point bookmark feat/issue-57-shortcut-help-dialog to commit 0b703f326d0abbd7bc59d4a544d32d5a3846f01e
+d4ace50775cb describe commit 7d28817dfa262e38ca561be4e134cfdf23be60a8
+7d28817dfa26 squash commits into 0b703f326d0abbd7bc59d4a544d32d5a3846f01e
+5b0ba4c003a0 snapshot working copy
+0b703f326d0a commit 7559c27a0c7d527c4b74802c0de83ce49ea4328a
+ffa65af864cc commit 7559c27a0c7d527c4b74802c0de83ce49ea4328a
+7559c27a0c7d snapshot working copy
+d91e2dc6e950 commit 5d3ce71d5b2cefde67baa48d570f21d99ed7d7f5
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 00:51:03Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Show contents of the pushed commit and who tracked paths
+
+`jj show --stat -r d4ace50775cb --no-pager 2>&1 | head -20; jj op show cc5601339617 --no-graph 2>&1 | head -8`
+
+```text
+Commit ID: d4ace50775cb9a0e9c07585533f4ca26fd44d3e6
+Change ID: osmrqvmsypxnkxmzlzzzmnsoszxqrlzx
+Bookmarks: feat/issue-57-shortcut-help-dialog feat/issue-57-shortcut-help-dialog@git feat/issue-57-shortcut-help-dialog@origin
+Author   : Ethan Turner <207494180+controlled-opposition@users.noreply.github.com> (2026-10-24 20:45:57)
+Committer: Ethan Turner <207494180+controlled-opposition@users.noreply.github.com> (2026-10-24 20:50:15)
+
+    chore(ai-log): add #57 spec and implementation logs and PR screenshots (#57)
+
+    Assisted-by: Claude Code:claude-opus-5-5
+
+...026-10-18_claude-code_issue-57-60-95-65-spec.md | 7624 +++++++++++++++++++++
+...aude-code_issue-57-impl/57-help-dialog-dark.png | (binary) +71997 bytes
+...ude-code_issue-57-impl/57-help-dialog-light.png | (binary) +70465 bytes
+...osition/2026-10-24_claude-code_issue-57-impl.md | 7716 ++++++++++++++++++++++
+4 files changed, 15340 insertions(+), 0 deletions(-)
+cc5601339617 everick@malus default@ 48 seconds ago, lasted 23 milliseconds
+track paths
+args: jj file track ai-logs/sprint2/controlled-opposition/2026-10-24_claude-code_issue-57-impl.md
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 00:51:09Z)**_
+
+<think><details><summary>Thought Process</summary>
+Found that another `jj` process altered my commit 48 seconds before I pushed — it tracked and squashed in an additional file (my session log) and renamed the commit, which is why `d4ace507` differs from what I made. The push itself was a clean fast-forward with nothing overwritten on GitHub; I'll now check the image links.
+
+</details></think>
+
+_**Agent (claude-opus-5-5 2026-10-25 00:51:13Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Check screenshot URLs for both SHAs
+
+`B=https://github.com/CSCI-435-SE/gitea/blob; P=ai-logs/sprint2/controlled-opposition/2026-10-24_claude-code_issue-57-impl/57-help-dialog-light.png; for sha in 0b703f326d0abbd7bc59d4a544d32d5a3846f01e d4ace50775cb9a0e9c07585533f4ca26fd44d3e6; do curl -sL -o /dev/null -w "$sha %{http_code} %{content_type}\n" "$B/$sha/$P?raw=1"; done; curl -sL -o /dev/null -w "dark %{http_code} %{content_type}\n" "$B/d4ace50775cb9a0e9c07585533f4ca26fd44d3e6/${P/light/dark}?raw=1"`
+
+```text
+0b703f326d0abbd7bc59d4a544d32d5a3846f01e 404 text/html; charset=utf-8
+d4ace50775cb9a0e9c07585533f4ca26fd44d3e6 200 image/png
+dark 200 image/png
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 00:51:26Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Repoint PR body image links to the pushed SHA
+
+`cd /private/tmp/claude-501/-Users-everick-Projects-CSCI435-gitea/aff4ffab-cb6a-4b43-9d5b-3c6afcfa7820/scratchpad && sed -i 's/0b703f326d0abbd7bc59d4a544d32d5a3846f01e/d4ace50775cb9a0e9c07585533f4ca26fd44d3e6/g' pr-57-body.md && grep -c d4ace50775cb pr-57-body.md`
+
+```text
+1
+Shell cwd was reset to /Users/everick/Projects/CSCI435/gitea
+[This command modified 1 file you've previously read: ../../../../../private/tmp/claude-501/-Users-everick-Projects-CSCI435-gitea/aff4ffab-cb6a-4b43-9d5b-3c6afcfa7820/scratchpad/pr-57-body.md. Call Read before editing.]
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 00:51:30Z)**_
+
+The image links in the PR draft now point to `d4ace507`, and both screenshots load from GitHub as images. The `0b703f32` links returned 404, because that commit was rewritten before it was pushed.
+
+The other thing to know is that the pushed implementation log is incomplete. It was filed mid-session, so `2026-10-24_claude-code_issue-57-impl.md` stops partway through this conversation. Once this session ends, re-file it with `.claude/bin/ai-log issue-57-impl aff4ffab-cb6a-4b43-9d5b-3c6afcfa7820` and commit that as `chore(ai-log): update AI log for #57 implementation (#57)`. Don't link it in the AI Assistance comment until then.
+
+Was that other `jj` process yours, such as a second terminal or another Claude session? If it wasn't, something else is writing to this repo and should be stopped before the next push.
+
+Next is opening the PR with `gh pr create` and the drafted body. Edit its AI assistance sentence first, then say when.
+
+---
+
+_**User (2026-10-25 00:51:46Z)**_
+
+yes that was me, open the PR
+
+---
+
+_**Agent (claude-opus-5-5 2026-10-25 00:51:50Z)**_
+
+<tool-use data-tool-type="read" data-tool-name="Read"><details>
+<summary>Tool use: **Read**</summary>
+ `/private/tmp/claude-501/-Users-everick-Projects-CSCI435-gitea/aff4ffab-cb6a-4b43-9d5b-3c6afcfa7820/scratchpad/pr-57-body.md`
+
+```text
+1	Closes #57
+2	
+3	## What changed
+4	
+5	Pressing `?` on any page now opens a "Keyboard shortcuts" dialog that lists the shortcuts that work on that page, grouped by section.
+6	
+7	- `templates/base/footer.tmpl` renders a native `<dialog>` on every page. The server fills in its title, the close button's label and the "General" heading from three new locale keys (`shortcuts.help.title`, `.show` and `.close`). The close button sits in a `<form method="dialog">`, so closing needs no script.
+8	- `web_src/js/modules/shortcut.ts` has a new `initShortcutHelp`, which registers `?` from the dialog's data attributes. Each time the dialog opens, it rebuilds the rows from `getShortcuts()`. The new `groupShortcuts` sorts them into sections, with "General" first and any shortcut without a section under it. When the dialog closes, focus goes back to the element that had it.
+9	- `ShortcutRegistry.handleKeyDown` now ignores every key while a `dialog[open]` exists.
+10	- `web_src/css/modules/shortcut.css` styles the dialog to match `.ui.modal`.
+11	- `docs/sprint2/diagrams/` holds the D6 class and sequence diagrams for this issue, their Mermaid sources and the Q&A.
+12	
+13	The dialog on a repository home page, in the light and dark themes:
+14	
+15	<img alt="Keyboard shortcuts dialog, light theme" src="https://github.com/CSCI-435-SE/gitea/blob/d4ace50775cb9a0e9c07585533f4ca26fd44d3e6/ai-logs/sprint2/controlled-opposition/2026-10-24_claude-code_issue-57-impl/57-help-dialog-light.png?raw=1" width="420"> <img alt="Keyboard shortcuts dialog, dark theme" src="https://github.com/CSCI-435-SE/gitea/blob/d4ace50775cb9a0e9c07585533f4ca26fd44d3e6/ai-logs/sprint2/controlled-opposition/2026-10-24_claude-code_issue-57-impl/57-help-dialog-dark.png?raw=1" width="420">
+16	
+17	## Why
+18	
+19	Gitea's shortcuts can't be discovered without reading the source. #56 gave every page a registry of its shortcuts, and this dialog shows it to the user.
+20
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 00:51:55Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Open the #57 pull request
+
+`gh pr create --head feat/issue-57-shortcut-help-dialog --base main --title "feat(shortcut): open a help dialog of the page's shortcuts with ? (#57)" --body-file /private/tmp/claude-501/-Users-everick-Projects-CSCI435-gitea/aff4ffab-cb6a-4b43-9d5b-3c6afcfa7820/scratchpad/pr-57-body.md`
+
+```text
+https://github.com/CSCI-435-SE/gitea/pull/115
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 00:52:01Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Record PR #115 in project memory
+
+```bash
+cd /Users/everick/.claude/projects/-Users-everick-Projects-CSCI435-gitea/memory && python3 - <<'EOF'
+p='sprint2-deliverables.md'
+s=open(p).read()
+a="Status, checked live on 2026-10-16.\n"
+b=a+"""
+- **2026-10-24: #57 PR #115 opened** (branch `feat/issue-57-shortcut-help-dialog`, 4 commits; includes the D6 diagrams `docs/sprint2/diagrams/57-controlled-opposition*`, rendered with pele, and the 10-18 spec log `2026-10-18_claude-code_issue-57-60-95-65-spec.md`). The `issue-57-impl` log in it was filed mid-session and must be re-filed after the session ends (`ai-log issue-57-impl aff4ffab-…`). Still owed: re-filed log, #57 AI Assistance comment (both logs), teammate review. #60 can start once #115 merges.
+"""
+assert a in s; s=s.replace(a,b,1); open(p,'w').write(s)
+EOF
+sed -i 's/^- \[Sprint 2 deliverables\](sprint2-deliverables.md) — .*/- [Sprint 2 deliverables](sprint2-deliverables.md) — #65 merged (PR #105); #57 PR #115 open 10-24 (impl log needs re-filing); #95, #60 left (#60 after #57 merges)./' MEMORY.md && grep -n "Sprint 2 deliverables" MEMORY.md
+```
+
+```text
+7:- [Sprint 2 deliverables](sprint2-deliverables.md) — #65 merged (PR #105); #57 PR #115 open 10-24 (impl log needs re-filing); #95, #60 left (#60 after #57 merges).
+Shell cwd was reset to /Users/everick/Projects/CSCI435/gitea
+[This command modified 1 file you've previously read: ../../../.claude/projects/-Users-everick-Projects-CSCI435-gitea/memory/MEMORY.md. Call Read before editing.]
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 00:52:05Z)**_
+
+PR #115 is open: https://github.com/CSCI-435-SE/gitea/pull/115
+
+It carries the title `feat(shortcut): open a help dialog of the page's shortcuts with ? (#57)` and the drafted body. That includes `Closes #57`, the two screenshots linked to commit `d4ace507`, the `## Tech Debt` section and the AI assistance section. I posted the AI assistance sentence about what you did as drafted. If it doesn't match what you did, edit it on GitHub.
+
+Still to do:
+1. **Request a review:** ask a teammate to review on GitHub and tell them on Zulip. The course doesn't allow approving your own PR.
+2. **Re-file this session's log:** after this session ends, run `.claude/bin/ai-log issue-57-impl aff4ffab-cb6a-4b43-9d5b-3c6afcfa7820`. Then commit it as `chore(ai-log): update AI log for #57 implementation (#57)` and push.
+3. **AI Assistance comment on #57:** once step 2 is done, I'll draft it with links to both logs on the branch. Switch the links to `blob/main` after the PR merges.
+4. **#60:** it can start once #115 merges. #95 doesn't depend on #57, so it can start now.
+
+---
+
+_**User (2026-10-25 01:04:14Z)**_
+
+Look at what coderabbit stated and see if it is correct.
+
+---
+
+_**Agent (claude-opus-5-5 2026-10-25 01:04:20Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Fetch CodeRabbit inline review comments on PR #115
+
+`gh api repos/CSCI-435-SE/gitea/pulls/115/comments --paginate -q '.[] | select(.user.login|test("coderabbit")) | "=== \(.id) \(.path):\(.line // .original_line)\n\(.body)\n"' | head -300`
+
+```text
+(Bash completed with no output)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 01:04:20Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Fetch CodeRabbit review summaries and comments
+
+`gh pr view 115 --json reviews,comments -q '(.reviews[] | select(.author.login|test("coderabbit")) | "=== REVIEW \(.state)\n\(.body)\n"), (.comments[] | select(.author.login|test("coderabbit")) | "=== COMMENT\n\(.body)\n")' | sed 's/<[^>]*>//g' | grep -v '^\s*$' | head -150`
+
+```text
+=== COMMENT
+No actionable comments were generated in the recent review.
+ Recent review info
+ Run configuration
+- **Source mode**: Auto
+- **Repository**: [CSCI-435-SE/gitea]()
+- **Branch**: [feat/issue-57-shortcut-help-dialog]()
+- **File**: [.coderabbit.yaml]()
+- **Commit**: [d4ace50]()
+- **Layers**: Repository YAML
+- **Review profile**: CHILL
+- **Plan**: Advanced
+- **Run ID**: `d13d0560-0ce7-4dd3-95b4-0f95db105cac`
+ Commits
+Reviewing files that changed from the base of the PR and between a4816d31a50e2cb0287b68b1f5a0fa6a1f8210aa and d4ace50775cb9a0e9c07585533f4ca26fd44d3e6.
+ Files ignored due to path filters: 6
+* `ai-logs/sprint2/controlled-opposition/2026-10-18_claude-code_issue-57-60-95-65-spec.md` is excluded by `!ai-logs/**`
+* `ai-logs/sprint2/controlled-opposition/2026-10-24_claude-code_issue-57-impl.md` is excluded by `!ai-logs/**`
+* `ai-logs/sprint2/controlled-opposition/2026-10-24_claude-code_issue-57-impl/57-help-dialog-dark.png` is excluded by `!**/*.png`, `!ai-logs/**`
+* `ai-logs/sprint2/controlled-opposition/2026-10-24_claude-code_issue-57-impl/57-help-dialog-light.png` is excluded by `!**/*.png`, `!ai-logs/**`
+* `docs/sprint2/diagrams/57-controlled-opposition-class.png` is excluded by `!**/*.png`
+* `docs/sprint2/diagrams/57-controlled-opposition-sequence.png` is excluded by `!**/*.png`
+ Files selected for processing: 9
+* `docs/sprint2/diagrams/57-controlled-opposition-class.mmd`
+* `docs/sprint2/diagrams/57-controlled-opposition-sequence.mmd`
+* `docs/sprint2/diagrams/57-controlled-opposition.md`
+* `options/locale/locale_en-US.json`
+* `templates/base/footer.tmpl`
+* `tests/e2e/shortcut.test.ts`
+* `web_src/css/modules/shortcut.css`
+* `web_src/js/modules/shortcut.test.ts`
+* `web_src/js/modules/shortcut.ts`
+**Included review availability:** This review used your included allowance. Your plan provides up to 1 included review per hour; 0 remain after this review.
+Walkthrough
+The change adds a native keyboard-shortcut help dialog that opens with `?`, groups registered shortcuts by section, suppresses page shortcuts while open, and restores focus when closed. It adds localized labels, styling, automated tests, and diagrams documenting the flow.
+**Changes: Keyboard shortcut help dialog**
+|Layer / File(s)|Summary|
+|:---|:---|
+|**Shortcut grouping and dialog behavior**  `web_src/js/modules/shortcut.ts`, `web_src/js/modules/shortcut.test.ts`|The registry skips page shortcuts while a dialog is open. New code groups and renders shortcuts, opens the help dialog, and restores focus when it closes. Unit tests cover grouping, dialog contents, shortcut suppression, and focus restoration.|
+|**Page integration and supporting documentation**  `templates/base/footer.tmpl`, `options/locale/locale_en-US.json`, `web_src/css/modules/shortcut.css`, `tests/e2e/shortcut.test.ts`, `docs/sprint2/diagrams/57-controlled-opposition*`|The base template provides the dialog markup and localized labels. CSS styles the dialog. The end-to-end test checks opening, shortcut suppression, closing, and focus restoration. Documentation adds class and sequence diagrams and related Q&A.|
+Priority:  Low
+Merge Risk:  Minimal · up to d4ace
+<!-- final_review_risk_label
+**Merge Risk:** **⚪ Minimal** · up to `d4ace`
+-->
+The shortcut-help dialog is ready to merge after normal checks; no actionable issue was established.
+Pre-merge checks:  5 ·  1
+ Failed checks: 1 warning
+|       Check name      |                                              Status                                              | Explanation                                                                                                                                                                                               | Resolution                                                                                                                                        |
+| :------------------- | :----------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Course Pr Description | ![Warning](https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-warning.svg) | Required: remove the two screenshot links from the PR description. Both URLs point to files under `ai-logs/.../*.png`, which violates the rule that PR descriptions must not link to `ai-logs/`. The com… | Remove or relocate the screenshots outside `ai-logs/` and update the PR description. Keep AI log links only in the issue's AI Assistance comment. |
+ Passed checks: 5 passed
+|            Check name           |                                             Status                                             | Explanation                                                                                                                                                                                               |
+| :----------------------------- | :--------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|       Linked Issues check       | ![Passed](https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-passed.svg) | Required: No remediation is required. The PR implements `#57` AC1–AC8 with a native `dialog`, `showModal()`, grouped rows from `getShortcuts()`, localized title and labels, focus restoration, field hand… |
+|    Out of Scope Changes check   | ![Passed](https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-passed.svg) | Optional: No unrelated change is demonstrated. The locale entry, template, CSS, registry changes, tests, and diagrams support the `#57` dialog. The PR does not add other shortcut registrations, remappin… |
+|    Screenshots For Ui Changes   | ![Passed](https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-passed.svg) | The PR changes `templates/base/footer.tmpl` and `web_src/css/modules/shortcut.css`. The PR description includes two `` tags showing the help dialog in light and dark themes. This is a feature PR,… |
+|   Tests For Behaviour Changes   | ![Passed](https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-passed.svg) | The pull request changes the non-test file web_src/js/modules/shortcut.ts. It also changes qualifying test files: web_src/js/modules/shortcut.test.ts and tests/e2e/shortcut.test.ts.                     |
+| Breaking And Dependency Changes | ![Passed](https://storage.googleapis.com/coderabbit_public_assets/pre-merge-checks-passed.svg) | No checked breaking or dependency change applies. The PR changes no /api/v1 endpoint or response, no app.ini setting, and no go.mod, go.sum, package.json, or pnpm-lock.yaml file. Therefore, no BREAKIN… |
+Full details: Linked Issues check
+**Explanation**
+Required: No remediation is required. The PR implements `#57` AC1–AC8 with a native `dialog`, `showModal()`, grouped rows from `getShortcuts()`, localized title and labels, focus restoration, field handling, and shortcut suppression while open. The added unit and Playwright tests cover the required behavior and call `assertNoJsError` in the end-to-end test.
+Full details: Out of Scope Changes check
+**Explanation**
+Optional: No unrelated change is demonstrated. The locale entry, template, CSS, registry changes, tests, and diagrams support the `#57` dialog. The PR does not add other shortcut registrations, remapping, mouse entry, printable documentation, or the `#60` setting.
+Full details: Screenshots For Ui Changes
+**Explanation**
+The PR changes `templates/base/footer.tmpl` and `web_src/css/modules/shortcut.css`. The PR description includes two `&lt;img&gt;` tags showing the help dialog in light and dark themes. This is a feature PR, not a fix, so the screenshot requirement is met.
+Full details: Breaking And Dependency Changes
+**Explanation**
+No checked breaking or dependency change applies. The PR changes no /api/v1 endpoint or response, no app.ini setting, and no go.mod, go.sum, package.json, or pnpm-lock.yaml file. Therefore, no BREAKING or dependency rationale is required.
+Full details: Course Pr Description
+**Explanation**
+Required: remove the two screenshot links from the PR description. Both URLs point to files under `ai-logs/.../*.png`, which violates the rule that PR descriptions must not link to `ai-logs/`. The complete body draft otherwise contains the required sections, AC1–AC9 references, Tech Debt fields, and AI assistance details.
+**Resolution**
+Remove or relocate the screenshots outside `ai-logs/` and update the PR description. Keep AI log links only in the issue's AI Assistance comment.
+- [ ]  Autofix · Keep fixing CodeRabbit findings and required CI, and resolving merge conflicts
+Thanks for using [CodeRabbit](https://coderabbit.ai?utm_source=oss&utm_medium=github&utm_campaign=CSCI-435-SE/gitea&utm_content=115)! It's free for OSS, and your support helps us grow. If you like it, consider giving us a shout-out.
+❤️ Share
+- [X](https://twitter.com/intent/tweet?text=I%20just%20used%20%40coderabbitai%20for%20my%20code%20review%2C%20and%20it%27s%20fantastic%21%20It%27s%20free%20for%20OSS%20and%20offers%20a%20free%20trial%20for%20the%20proprietary%20code.%20Check%20it%20out%3A&url=https%3A//coderabbit.ai)
+- [Mastodon](https://mastodon.social/share?text=I%20just%20used%20%40coderabbitai%20for%20my%20code%20review%2C%20and%20it%27s%20fantastic%21%20It%27s%20free%20for%20OSS%20and%20offers%20a%20free%20trial%20for%20the%20proprietary%20code.%20Check%20it%20out%3A%20https%3A%2F%2Fcoderabbit.ai)
+- [Reddit](https://www.reddit.com/submit?title=Great%20tool%20for%20code%20review%20-%20CodeRabbit&text=I%20just%20used%20CodeRabbit%20for%20my%20code%20review%2C%20and%20it%27s%20fantastic%21%20It%27s%20free%20for%20OSS%20and%20offers%20a%20free%20trial%20for%20proprietary%20code.%20Check%20it%20out%3A%20https%3A//coderabbit.ai)
+- [LinkedIn](https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fcoderabbit.ai&mini=true&title=Great%20tool%20for%20code%20review%20-%20CodeRabbit&summary=I%20just%20used%20CodeRabbit%20for%20my%20code%20review%2C%20and%20it%27s%20fantastic%21%20It%27s%20free%20for%20OSS%20and%20offers%20a%20free%20trial%20for%20proprietary%20code)
+Comment `@coderabbitai help` to get the list of available commands.
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 01:04:23Z)**_
+
+CodeRabbit raised a single finding: a pre-merge warning about the screenshot links. It made no inline code comments. Checking the rule it cites:
+
+_**Agent (claude-opus-5-5 2026-10-25 01:04:29Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Find the rule CodeRabbit cites and screenshot precedent
+
+`grep -n -i -B2 -A4 "ai-logs" .coderabbit.yaml | head -40; grep -n -i "ai-logs\|log link\|screenshot" .claude-students/AI-ASSISTANCE.md .claude-students/COURSE-WORKFLOW.md ai-logs/README.md CONTRIBUTING.md 2>/dev/null | head -20; gh pr list --state merged --search "ai-logs in:body" --json number -q '.[].number' | head; gh pr view 71 --json body -q .body | grep -o 'src="[^"]*"' | head -2`
+
+```text
+19-    auto_incremental_review: false # one review when the PR leaves draft; comment "@coderabbitai review" for another
+20-  path_filters:
+21:    - "!ai-logs/**" # course logs are filed unedited
+22-    - "!.claude-students/guide/**" # generated from .claude-students/docs
+23-    - "!docs/superpowers/**" # AI planning notes
+24-    - "!templates/swagger/v1_json.tmpl" # generated, and CI checks it is up to date
+25-    - "!templates/swagger/v1_openapi3_json.tmpl"
+--
+137-          - When "Design" states a design decision rather than pointing at the issue's, it names at least two alternatives (Sprint 2, D3).
+138-          - "AI assistance" either says "No AI used", or names the tool and model, what the AI did, and what the author did to check it.
+139:          - Nothing links to a file under ai-logs/. AI logs belong in the issue's AI Assistance comment (.claude-students/AI-ASSISTANCE.md).
+140-      - name: Screenshots for UI changes
+141-        mode: warning
+142-        instructions: |
+143-          Pass if no file under templates/ or web_src/css/, and no .vue file, changed.
+.claude-students/AI-ASSISTANCE.md:20:| 1 | claude-code | [2026-09-24_claude-code_issue-52-impl.md](https://github.com/CSCI-435-SE/gitea/blob/main/ai-logs/sprint1/YourName/2026-09-24_claude-code_issue-52-impl.md) | Confirmed the files found during concept location, drafted the template change and tests, ran them |
+.claude-students/AI-ASSISTANCE.md:22:**Attachments:** [2026-09-24_claude-code_issue-52-impl/](https://github.com/CSCI-435-SE/gitea/tree/main/ai-logs/sprint1/YourName/2026-09-24_claude-code_issue-52-impl)
+.claude-students/AI-ASSISTANCE.md:29:  comments. File naming is in `ai-logs/README.md`.
+.claude-students/AI-ASSISTANCE.md:33:## 2. A short section in the pull request description — no log link
+.claude-students/AI-ASSISTANCE.md:53:- **A log link in a PR description or PR comment.** Log links live in the issue comment only.
+.claude-students/AI-ASSISTANCE.md:54:- **A log link that 404s.** Until the log is merged to `main`, link the branch that holds it; switch
+.claude-students/AI-ASSISTANCE.md:56:- **A log folder that is not your GitHub username** — `ai-logs/sprint1/jdonohue/` is wrong when the
+ai-logs/README.md:4:the [AI Log Instructions](https://csci-435-se.github.io/ai-logs/) page and the current sprint page
+ai-logs/README.md:16:ai-logs/
+ai-logs/README.md:59:- Attachments (screenshots, snippets) go in a folder with the log's name minus `.md`.
+ai-logs/README.md:68:- **Not** in PR descriptions or PR comments. The PR has a short AI-use note with no log link. The
+.claude-students/COURSE-WORKFLOW.md:26:| D5 | AI logs | 5 | Individual | `ai-logs/sprint2/<github-username>/` |
+.claude-students/COURSE-WORKFLOW.md:45:- **D5:** conventions are in `ai-logs/README.md`. Logs hold the full prompts and output: summaries,
+.claude-students/COURSE-WORKFLOW.md:46:  screenshots and share links are not logs. The link must open the log file itself, not a folder or
+.claude-students/COURSE-WORKFLOW.md:109:Assistance comment. Then run `specstory sync` and file the session's log (see `ai-logs/README.md`).
+.claude-students/COURSE-WORKFLOW.md:154:<Version or commit, browser/OS, logs, screenshots.>
+.claude-students/COURSE-WORKFLOW.md:188:8. **AI assistance:** format in `AI-ASSISTANCE.md` §2, with **no log link**.
+CONTRIBUTING.md:205:If your PR changes the UI, you must add **after** screenshots in the PR summary. \
+CONTRIBUTING.md:206:If you are not implementing a new feature, you should also post **before** screenshots for comparison.
+CONTRIBUTING.md:208:If you are implementing a new feature, your PR will only be merged if your screenshots are up to date.\
+111
+106
+82
+80
+78
+112
+79
+66
+49
+45
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 01:04:34Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Check how earlier PRs hosted screenshots
+
+`for n in 71 74; do echo "#$n"; gh pr view $n --json body -q .body | grep -oE 'https://[^ )"]*\.png[^ )"]*' | head -2; done; gh api repos/CSCI-435-SE/gitea/issues/71/comments -q '.[]|select(.user.login|test("coderabbit"))|.body' | grep -i -m3 "ai-logs"`
+
+```text
+#71
+https://github.com/CSCI-435-SE/gitea/blob/97c1fb6de3038c1e848947e82612c1dfd6db0d6e/ai-logs/sprint1/controlled-opposition/2026-10-06_claude-code_issue-61-impl/aria-menu-light.png?raw=1
+https://github.com/CSCI-435-SE/gitea/blob/97c1fb6de3038c1e848947e82612c1dfd6db0d6e/ai-logs/sprint1/controlled-opposition/2026-10-06_claude-code_issue-61-impl/aria-menu-dark.png?raw=1
+#74
+https://github.com/CSCI-435-SE/gitea/blob/2ad0b56799afca5075094af97fe7d4dfc9b30904/ai-logs/sprint1/controlled-opposition/2026-10-06_claude-code_issue-62-impl/profile-light-before.png?raw=1
+https://github.com/CSCI-435-SE/gitea/blob/2ad0b56799afca5075094af97fe7d4dfc9b30904/ai-logs/sprint1/controlled-opposition/2026-10-06_claude-code_issue-62-impl/profile-light-after.png?raw=1
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 01:04:47Z)**_
+
+CodeRabbit is right about the repo's own rule but wrong about the course rule it's meant to enforce. It raised one finding, a non-blocking warning; everything else passed, with no inline comments and AC1–AC8 confirmed.
+
+**The warning:** "Course PR Description: remove the two screenshot links … files under `ai-logs/` … PR descriptions must not link to `ai-logs/`."
+
+- **Right by the letter.** `.coderabbit.yaml:139` says "Nothing links to a file under ai-logs/", and both image links point into `ai-logs/sprint2/controlled-opposition/…/`.
+- **Wrong about the intent.** The course rule bans links to *logs* in PRs (`AI-ASSISTANCE.md` §2, `ai-logs/README.md:68`), not to screenshots. `ai-logs/README.md:59` even says screenshots go in a folder named after the log. Your Sprint 1 PRs #71 and #74 hosted their screenshots the same way. That was before #94 added this check on 10-16, and its wording catches screenshots as a side effect.
+
+**Is it worth acting on?** It's low risk either way, but a grader skimming for `ai-logs/` links in a PR could read it the way CodeRabbit did. Your options:
+1. **Upload the images through GitHub's web editor (recommended).** Edit the PR description on GitHub and drag the two PNGs in. That gives `user-attachments` URLs that point nowhere in `ai-logs/`; `gh` can't create those, so you'd do it in the browser. The PNGs can stay in the log folder.
+2. **Move the screenshots** somewhere outside `ai-logs/`, for example `docs/sprint2/screenshots/`. That's a new commit, and it puts PR-only images in the docs tree.
+3. **Narrow the rule** in `.coderabbit.yaml` to log files (`ai-logs/**/*.md`). That's a tooling change for its own PR, and it doesn't clear this warning on #115.
+
+Per your triage preference, I haven't changed anything. Which one do you want?
+
+---
+
+_**User (2026-10-25 01:13:09Z)**_
+
+move the screenshots to docs/sprint2/screenshots
+
+---
+
+_**Agent (claude-opus-5-5 2026-10-25 01:13:16Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Move the screenshots into docs/sprint2/screenshots
+
+`mkdir -p docs/sprint2/screenshots && mv ai-logs/sprint2/controlled-opposition/2026-10-24_claude-code_issue-57-impl/57-help-dialog-{light,dark}.png docs/sprint2/screenshots/ && rmdir ai-logs/sprint2/controlled-opposition/2026-10-24_claude-code_issue-57-impl && ls docs/sprint2/; jj st`
+
+```text
+checkin
+diagrams
+screenshots
+Working copy changes:
+R {ai-logs/sprint2/controlled-opposition/2026-10-24_claude-code_issue-57-impl => docs/sprint2/screenshots}/57-help-dialog-dark.png
+R {ai-logs/sprint2/controlled-opposition/2026-10-24_claude-code_issue-57-impl => docs/sprint2/screenshots}/57-help-dialog-light.png
+Working copy  (@) : ouwrkwuv d09d36b6 (no description set)
+Parent commit (@-): osmrqvms d4ace507 feat/issue-57-shortcut-help-dialog | chore(ai-log): add #57 spec and implementation logs and PR screenshots (#57)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 01:13:22Z)**_
+
+Both screenshots are now in `docs/sprint2/screenshots/` (`57-help-dialog-light.png` and `57-help-dialog-dark.png`). jj records them as renames out of `ai-logs/…/2026-10-24_claude-code_issue-57-impl/`, and I removed that folder now that it's empty. Nothing is committed yet.
+
+**Proposed commit:**
+```
+docs(sprint2): move #57 PR screenshots out of ai-logs (#57)
+
+Assisted-by: Claude Code:claude-opus-5-5
+```
+
+After you approve, I'll:
+1. commit, move the bookmark, and push (a normal fast-forward);
+2. point both image links in the PR description at `docs/sprint2/screenshots/` on the new commit's SHA, using `gh pr edit --body-file` with the rest of the body unchanged, and check that both URLs load as images;
+3. leave CodeRabbit to you: it only re-checks when you comment `@coderabbitai review`. Its last review said no reviews remain for the next hour, so wait about an hour before asking.
+
+Commit and push?
+
+---
+
+_**User (2026-10-25 01:19:19Z)**_
+
+yes, commit and push
+
+---
+
+_**Agent (claude-opus-5-5 2026-10-25 01:19:25Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Commit the move, push, and print the new SHA
+
+```bash
+jj commit -m "docs(sprint2): move #57 PR screenshots out of ai-logs (#57)
+
+Assisted-by: Claude Code:claude-opus-5-5" >/dev/null && jj bookmark set feat/issue-57-shortcut-help-dialog -r @- && jj git push -b feat/issue-57-shortcut-help-dialog 2>&1 | grep -E "bookmark|sideways|backward|error"; jj log -r feat/issue-57-shortcut-help-dialog --no-graph -T 'commit_id ++ " " ++ description.first_line() ++ "\n"'
+```
+
+```text
+Working copy  (@) now at: skknplts 2060e5cd (empty) (no description set)
+Parent commit (@-)      : ouwrkwuv 402dadc3 docs(sprint2): move #57 PR screenshots out of ai-logs (#57)
+Moved 1 bookmarks to ouwrkwuv 402dadc3 feat/issue-57-shortcut-help-dialog* | docs(sprint2): move #57 PR screenshots out of ai-logs (#57)
+  bookmark: feat/issue-57-shortcut-help-dialog [move forward from d4ace50775cb to 402dadc3b946]
+402dadc3b946683cc2d7fa531f664f3fbe4670a5 docs(sprint2): move #57 PR screenshots out of ai-logs (#57)
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 01:19:26Z)**_
+
+Pushed as a fast-forward to `402dadc3`. Next I'll update the PR description's image links:
+
+_**Agent (claude-opus-5-5 2026-10-25 01:19:33Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Rewrite image links to docs path and check they load
+
+`S=/private/tmp/claude-501/-Users-everick-Projects-CSCI435-gitea/aff4ffab-cb6a-4b43-9d5b-3c6afcfa7820/scratchpad && gh pr view 115 --json body -q .body > $S/pr-115-live.md && OLD='d4ace50775cb9a0e9c07585533f4ca26fd44d3e6/ai-logs/sprint2/controlled-opposition/2026-10-24_claude-code_issue-57-impl/' NEW='402dadc3b946683cc2d7fa531f664f3fbe4670a5/docs/sprint2/screenshots/' && grep -c "$OLD" $S/pr-115-live.md && sed "s#$OLD#$NEW#g" $S/pr-115-live.md > $S/pr-115-new.md && diff $S/pr-115-live.md $S/pr-115-new.md | grep -c '^[<>]'; grep -c "ai-logs" $S/pr-115-new.md; for f in light dark; do curl -sL -o /dev/null -w "$f %{http_code} %{content_type}\n" "https://github.com/CSCI-435-SE/gitea/blob/${NEW}57-help-dialog-$f.png?raw=1"; done`
+
+```text
+1
+2
+0
+light 200 image/png
+dark 200 image/png
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 01:19:39Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Update PR #115 description and confirm links
+
+`gh pr edit 115 --body-file /private/tmp/claude-501/-Users-everick-Projects-CSCI435-gitea/aff4ffab-cb6a-4b43-9d5b-3c6afcfa7820/scratchpad/pr-115-new.md && gh pr view 115 --json body -q .body | grep -oE 'src="[^"]*"'; gh pr view 115 --json body -q .body | head -1`
+
+```text
+https://github.com/CSCI-435-SE/gitea/pull/115
+src="https://github.com/CSCI-435-SE/gitea/blob/402dadc3b946683cc2d7fa531f664f3fbe4670a5/docs/sprint2/screenshots/57-help-dialog-light.png?raw=1"
+src="https://github.com/CSCI-435-SE/gitea/blob/402dadc3b946683cc2d7fa531f664f3fbe4670a5/docs/sprint2/screenshots/57-help-dialog-dark.png?raw=1"
+Closes #57
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 01:19:45Z)**_
+
+<tool-use data-tool-type="shell" data-tool-name="Bash"><details>
+<summary>Tool use: **Bash**</summary>
+Update screenshot hosting convention in memory
+
+```bash
+cd /Users/everick/.claude/projects/-Users-everick-Projects-CSCI435-gitea/memory && python3 - <<'EOF'
+p='commit-and-pr-conventions.md'
+s=open(p).read()
+a="- Commit the images under `ai-logs/sprint<N>/controlled-opposition/<log-slug>/`.\n- Reference them as `https://github.com/CSCI-435-SE/gitea/blob/<full-commit-sha>/<path>?raw=1`."
+b="- Commit the images under `docs/sprint<N>/screenshots/` (since 2026-10-24). Not under `ai-logs/`: `.coderabbit.yaml`'s PR-description check fails any link into `ai-logs/`, screenshots included (it flagged PR #115; Sprint 1's #71/#74 predate the check).\n- Reference them as `https://github.com/CSCI-435-SE/gitea/blob/<full-commit-sha>/<path>?raw=1`. Use the SHA as pushed: a squash or describe before the push changes it, and the old link 404s."
+assert a in s; s=s.replace(a,b); open(p,'w').write(s)
+EOF
+grep -c "docs/sprint<N>/screenshots" commit-and-pr-conventions.md
+```
+
+```text
+1
+Shell cwd was reset to /Users/everick/Projects/CSCI435/gitea
+```
+</details></tool-use>
+
+_**Agent (claude-opus-5-5 2026-10-25 01:19:49Z)**_
+
+The screenshot move is committed as `402dadc3` and pushed to `feat/issue-57-shortcut-help-dialog` as a normal fast-forward.
+
+- **PR description:** both image links in #115 now point to `docs/sprint2/screenshots/` on commit `402dadc3`, and both load from GitHub as images. The description has no `ai-logs/` links left, and nothing else in it changed.
+- **Memory:** future PR screenshots go in `docs/sprint<N>/screenshots/`, since CodeRabbit's check flags any link into `ai-logs/`. Links should use the commit ID as it was pushed.
+
+CodeRabbit's warning will stay until it reviews again. After its hourly limit resets, comment `@coderabbitai review` on #115 to clear it.
+
+Still to do on #57:
+- Request a teammate's review.
+- After this session ends, re-file this session's log with `ai-log issue-57-impl …`, commit and push it.
+- Then post #57's AI Assistance comment linking both logs.
