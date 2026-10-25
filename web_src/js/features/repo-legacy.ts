@@ -12,7 +12,7 @@ import {initCompLabelEdit} from './comp/LabelEdit.ts';
 import {initCompReactionSelector} from './comp/ReactionSelector.ts';
 import {initRepoSettings} from './repo-settings.ts';
 import {hideElem, queryElemChildren, queryElems, showElem} from '../utils/dom.ts';
-import {initRepoIssueCommentEdit} from './repo-issue-edit.ts';
+import {initRepoIssueCommentEdit, initRepoIssueQuoteReplyShortcut} from './repo-issue-edit.ts';
 import {initRepoMilestone} from './repo-milestone.ts';
 import {initRepoNew} from './repo-new.ts';
 import {createApp} from 'vue';
@@ -42,6 +42,7 @@ export function initRepository() {
   registerGlobalInitFunc('initRepoPullMergeBox', initRepoPullMergeBox);
   registerGlobalInitFunc('initRepoPullRequestUpdate', initRepoPullRequestUpdate);
   registerGlobalInitFunc('initRepoIssueStatusButton', initRepoIssueStatusButton);
+  registerGlobalInitFunc('initRepoIssueQuoteReplyShortcut', initRepoIssueQuoteReplyShortcut);
 
   const pageContent = document.querySelector('.page-content.repository');
   if (!pageContent) return;

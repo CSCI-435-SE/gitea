@@ -1,7 +1,7 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import type {Page} from '@playwright/test';
-import {apiCreateBranch, apiCreateFile, apiCreateRepo, apiEditRepo, assertNoJsError, login, randomString} from './utils.ts';
+import {apiCreateBranch, apiCreateFile, apiCreateIssue, apiCreateRepo, apiEditRepo, assertNoJsError, login, randomString} from './utils.ts';
 
 async function createRepo(page: Page) {
   const repoName = `e2e-shortcut-${randomString(8)}`;
@@ -133,5 +133,76 @@ test('g n goes to notifications when signed in, outside any repository', async (
   await expect(bell).toHaveAttribute('data-shortcut-section', 'General');
   await expect(page.locator('[data-shortcut-keys^="g "]')).toHaveCount(1); // no repository shortcuts outside a repository
   await goWith(page, 'g n', /\/notifications$/);
+  await assertNoJsError(page);
+});
+
+// an issue whose description is taller than the window, so the reply box starts out of view
+async function createIssue(page: Page) {
+  const repoLink = await createRepo(page);
+  const [, owner, repoName] = repoLink.split('/');
+  const filler = Array.from({length: 30}, (_, i) => `filler paragraph ${i}`).join('\n\n');
+  await apiCreateIssue(page.request, {owner, repo: repoName, title: 'Quote test', body: `first line\n\nsecond line\n\n${filler}`});
+  return {issueLink: `${repoLink}/issues/1`, owner, repoName};
+}
+
+test('r quotes the selected text into the reply box, or moves to it', async ({page}) => {
+  await page.setViewportSize({width: 1280, height: 600});
+  const [{issueLink}] = await Promise.all([createIssue(page), login(page)]);
+  await page.goto(issueLink);
+  const replyBox = page.getByPlaceholder('Leave a comment');
+  await expect(page.locator('#comment-form')).toHaveAttribute('data-shortcut-section', 'Conversation');
+  await expect(replyBox).not.toBeInViewport();
+
+  await page.locator('.issue-content-left .render-content.markup').first().evaluate((markup) => {
+    const range = document.createRange();
+    range.setStart(markup.querySelector('p')!.firstChild!, 0);
+    range.setEnd(markup.querySelectorAll('p')[1].firstChild!, 6);
+    window.getSelection()!.addRange(range);
+  });
+  await page.keyboard.press('r');
+  await expect(replyBox).toBeFocused();
+  await expect(replyBox).toBeInViewport();
+  await expect(replyBox).toHaveValue(/^> first line\n(> \n)?> second\n/);
+  await page.keyboard.type('reply');
+  await expect(replyBox).toHaveValue(/\n\nreply$/); // the cursor was after the quote, and r typed in the box is a letter
+  const typed = await replyBox.inputValue();
+
+  await replyBox.blur();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(replyBox).not.toBeInViewport();
+  await page.keyboard.press('r'); // nothing selected
+  await expect(replyBox).toBeFocused();
+  await expect(replyBox).toBeInViewport();
+  await expect(replyBox).toHaveValue(typed);
+  await assertNoJsError(page);
+});
+
+test('r does nothing without a reply box', async ({page}) => {
+  const {issueLink, owner, repoName} = await createIssue(page);
+  await page.goto(issueLink); // signed out
+  await expect(page.locator('#comment-form')).toHaveCount(0);
+  await page.keyboard.press('r');
+  await assertNoJsError(page);
+
+  await apiEditRepo(page.request, owner, repoName, {archived: true});
+  await login(page);
+  await page.goto(issueLink);
+  await expect(page.locator('#comment-form')).toHaveCount(0);
+  await page.keyboard.press('r');
+  await assertNoJsError(page);
+});
+
+test('the Quote Reply menu item still quotes the whole comment, and leaves the Preview tab', async ({page}) => {
+  const [{issueLink}] = await Promise.all([createIssue(page), login(page)]);
+  await page.goto(issueLink);
+  const replyBox = page.getByPlaceholder('Leave a comment');
+  await replyBox.fill('draft');
+  await page.locator('#comment-form [data-tab-for="markdown-previewer"]').click();
+  await expect(replyBox).toBeHidden();
+
+  await page.locator('.issue-content-left .comment-header .context-menu').first().click();
+  await page.getByRole('menuitem', {name: 'Quote Reply'}).click();
+  await expect(replyBox).toBeFocused();
+  await expect(replyBox).toHaveValue(/^draft\n\n> first line\n> \n> second line\n> \n> filler paragraph 0\n/); // the raw Markdown
   await assertNoJsError(page);
 });

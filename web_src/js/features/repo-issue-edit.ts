@@ -7,6 +7,7 @@ import {errorMessage} from '../modules/errors.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
 import {applyAreYouSure, reinitializeAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {registerShortcut} from '../modules/shortcut.ts';
 
 async function tryOnEditContent(e: Event) {
   const clickTarget = (e.target as HTMLElement).closest('.edit-content');
@@ -120,6 +121,33 @@ function extractSelectedMarkdown(container: HTMLElement) {
   return convertHtmlToMarkdown(el);
 }
 
+// the rendered markup of the one comment, or issue description, that holds the whole selection
+export function selectedCommentMarkup(selection: Selection | null): HTMLElement | null {
+  if (!selection?.rangeCount || selection.isCollapsed) return null;
+  const ancestor = selection.getRangeAt(0).commonAncestorContainer;
+  const markup = (ancestor instanceof Element ? ancestor : ancestor.parentElement)?.closest<HTMLElement>('.render-content.markup');
+  // only a comment with raw content can be quoted, which leaves out the reply box's own preview
+  if (!markup?.parentElement!.querySelector(':scope > .raw-content')) return null;
+  return markup;
+}
+
+function focusReplyEditor(editor: ComboMarkdownEditor) {
+  if (editor.tabEditor && !editor.tabEditor.classList.contains('active')) editor.switchTabToEditor(); // the Preview tab hides the cursor and any quote
+  editor.focus();
+  editor.moveCursorToEnd();
+}
+
+// shared by the "Quote reply" menu item and the "r" shortcut
+function appendQuoteReply(editor: ComboMarkdownEditor, contentToQuote: string) {
+  const quotedContent = `${contentToQuote.replace(/^/mg, '> ')}\n\n`;
+  if (editor.value()) {
+    editor.value(`${editor.value()}\n\n${quotedContent}`);
+  } else {
+    editor.value(quotedContent);
+  }
+  focusReplyEditor(editor);
+}
+
 async function tryOnQuoteReply(e: Event) {
   const clickTarget = (e.target as HTMLElement).closest('.quote-reply');
   if (!clickTarget) return;
@@ -130,7 +158,6 @@ async function tryOnQuoteReply(e: Event) {
   const targetMarkupToQuote = targetRawToQuote.parentElement!.querySelector<HTMLElement>('.render-content.markup')!;
   let contentToQuote = extractSelectedMarkdown(targetMarkupToQuote);
   if (!contentToQuote) contentToQuote = targetRawToQuote.textContent;
-  const quotedContent = `${contentToQuote.replace(/^/mg, '> ')}\n\n`;
 
   let editor;
   if (clickTarget.classList.contains('quote-reply-diff')) {
@@ -140,14 +167,28 @@ async function tryOnQuoteReply(e: Event) {
     // for normal issue/comment page
     editor = getComboMarkdownEditor(document.querySelector('#comment-form .combo-markdown-editor'))!;
   }
+  appendQuoteReply(editor, contentToQuote);
+}
 
-  if (editor.value()) {
-    editor.value(`${editor.value()}\n\n${quotedContent}`);
-  } else {
-    editor.value(quotedContent);
-  }
-  editor.focus();
-  editor.moveCursorToEnd();
+// "r" exists only where the server rendered the reply form, so it needs no permission checks of its own
+export function initRepoIssueQuoteReplyShortcut(form: HTMLElement) {
+  const editorContainer = form.querySelector<HTMLElement>('.combo-markdown-editor')!;
+  registerShortcut({
+    keys: form.getAttribute('data-shortcut-keys')!,
+    description: form.getAttribute('data-shortcut-description')!,
+    section: form.getAttribute('data-shortcut-section')!,
+    element: editorContainer,
+    action: () => {
+      const editor = getComboMarkdownEditor(editorContainer);
+      if (!editor) return; // still loading
+      const markup = selectedCommentMarkup(window.getSelection());
+      if (markup) {
+        appendQuoteReply(editor, extractSelectedMarkdown(markup));
+      } else {
+        focusReplyEditor(editor);
+      }
+    },
+  });
 }
 
 export function initRepoIssueCommentEdit() {
