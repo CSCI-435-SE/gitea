@@ -456,3 +456,24 @@ func FindNotificationRepoIDs(ctx context.Context, opts FindNotificationOptions) 
 		Distinct("notification.repo_id").
 		Find(&repoIDs)
 }
+
+// CountNotificationsByRepo returns how many notifications match opts in each repository, keyed by repository ID
+func CountNotificationsByRepo(ctx context.Context, opts FindNotificationOptions) (map[int64]int64, error) {
+	countsSlice := make([]*struct {
+		RepoID int64
+		Count  int64
+	}, 0, 10)
+	if err := db.GetEngine(ctx).Table("notification").
+		Where(opts.ToConds()).
+		GroupBy("notification.repo_id").
+		Select("notification.repo_id AS repo_id, COUNT(*) AS count").
+		Find(&countsSlice); err != nil {
+		return nil, err
+	}
+
+	countMap := make(map[int64]int64, len(countsSlice))
+	for _, c := range countsSlice {
+		countMap[c.RepoID] = c.Count
+	}
+	return countMap, nil
+}
