@@ -202,6 +202,7 @@
   "shortcuts.help.title": "Keyboard shortcuts",
   "shortcuts.help.show": "Show keyboard shortcuts",
   "shortcuts.help.close": "Close",
+  "shortcuts.help.enable": "Enable character key shortcuts",
   "heatmap.number_of_contributions_in_the_last_12_months": "%s contributions in the last 12 months",
   "heatmap.no_contributions": "No contributions",
   "heatmap.less": "Less",

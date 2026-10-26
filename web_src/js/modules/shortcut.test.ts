@@ -1,4 +1,4 @@
-import {ShortcutRegistry, getShortcuts, groupShortcuts, initGlobalShortcut, initShortcutHelp, initShortcutKbd, initShortcutLink} from './shortcut.ts';
+import {ShortcutRegistry, areShortcutsEnabled, getShortcuts, setShortcutsEnabled, groupShortcuts, initGlobalShortcut, initShortcutHelp, initShortcutKbd, initShortcutLink} from './shortcut.ts';
 
 function setup() {
   const registry = new ShortcutRegistry();
@@ -10,7 +10,7 @@ function setup() {
   root.addEventListener('keydown', (e) => registry.handleKeyDown(e));
   document.body.append(root);
   const button = root.querySelector('button')!;
-  const add = (keys: string, opts: {element?: HTMLElement} = {}) => {
+  const add = (keys: string, opts: {element?: HTMLElement, alwaysOn?: boolean} = {}) => {
     const action = vi.fn();
     registry.register({keys, description: `run ${keys}`, action, ...opts});
     return action;
@@ -29,11 +29,14 @@ describe('ShortcutRegistry', {concurrent: false}, () => {
   let ctx: ReturnType<typeof setup>;
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.stubGlobal('localStorage', new Storage()); // Node's own localStorage global hides happy-dom's
     ctx = setup();
   });
   afterEach(() => {
     ctx.cleanup();
     vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   test('AC3 a single key runs its action once and nothing else', () => {
@@ -187,6 +190,66 @@ describe('ShortcutRegistry', {concurrent: false}, () => {
     elem.remove();
     expect(ctx.registry.list().map((s) => s.keys)).toEqual(['g c']);
   });
+
+  test('#60 AC1 with shortcuts off, a key runs nothing and keeps its default', () => {
+    const action = ctx.add('s');
+    ctx.registry.setEnabled(false);
+    expect(press(ctx.button, 's').defaultPrevented).toBe(false);
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  test('#60 AC3 with shortcuts off, an always-on shortcut still runs', () => {
+    const help = ctx.add('?', {alwaysOn: true});
+    ctx.registry.setEnabled(false);
+    expect(press(ctx.button, '?', {shiftKey: true}).defaultPrevented).toBe(true);
+    expect(help).toHaveBeenCalledTimes(1);
+  });
+
+  test('#60 AC6 with shortcuts off, g starts no sequence and neither key runs a shortcut', () => {
+    const sequence = ctx.add('g c');
+    const single = ctx.add('c');
+    ctx.registry.setEnabled(false);
+    expect(press(ctx.button, 'g').defaultPrevented).toBe(false);
+    expect(press(ctx.button, 'c').defaultPrevented).toBe(false);
+    expect(sequence).not.toHaveBeenCalled();
+    expect(single).not.toHaveBeenCalled();
+  });
+
+  test('#60 AC6 turning shortcuts off drops a started sequence', () => {
+    const sequence = ctx.add('g c');
+    press(ctx.button, 'g');
+    ctx.registry.setEnabled(false);
+    ctx.registry.setEnabled(true);
+    press(ctx.button, 'c');
+    expect(sequence).not.toHaveBeenCalled();
+  });
+
+  test('#60 AC2 AC4 the setting is stored, and turning it back on works at once', () => {
+    const action = ctx.add('s');
+    ctx.registry.setEnabled(false);
+    expect(new ShortcutRegistry().isEnabled()).toBe(false); // as on the next page load
+    ctx.registry.setEnabled(true);
+    press(ctx.button, 's');
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(new ShortcutRegistry().isEnabled()).toBe(true);
+  });
+
+  test('#60 AC5 where storage throws, shortcuts are on and the switch still works for the page', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied') });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('denied') });
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw new Error('denied') });
+    const registry = new ShortcutRegistry();
+    expect(registry.isEnabled()).toBe(true);
+    const action = vi.fn();
+    registry.register({keys: 's', description: 'run s', action});
+    ctx.button.addEventListener('keydown', (e) => registry.handleKeyDown(e));
+    press(ctx.button, 's');
+    expect(action).toHaveBeenCalledTimes(1);
+    registry.setEnabled(false);
+    press(ctx.button, 's');
+    expect(action).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('groupShortcuts', () => {
@@ -223,7 +286,7 @@ function renderHelpDialog() {
   dialog.setAttribute('data-shortcut-keys', '?');
   dialog.setAttribute('data-shortcut-description', 'Show keyboard shortcuts');
   dialog.setAttribute('data-shortcut-section', 'General');
-  dialog.innerHTML = `<form method="dialog"><h2>Keyboard shortcuts</h2><button aria-label="Close">x</button></form><div class="shortcut-help-sections"></div>`;
+  dialog.innerHTML = `<form method="dialog"><h2>Keyboard shortcuts</h2><button aria-label="Close">x</button></form><div class="shortcut-help-sections"></div><input class="shortcut-help-enabled" type="checkbox" checked>`;
   document.body.append(dialog);
   initShortcutHelp(dialog);
   return dialog;
@@ -251,6 +314,7 @@ describe('shortcut hints and links', {concurrent: false}, () => {
   afterEach(() => {
     document.body.replaceChildren();
     vi.restoreAllMocks();
+    setShortcutsEnabled(true);
   });
 
   test('AC1 pressing a hint key focuses its box and hides the hint', () => {
@@ -365,5 +429,29 @@ describe('shortcut hints and links', {concurrent: false}, () => {
     expect(dialog.open).toBe(true);
     expect(dialog.querySelectorAll('.shortcut-help-row')).toHaveLength(rows);
     dialog.close();
+  });
+
+  test('#60 AC1 AC3 AC4 the dialog\'s checkbox turns shortcuts off and on, and ? keeps working', () => {
+    const {input} = renderHint('s', 'Search code…');
+    const dialog = renderHelpDialog();
+    const toggle = dialog.querySelector<HTMLInputElement>('.shortcut-help-enabled')!;
+    press(document.body, '?', {shiftKey: true});
+    expect(toggle.checked).toBe(true);
+    toggle.click();
+    expect(areShortcutsEnabled()).toBe(false);
+    expect(Array.from(dialog.querySelectorAll('.shortcut-help-row'), (row) => row.classList.contains('always-on'))).toEqual([false, true]); // only ? stays undimmed
+    expect(dialog.classList.contains('shortcuts-off')).toBe(true);
+    dialog.close();
+
+    expect(press(document.body, 's').defaultPrevented).toBe(false);
+    expect(document.activeElement).not.toBe(input);
+    press(document.body, '?', {shiftKey: true});
+    expect(dialog.open).toBe(true);
+    expect(toggle.checked).toBe(false);
+    toggle.click();
+    dialog.close();
+
+    press(document.body, 's');
+    expect(document.activeElement).toBe(input);
   });
 });
