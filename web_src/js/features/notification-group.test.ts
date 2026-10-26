@@ -17,7 +17,7 @@ function createGroupedTable(repoIDs: string[]) {
     </div>`);
   initNotificationGroups(table);
   const group = (id: string) => {
-    const el = table.querySelector<HTMLElement>(`.notification-group[data-repo-id="${id}"]`)!;
+    const el = table.querySelector<HTMLElement>(`.notification-group[data-repo-id="${CSS.escape(id)}"]`)!;
     return {
       toggle: el.querySelector<HTMLButtonElement>('.notification-group-toggle')!,
       link: el.querySelector<HTMLAnchorElement>('a')!,
