@@ -1,22 +1,22 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-sequence-number="{{.SequenceNumber}}"
 	data-global-init="initNotificationBulkActions" data-view-key="{{.ViewKey}}" data-view-count="{{.ViewCount}}"
-	data-bulk-url="{{QueryBuild (print AppSubUrl "/notifications/bulk") "type" $.PageType "page" $.Page.Paginater.Current "repo" $.FilterRepoID "source" $.FilterSource "group" (Iif $.GroupByRepo "repo" "")}}"
+	data-bulk-url="{{QueryBuild (print AppSubUrl "/notifications/bulk") "type" $.PageType "page" $.Page.Paginater.Current "repo" $.FilterRepoID "source" $.FilterSource "group" (Iif $.GroupByRepo "repo" "") "sort" $.SortType}}"
 >
 	<div class="ui container">
 		{{template "base/alert" .}}
 		{{$notificationUnreadCount := .FilteredUnreadCount}}{{/* the navbar badge stays global */}}
 		{{$pageTypeIsRead := eq $.PageType "read"}}
-		{{$groupParam := Iif $.GroupByRepo "repo" ""}}{{/* a view setting, kept by every link like the filters */}}
-		{{$filterQuery := QueryBuild "repo" $.FilterRepoID "source" $.FilterSource "group" $groupParam}}
+		{{$groupParam := Iif $.GroupByRepo "repo" ""}}{{/* a view setting, kept by every link like the filters; so is $.SortType */}}
+		{{$filterQuery := QueryBuild "repo" $.FilterRepoID "source" $.FilterSource "group" $groupParam "sort" $.SortType}}
 		{{$notificationsLink := print AppSubUrl "/notifications"}}{{/* a path prefix lets QueryBuild drop the "?" when every param is empty */}}
-		{{$queryLink := QueryBuild $notificationsLink "type" $.PageType "repo" $.FilterRepoID "source" $.FilterSource "group" $groupParam}}
+		{{$queryLink := QueryBuild $notificationsLink "type" $.PageType "repo" $.FilterRepoID "source" $.FilterSource "group" $groupParam "sort" $.SortType}}
 		<div class="flex-left-right tw-mb-[--page-spacing]">
 			<div class="small-menu-items ui compact tiny menu">
-				<a class="{{if not $pageTypeIsRead}}active{{end}} item" href="{{QueryBuild $notificationsLink "type" "unread" "repo" $.FilterRepoID "source" $.FilterSource "group" $groupParam}}">
+				<a class="{{if not $pageTypeIsRead}}active{{end}} item" href="{{QueryBuild $notificationsLink "type" "unread" "repo" $.FilterRepoID "source" $.FilterSource "group" $groupParam "sort" $.SortType}}">
 					{{ctx.Locale.Tr "notification.unread"}}
 					<div class="notifications-unread-count ui label {{if not $notificationUnreadCount}}tw-hidden{{end}}">{{$notificationUnreadCount}}</div>
 				</a>
-				<a class="{{if $pageTypeIsRead}}active{{end}} item" href="{{QueryBuild $notificationsLink "type" "read" "repo" $.FilterRepoID "source" $.FilterSource "group" $groupParam}}">
+				<a class="{{if $pageTypeIsRead}}active{{end}} item" href="{{QueryBuild $notificationsLink "type" "read" "repo" $.FilterRepoID "source" $.FilterSource "group" $groupParam "sort" $.SortType}}">
 					{{ctx.Locale.Tr "notification.read"}}
 				</a>
 			</div>
@@ -52,12 +52,21 @@
 							<a class="item{{if eq $.FilterSource "repository"}} selected{{end}}" href="{{QueryBuild $queryLink "source" "repository"}}">{{ctx.Locale.Tr "notification.filter_type_repository"}}</a>
 						</div>
 					</div>
+					<div class="ui dropdown jump item" data-test-id="notification-sort">
+						<span class="text">{{if $.SortType}}{{ctx.Locale.Tr "notification.sort_selected" (ctx.Locale.Tr (printf "notification.sort_%s" $.SortType))}}{{else}}{{ctx.Locale.Tr "notification.sort"}}{{end}}</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							<a class="item{{if not $.SortType}} selected{{end}}" href="{{QueryBuild $queryLink "sort" NIL}}">{{ctx.Locale.Tr "notification.sort_newest"}}</a>
+							<a class="item{{if eq $.SortType "reason"}} selected{{end}}" href="{{QueryBuild $queryLink "sort" "reason"}}">{{ctx.Locale.Tr "notification.sort_reason"}}</a>
+							<a class="item{{if eq $.SortType "type"}} selected{{end}}" href="{{QueryBuild $queryLink "sort" "type"}}">{{ctx.Locale.Tr "notification.sort_type"}}</a>
+						</div>
+					</div>
 				</div>
 				<a class="ui mini basic button{{if $.GroupByRepo}} active{{end}}" href="{{QueryBuild $queryLink "group" (Iif $.GroupByRepo "" "repo")}}"{{if $.GroupByRepo}} aria-current="true"{{end}} data-test-id="notification-group-repo">
 					{{svg "octicon-rows" 14}} {{ctx.Locale.Tr "notification.group_by_repo"}}
 				</a>
 				{{if $.IsFiltered}}
-					<a class="ui mini basic button" href="{{QueryBuild $notificationsLink "type" $.PageType "group" $groupParam}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
+					<a class="ui mini basic button" href="{{QueryBuild $notificationsLink "type" $.PageType "group" $groupParam "sort" $.SortType}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
 				{{end}}
 				{{if and (not $pageTypeIsRead) $notificationUnreadCount}}
 					{{$markAllTitle := Iif $.IsFiltered (ctx.Locale.Tr "notification.mark_all_filtered_as_read") (ctx.Locale.Tr "notification.mark_all_as_read")}}
@@ -88,7 +97,7 @@
 					{{svg "octicon-inbox" 56 "tw-mb-4"}}
 					{{if $.IsFiltered}}
 						{{ctx.Locale.Tr "notification.no_filtered"}}
-						<a href="{{QueryBuild $notificationsLink "type" $.PageType "group" $groupParam}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
+						<a href="{{QueryBuild $notificationsLink "type" $.PageType "group" $groupParam "sort" $.SortType}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
 					{{else if $pageTypeIsRead}}
 						{{ctx.Locale.Tr "notification.no_read"}}
 					{{else}}

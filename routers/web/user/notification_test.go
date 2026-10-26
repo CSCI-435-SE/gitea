@@ -52,6 +52,9 @@ func TestParseNotificationFilter(t *testing.T) {
 		{"?group=repo", notificationFilter{GroupByRepo: true}, false, "group=repo"}, // grouping is not a filter
 		{"?group=repo&repo=2", notificationFilter{RepoID: 2, GroupByRepo: true}, true, "group=repo&repo=2"},
 		{"?group=bogus", notificationFilter{}, false, ""},
+		{"?sort=reason", notificationFilter{Sort: activities_model.NotificationSortReason}, false, "sort=reason"}, // #52 AC7 sorting is not a filter either
+		{"?sort=type&group=repo&source=issue", notificationFilter{Source: "issue", GroupByRepo: true, Sort: activities_model.NotificationSortType}, true, "group=repo&sort=type&source=issue"},
+		{"?sort=bogus", notificationFilter{}, false, ""}, // #52 AC6 an unknown sort is newest first
 	}
 	for _, c := range cases {
 		t.Run(c.query, func(t *testing.T) {
@@ -77,6 +80,7 @@ func TestNotificationViewLink(t *testing.T) {
 	assert.Equal(t, "/notifications?page=3&repo=2&source=pull&type=read", notificationViewLink("read", 3, filter))
 	assert.Equal(t, "/notifications?repo=2&source=pull", notificationViewLink("bogus", 1, filter))
 	assert.Equal(t, "/notifications?group=repo&page=2&type=read", notificationViewLink("read", 2, notificationFilter{GroupByRepo: true}))
+	assert.Equal(t, "/notifications?sort=reason&type=read", notificationViewLink("read", 1, notificationFilter{Sort: activities_model.NotificationSortReason})) // #52 AC7 bulk redirects keep the sort
 }
 
 func TestGroupNotificationsByRepo(t *testing.T) {

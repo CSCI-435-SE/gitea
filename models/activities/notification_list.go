@@ -5,6 +5,7 @@ package activities
 
 import (
 	"context"
+	"strings"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -30,7 +31,8 @@ type FindNotificationOptions struct {
 	Source            []NotificationSource
 	UpdatedAfterUnix  int64
 	UpdatedBeforeUnix int64
-	GroupByRepo       bool // order by repository full name first, so each repository's rows are contiguous across pages
+	GroupByRepo       bool             // order by repository full name first, so each repository's rows are contiguous across pages
+	Sort              NotificationSort // "" is newest first; inside each repository when grouped
 }
 
 // ToCond will convert each condition into a xorm-Cond
@@ -78,23 +80,34 @@ func (opts FindNotificationOptions) ToJoins() []db.JoinFunc {
 }
 
 func (opts FindNotificationOptions) ToOrders() string {
+	var orders []string
 	if opts.GroupByRepo {
-		// case-insensitive like the repository filter's list; the id tiebreak keeps rows from moving between pages
-		return "LOWER(repository.owner_name), repository.lower_name, notification.updated_unix DESC, notification.id DESC"
+		orders = append(orders, "LOWER(repository.owner_name)", "repository.lower_name") // case-insensitive like the repository filter's list
 	}
-	return "notification.updated_unix DESC"
+	switch opts.Sort {
+	case NotificationSortReason:
+		orders = append(orders, "notification.reason DESC") // the reason's value is its rank
+	case NotificationSortType:
+		orders = append(orders, "notification.source") // issue, pull request, commit, repository: the type filter's order
+	}
+	if len(orders) == 0 {
+		return "notification.updated_unix DESC"
+	}
+	// the id tiebreak keeps rows from moving between pages
+	return strings.Join(append(orders, "notification.updated_unix DESC", "notification.id DESC"), ", ")
 }
 
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
 // receiverID > 0 just send to receiver, else send to all watcher
-func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
+// reason is why they are notified; an existing notification only takes it if it ranks higher
+func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64, reason NotificationReason) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		return createOrUpdateIssueNotifications(ctx, issueID, commentID, notificationAuthorID, receiverID)
+		return createOrUpdateIssueNotifications(ctx, issueID, commentID, notificationAuthorID, receiverID, reason)
 	})
 }
 
-func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
+func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64, reason NotificationReason) error {
 	// init
 	var toNotify container.Set[int64]
 	notifications, err := db.Find[Notification](ctx, FindNotificationOptions{
@@ -168,12 +181,12 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		}
 
 		if notificationExists(notifications, issue.ID, userID) {
-			if err = updateIssueNotification(ctx, userID, issue.ID, commentID, notificationAuthorID); err != nil {
+			if err = updateIssueNotification(ctx, userID, issue.ID, commentID, notificationAuthorID, reason); err != nil {
 				return err
 			}
 			continue
 		}
-		if err = createIssueNotification(ctx, userID, issue, commentID, notificationAuthorID); err != nil {
+		if err = createIssueNotification(ctx, userID, issue, commentID, notificationAuthorID, reason); err != nil {
 			return err
 		}
 	}
