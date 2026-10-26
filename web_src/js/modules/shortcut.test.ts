@@ -1,4 +1,4 @@
-import {ShortcutRegistry, getShortcuts, initGlobalShortcut, initShortcutKbd, initShortcutLink} from './shortcut.ts';
+import {ShortcutRegistry, getShortcuts, groupShortcuts, initGlobalShortcut, initShortcutHelp, initShortcutKbd, initShortcutLink} from './shortcut.ts';
 
 function setup() {
   const registry = new ShortcutRegistry();
@@ -189,6 +189,21 @@ describe('ShortcutRegistry', {concurrent: false}, () => {
   });
 });
 
+describe('groupShortcuts', () => {
+  test('#57 AC5 groups by section in order of first appearance, the default section first', () => {
+    const groups = groupShortcuts([
+      {keys: 's', description: 'Search code…', section: 'Repository'},
+      {keys: 'x', description: 'No section'},
+      {keys: 'r', description: 'Quote reply', section: 'Issue'},
+      {keys: 't', description: 'Go to file', section: 'Repository'},
+      {keys: '?', description: 'Show keyboard shortcuts', section: 'General'},
+    ], 'General');
+    expect(Array.from(groups.keys())).toEqual(['General', 'Repository', 'Issue']);
+    expect(groups.get('General')!.map((s) => s.keys)).toEqual(['x', '?']);
+    expect(groups.get('Repository')!.map((s) => s.keys)).toEqual(['s', 't']);
+  });
+});
+
 // the markup of templates/repo/home_sidebar_top.tmpl and RepoFileSearch.vue
 function renderHint(key: string, placeholder: string, section?: string) {
   const wrapper = document.createElement('div');
@@ -200,6 +215,18 @@ function renderHint(key: string, placeholder: string, section?: string) {
   if (section) kbd.setAttribute('data-shortcut-section', section);
   initShortcutKbd(kbd);
   return {wrapper, input, kbd};
+}
+
+// the markup of templates/base/footer.tmpl
+function renderHelpDialog() {
+  const dialog = document.createElement('dialog');
+  dialog.setAttribute('data-shortcut-keys', '?');
+  dialog.setAttribute('data-shortcut-description', 'Show keyboard shortcuts');
+  dialog.setAttribute('data-shortcut-section', 'General');
+  dialog.innerHTML = `<form method="dialog"><h2>Keyboard shortcuts</h2><button aria-label="Close">x</button></form><div class="shortcut-help-sections"></div>`;
+  document.body.append(dialog);
+  initShortcutHelp(dialog);
+  return dialog;
 }
 
 // a tab link, whose text also holds an open count
@@ -304,5 +331,39 @@ describe('shortcut hints and links', {concurrent: false}, () => {
   test('#58 AC8 a link is listed with its own description, not its text, and its section', () => {
     renderLink('g i', 'https://gitea.example/owner/repo/issues', 'Issues', 'Repository');
     expect(getShortcuts()).toEqual([{keys: 'g i', description: 'Issues', section: 'Repository'}]);
+  });
+
+  test('#57 AC1 AC5 ? opens a dialog that lists the shortcuts on the page by section', () => {
+    renderHint('s', 'Search <code>', 'Repository');
+    const dialog = renderHelpDialog();
+    const button = document.createElement('button');
+    document.body.append(button);
+    button.focus();
+    expect(press(button, '?', {shiftKey: true}).defaultPrevented).toBe(true);
+    expect(dialog.open).toBe(true);
+    const sections = Array.from(dialog.querySelectorAll('section'), (section) => ({
+      heading: section.querySelector('h3')!.textContent,
+      rows: Array.from(section.querySelectorAll('.shortcut-help-row'), (row) => [row.querySelector('dd')!.textContent, row.querySelector('dt')!.textContent]),
+    }));
+    expect(sections).toEqual([
+      {heading: 'General', rows: [['?', 'Show keyboard shortcuts']]},
+      {heading: 'Repository', rows: [['S', 'Search <code>']]}, // the description is text, not markup
+    ]);
+
+    dialog.close();
+    expect(document.activeElement).toBe(button);
+  });
+
+  test('#57 AC7 AC8 while the dialog is open, no shortcut runs, ? included', () => {
+    const {input} = renderHint('s', 'Search code…');
+    const dialog = renderHelpDialog();
+    press(document.body, '?', {shiftKey: true});
+    const rows = dialog.querySelectorAll('.shortcut-help-row').length;
+    expect(press(dialog, 's').defaultPrevented).toBe(false);
+    expect(document.activeElement).not.toBe(input);
+    expect(press(document.body, '?', {shiftKey: true}).defaultPrevented).toBe(false);
+    expect(dialog.open).toBe(true);
+    expect(dialog.querySelectorAll('.shortcut-help-row')).toHaveLength(rows);
+    dialog.close();
   });
 });

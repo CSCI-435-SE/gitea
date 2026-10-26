@@ -274,3 +274,34 @@ test('Escape closes the commit picker that c opened while its commits load', asy
   await expect(menu).toBeHidden(); // the late commits don't reopen it
   await assertNoJsError(page);
 });
+
+test('? opens a dialog of the page\'s shortcuts, and Escape returns focus', async ({page}) => {
+  await page.goto(await createRepo(page));
+  const search = page.locator('.repo-home-sidebar-top input[name="q"]');
+  await expect(page.locator('.repo-file-search-container kbd')).toHaveAttribute('aria-keyshortcuts', 't'); // the Vue box has mounted and registered
+
+  await search.focus();
+  await page.keyboard.type('a?');
+  await expect(search).toHaveValue('a?'); // typed into the box, no dialog
+  const dialog = page.getByRole('dialog', {name: 'Keyboard shortcuts'});
+  await expect(dialog).toBeHidden();
+  await page.keyboard.press('Escape'); // clears and leaves the box
+
+  const opener = page.locator('.repo-home-sidebar-top form button');
+  await opener.focus();
+  await page.keyboard.press('?');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('heading', {name: 'General'})).toBeVisible();
+  await expect(dialog.locator('.shortcut-help-row')).toContainText(['Show keyboard shortcuts', 'Search code…', 'Go to file']);
+
+  await page.keyboard.press('s'); // the page behind the dialog takes no shortcuts
+  await expect(search).not.toBeFocused();
+  await page.keyboard.press('g'); // inertness alone stops s, but g i would navigate away and fail the focus check below
+  await page.keyboard.press('i');
+  await expect(dialog).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(opener).toBeFocused();
+  await assertNoJsError(page);
+});
