@@ -30,6 +30,7 @@ type FindNotificationOptions struct {
 	Source            []NotificationSource
 	UpdatedAfterUnix  int64
 	UpdatedBeforeUnix int64
+	GroupByRepo       bool // order by repository full name first, so each repository's rows are contiguous across pages
 }
 
 // ToCond will convert each condition into a xorm-Cond
@@ -66,7 +67,21 @@ func (opts FindNotificationOptions) ToConds() builder.Cond {
 	return cond
 }
 
+func (opts FindNotificationOptions) ToJoins() []db.JoinFunc {
+	if opts.GroupByRepo {
+		return []db.JoinFunc{func(sess db.Engine) error {
+			sess.Join("INNER", "repository", "repository.id = notification.repo_id")
+			return nil
+		}}
+	}
+	return nil
+}
+
 func (opts FindNotificationOptions) ToOrders() string {
+	if opts.GroupByRepo {
+		// case-insensitive like the repository filter's list; the id tiebreak keeps rows from moving between pages
+		return "LOWER(repository.owner_name), repository.lower_name, notification.updated_unix DESC, notification.id DESC"
+	}
 	return "notification.updated_unix DESC"
 }
 

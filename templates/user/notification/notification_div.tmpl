@@ -1,22 +1,22 @@
 <div role="main" aria-label="{{.Title}}" class="page-content user notification" id="notification_div" data-sequence-number="{{.SequenceNumber}}"
 	data-global-init="initNotificationBulkActions" data-view-key="{{.ViewKey}}" data-view-count="{{.ViewCount}}"
-	data-bulk-url="{{QueryBuild (print AppSubUrl "/notifications/bulk") "type" $.PageType "page" $.Page.Paginater.Current "repo" $.FilterRepoID "source" $.FilterSource}}"
+	data-bulk-url="{{QueryBuild (print AppSubUrl "/notifications/bulk") "type" $.PageType "page" $.Page.Paginater.Current "repo" $.FilterRepoID "source" $.FilterSource "group" (Iif $.GroupByRepo "repo" "")}}"
 >
 	<div class="ui container">
 		{{template "base/alert" .}}
-		{{$statusUnread := 1}}{{$statusRead := 2}}{{$statusPinned := 3}}
 		{{$notificationUnreadCount := .FilteredUnreadCount}}{{/* the navbar badge stays global */}}
 		{{$pageTypeIsRead := eq $.PageType "read"}}
-		{{$filterQuery := QueryBuild "repo" $.FilterRepoID "source" $.FilterSource}}
+		{{$groupParam := Iif $.GroupByRepo "repo" ""}}{{/* a view setting, kept by every link like the filters */}}
+		{{$filterQuery := QueryBuild "repo" $.FilterRepoID "source" $.FilterSource "group" $groupParam}}
 		{{$notificationsLink := print AppSubUrl "/notifications"}}{{/* a path prefix lets QueryBuild drop the "?" when every param is empty */}}
-		{{$queryLink := QueryBuild $notificationsLink "type" $.PageType "repo" $.FilterRepoID "source" $.FilterSource}}
+		{{$queryLink := QueryBuild $notificationsLink "type" $.PageType "repo" $.FilterRepoID "source" $.FilterSource "group" $groupParam}}
 		<div class="flex-left-right tw-mb-[--page-spacing]">
 			<div class="small-menu-items ui compact tiny menu">
-				<a class="{{if not $pageTypeIsRead}}active{{end}} item" href="{{QueryBuild $notificationsLink "type" "unread" "repo" $.FilterRepoID "source" $.FilterSource}}">
+				<a class="{{if not $pageTypeIsRead}}active{{end}} item" href="{{QueryBuild $notificationsLink "type" "unread" "repo" $.FilterRepoID "source" $.FilterSource "group" $groupParam}}">
 					{{ctx.Locale.Tr "notification.unread"}}
 					<div class="notifications-unread-count ui label {{if not $notificationUnreadCount}}tw-hidden{{end}}">{{$notificationUnreadCount}}</div>
 				</a>
-				<a class="{{if $pageTypeIsRead}}active{{end}} item" href="{{QueryBuild $notificationsLink "type" "read" "repo" $.FilterRepoID "source" $.FilterSource}}">
+				<a class="{{if $pageTypeIsRead}}active{{end}} item" href="{{QueryBuild $notificationsLink "type" "read" "repo" $.FilterRepoID "source" $.FilterSource "group" $groupParam}}">
 					{{ctx.Locale.Tr "notification.read"}}
 				</a>
 			</div>
@@ -53,12 +53,15 @@
 						</div>
 					</div>
 				</div>
+				<a class="ui mini basic button{{if $.GroupByRepo}} active{{end}}" href="{{QueryBuild $queryLink "group" (Iif $.GroupByRepo "" "repo")}}"{{if $.GroupByRepo}} aria-current="true"{{end}} data-test-id="notification-group-repo">
+					{{svg "octicon-rows" 14}} {{ctx.Locale.Tr "notification.group_by_repo"}}
+				</a>
 				{{if $.IsFiltered}}
-					<a class="ui mini basic button" href="{{QueryBuild $notificationsLink "type" $.PageType}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
+					<a class="ui mini basic button" href="{{QueryBuild $notificationsLink "type" $.PageType "group" $groupParam}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
 				{{end}}
 				{{if and (not $pageTypeIsRead) $notificationUnreadCount}}
 					{{$markAllTitle := Iif $.IsFiltered (ctx.Locale.Tr "notification.mark_all_filtered_as_read") (ctx.Locale.Tr "notification.mark_all_as_read")}}
-					<form action="{{AppSubUrl}}/notifications/purge{{if $.IsFiltered}}?{{$filterQuery}}{{end}}" method="post">
+					<form action="{{AppSubUrl}}/notifications/purge{{if $filterQuery}}?{{$filterQuery}}{{end}}" method="post">
 						<button class="ui mini button primary tw-mr-0" title="{{$markAllTitle}}" aria-label="{{$markAllTitle}}">
 							{{svg "octicon-checklist"}}
 						</button>
@@ -79,77 +82,45 @@
 				</div>
 			</div>
 		{{end}}
-		<div id="notification_table">
-			{{range $one := .Notifications}}
-				<div class="notifications-item" id="notification_{{$one.ID}}" data-status="{{$one.Status}}">
-					<input type="checkbox" autocomplete="off" class="notification-checkbox" data-notification-id="{{$one.ID}}" aria-label="{{ctx.Locale.Tr "notification.select_notification"}}">
-					<div class="tw-self-start tw-mt-[2px]">
-						{{if $one.Issue}}
-							{{template "shared/issueicon" $one.Issue}}
-						{{else}}
-							{{svg "octicon-repo" 16 "tw-text-text-light"}}
-						{{end}}
-					</div>
-					<a class="notifications-link silenced tw-flex-1" href="{{$one.Link ctx}}">
-						<div class="flex-text-block tw-text-[0.95em]">
-							{{$one.Repository.FullName}} {{if $one.Issue}}<span class="tw-text-text-light-3">#{{$one.Issue.Index}}</span>{{end}}
-							{{if eq $one.Status $statusPinned}}
-								{{svg "octicon-pin" 13 "tw-text-blue"}}
-							{{end}}
-						</div>
-						<div class="tw-text-16 tw-py-0.5">
-							{{if $one.Issue}}
-								{{$one.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}
-							{{else}}
-								{{$one.Repository.FullName}}
-							{{end}}
-						</div>
-					</a>
-					<div class="notifications-updated flex-text-inline">
-						{{if $one.Issue}}
-							{{DateUtils.TimeSince $one.Issue.UpdatedUnix}}
-						{{else}}
-							{{DateUtils.TimeSince $one.UpdatedUnix}}
-						{{end}}
-					</div>
-					<form class="notifications-buttons form-fetch-action" action="{{AppSubUrl}}/notifications/status?type={{$.PageType}}&page={{$.Page.Paginater.Current}}&perPage={{$.Page.Paginater.PagingNum}}{{if $.IsFiltered}}&{{$filterQuery}}{{end}}" method="post"
-								data-fetch-sync="$body #notification_div"
-					>
-						<input type="hidden" name="notification_id" value="{{$one.ID}}">
-						{{if ne $one.Status $statusPinned}}
-							<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "notification.pin"}}"
-											name="notification_action" value="pin"
-							>
-								{{svg "octicon-pin"}}
-							</button>
-						{{end}}
-						{{if or (eq $one.Status $statusUnread) (eq $one.Status $statusPinned)}}
-							<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "notification.mark_as_read"}}"
-											name="notification_action" value="mark_as_read"
-							>
-								{{svg "octicon-check"}}
-							</button>
-						{{else if eq $one.Status $statusRead}}
-							<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "notification.mark_as_unread"}}"
-											name="notification_action" value="mark_as_unread"
-							>
-								{{svg "octicon-bell"}}
-							</button>
-						{{end}}
-					</form>
-				</div>
-			{{else}}
+		<div id="notification_table"{{if $.GroupByRepo}} data-global-init="initNotificationGroups"{{end}}>
+			{{if not .Notifications}}
 				<div class="empty-placeholder">
 					{{svg "octicon-inbox" 56 "tw-mb-4"}}
 					{{if $.IsFiltered}}
 						{{ctx.Locale.Tr "notification.no_filtered"}}
-						<a href="{{QueryBuild $notificationsLink "type" $.PageType}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
+						<a href="{{QueryBuild $notificationsLink "type" $.PageType "group" $groupParam}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
 					{{else if $pageTypeIsRead}}
 						{{ctx.Locale.Tr "notification.no_read"}}
 					{{else}}
 						{{ctx.Locale.Tr "notification.no_unread"}}
 					{{end}}
 				</div>
+			{{else if $.GroupByRepo}}
+				{{range $group := .NotificationGroups}}
+					<div class="notification-group" data-repo-id="{{$group.Repo.ID}}">
+						<div class="notification-group-header flex-text-block">
+							<button type="button" class="notification-group-toggle btn interact-bg tw-p-1" aria-expanded="true" aria-controls="notification-group-rows-{{$group.Repo.ID}}" aria-label="{{ctx.Locale.Tr "notification.group_toggle" $group.Repo.FullName}}">
+								{{svg "octicon-chevron-down"}}
+							</button>
+							<a class="silenced tw-font-semibold" href="{{$group.Repo.Link}}">{{$group.Repo.FullName}}</a>
+							{{if $group.Continued}}
+								<span class="tw-text-text-light-2">{{ctx.Locale.Tr "notification.group_continued"}}</span>
+							{{end}}
+							{{if $group.UnreadCount}}
+								<span class="ui tiny label">{{ctx.Locale.Tr "notification.group_unread_count" $group.UnreadCount}}</span>
+							{{end}}
+						</div>
+						<div class="notification-group-rows" id="notification-group-rows-{{$group.Repo.ID}}">
+							{{range $one := $group.Notifications}}
+								{{template "user/notification/notification_item" dict "Root" $ "Notification" $one "FilterQuery" $filterQuery}}
+							{{end}}
+						</div>
+					</div>
+				{{end}}
+			{{else}}
+				{{range $one := .Notifications}}
+					{{template "user/notification/notification_item" dict "Root" $ "Notification" $one "FilterQuery" $filterQuery}}
+				{{end}}
 			{{end}}
 		</div>
 		{{template "base/paginate" .}}

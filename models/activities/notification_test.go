@@ -171,6 +171,49 @@ func TestFindNotificationRepoIDs(t *testing.T) {
 	assert.Empty(t, none)
 }
 
+func TestFindNotificationsGroupByRepo(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ids := func(opts activities_model.FindNotificationOptions) []int64 {
+		nls, err := db.Find[activities_model.Notification](t.Context(), opts)
+		assert.NoError(t, err)
+		ids := make([]int64, 0, len(nls))
+		for _, n := range nls {
+			ids = append(ids, n.ID)
+		}
+		return ids
+	}
+
+	// #5 (user2/repo2) is user2's newest, so it leads the ungrouped list but follows all of user2/repo1 when grouped
+	assert.Equal(t, []int64{5, 4, 3, 2}, ids(activities_model.FindNotificationOptions{UserID: 2}))
+	assert.Equal(t, []int64{4, 3, 2, 5}, ids(activities_model.FindNotificationOptions{UserID: 2, GroupByRepo: true}))
+
+	page2 := ids(activities_model.FindNotificationOptions{UserID: 2, GroupByRepo: true, ListOptions: db.ListOptions{Page: 2, PageSize: 2}})
+	assert.Equal(t, []int64{2, 5}, page2) // the order holds across pages
+}
+
+func TestCountNotificationsByRepo(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	unread, err := activities_model.CountNotificationsByRepo(t.Context(), activities_model.FindNotificationOptions{
+		UserID: 2,
+		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, map[int64]int64{1: 1, 2: 1}, unread)
+
+	filtered, err := activities_model.CountNotificationsByRepo(t.Context(), activities_model.FindNotificationOptions{UserID: 2, RepoID: 1})
+	assert.NoError(t, err)
+	assert.Equal(t, map[int64]int64{1: 3}, filtered)
+
+	none, err := activities_model.CountNotificationsByRepo(t.Context(), activities_model.FindNotificationOptions{
+		UserID: 2,
+		Source: []activities_model.NotificationSource{activities_model.NotificationSourceCommit},
+	})
+	assert.NoError(t, err)
+	assert.Empty(t, none)
+}
+
 func TestSetIssueReadBy(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})

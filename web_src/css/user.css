@@ -135,6 +135,22 @@
   padding: 0 calc(1em + 1px); /* lines the page checkbox up with the row checkboxes inside the bordered table */
 }
 
+.notification-group-header {
+  padding: 0.5em 1em;
+  background: var(--color-box-header);
+  cursor: pointer; /* the whole header toggles its section, not only the chevron */
+}
+
+/* the rule sits on the rows, so a collapsed section doesn't draw a doubled border against the next header */
+.notification-group-rows,
+.notification-group + .notification-group {
+  border-top: 1px solid var(--color-secondary);
+}
+
+.notification-group-toggle[aria-expanded="false"] svg {
+  transform: rotate(-90deg);
+}
+
 .notifications-item {
   display: flex;
   align-items: center;
