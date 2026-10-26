@@ -102,10 +102,32 @@ func prepareUserNotificationsData(ctx *context.Context) {
 		Page:     page,
 	}
 	findOpts.Status = []activities_model.NotificationStatus{queryStatus, activities_model.NotificationStatusPinned}
+	findOpts.GroupByRepo = filter.GroupByRepo
 	nls, err := db.Find[activities_model.Notification](ctx, findOpts)
 	if err != nil {
 		ctx.ServerError("db.Find[activities_model.Notification]", err)
 		return
+	}
+
+	var prevPageRepoID int64 // the repository of the previous page's last row, to mark a section that continues
+	var groupUnreadCounts map[int64]int64
+	if filter.GroupByRepo {
+		if page > 1 {
+			prevOpts := findOpts
+			prevOpts.ListOptions = db.ListOptions{PageSize: 1, Page: (page - 1) * perPage} // the row just before this page
+			prev, err := db.Find[activities_model.Notification](ctx, prevOpts)
+			if err != nil {
+				ctx.ServerError("db.Find[activities_model.Notification]", err)
+				return
+			}
+			if len(prev) > 0 {
+				prevPageRepoID = prev[0].RepoID
+			}
+		}
+		if groupUnreadCounts, err = activities_model.CountNotificationsByRepo(ctx, unreadOpts); err != nil {
+			ctx.ServerError("CountNotificationsByRepo", err)
+			return
+		}
 	}
 
 	notifications := activities_model.NotificationList(nls)
@@ -159,6 +181,10 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("notifications")
 	ctx.Data["PageType"] = pageType
 	ctx.Data["Notifications"] = notifications
+	ctx.Data["GroupByRepo"] = filter.GroupByRepo
+	if filter.GroupByRepo {
+		ctx.Data["NotificationGroups"] = groupNotificationsByRepo(notifications, prevPageRepoID, groupUnreadCounts)
+	}
 	ctx.Data["Link"] = setting.AppSubURL + "/notifications"
 	ctx.Data["SequenceNumber"] = ctx.FormString("sequence-number")
 	ctx.Data["FilterRepoID"] = filter.RepoID
@@ -198,6 +224,31 @@ func filterNotificationsByRepoAccess(ctx stdCtx.Context, doer *user_model.User, 
 	return notifications.Without(failures), failures, nil
 }
 
+// notificationGroup is one repository's section of the grouped notification list
+type notificationGroup struct {
+	Repo          *repo_model.Repository
+	UnreadCount   int64 // across every page of the view, not only this one
+	Continued     bool  // the section started on the previous page
+	Notifications activities_model.NotificationList
+}
+
+// groupNotificationsByRepo splits a page already ordered by repository into one section per repository
+func groupNotificationsByRepo(notifications activities_model.NotificationList, prevPageRepoID int64, unreadCounts map[int64]int64) []*notificationGroup {
+	groups := make([]*notificationGroup, 0, 4)
+	for _, n := range notifications {
+		if len(groups) == 0 || groups[len(groups)-1].Repo.ID != n.RepoID {
+			groups = append(groups, &notificationGroup{
+				Repo:        n.Repository,
+				UnreadCount: unreadCounts[n.RepoID],
+				Continued:   len(groups) == 0 && n.RepoID == prevPageRepoID,
+			})
+		}
+		last := groups[len(groups)-1]
+		last.Notifications = append(last.Notifications, n)
+	}
+	return groups
+}
+
 // notificationSourceParams maps the "source" query value to the notification source it selects
 var notificationSourceParams = map[string]activities_model.NotificationSource{
 	"issue":      activities_model.NotificationSourceIssue,
@@ -206,14 +257,15 @@ var notificationSourceParams = map[string]activities_model.NotificationSource{
 	"repository": activities_model.NotificationSourceRepository,
 }
 
-// notificationFilter is the repository and type filter of the notifications page
+// notificationFilter is the repository and type filter of the notifications page, plus its grouping
 type notificationFilter struct {
-	RepoID int64
-	Source string // a key of notificationSourceParams, or "" for any
+	RepoID      int64
+	Source      string // a key of notificationSourceParams, or "" for any
+	GroupByRepo bool   // a view setting, not a filter: it never hides a notification
 }
 
 func parseNotificationFilter(ctx *context.Context) notificationFilter {
-	filter := notificationFilter{RepoID: max(0, ctx.FormInt64("repo"))}
+	filter := notificationFilter{RepoID: max(0, ctx.FormInt64("repo")), GroupByRepo: ctx.FormString("group") == "repo"}
 	if source := ctx.FormString("source"); notificationSourceParams[source] != 0 {
 		filter.Source = source // unknown values are ignored rather than matching nothing
 	}
@@ -240,6 +292,9 @@ func (f notificationFilter) queryValues() url.Values {
 	}
 	if f.Source != "" {
 		q.Set("source", f.Source)
+	}
+	if f.GroupByRepo {
+		q.Set("group", "repo")
 	}
 	return q
 }
