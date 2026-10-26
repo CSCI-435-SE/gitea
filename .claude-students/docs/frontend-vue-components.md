@@ -1,6 +1,6 @@
 ---
 scope: web_src/js/components
-verified-at: 084d5e605c
+verified-at: c0092050a4
 ---
 
 # web_src/js/components — the Vue 3 components
@@ -61,11 +61,6 @@ sibling `.ts` with a `.test.ts`.
 
 **Give a component server data.** Small values as `data-*` attributes on the mount point; anything
 structured via `ctx.PageData` in the handler, read as `window.config.pageData`.
-
-**Give a component a keyboard shortcut.** Call `registerShortcut` (`web_src/js/modules/shortcut.ts`)
-in `mounted()` with `element: this.$el`, so it lives exactly as long as the component, and let the
-action use the component's own state: `web_src/js/components/DiffCommitSelector.vue` opens its menu
-on `c` but never closes it. A translated section arrives as `data-shortcut-section` on the mount point.
 
 **Test one.** `pnpm exec vitest <name>` (`testing.md`).
 

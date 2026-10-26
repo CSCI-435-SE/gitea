@@ -3,7 +3,6 @@ import {defineComponent} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {generateElemId} from '../utils/dom.ts';
-import {registerShortcut} from '../modules/shortcut.ts';
 
 type Commit = {
   id: string,
@@ -34,7 +33,6 @@ export default defineComponent({
         filter_changes_by_commit: el.getAttribute('data-filter_changes_by_commit'),
       } as Record<string, string>,
       mergeBase: el.getAttribute('data-merge-base'),
-      shortcutSection: el.getAttribute('data-shortcut-section')!,
       commits: [] as Array<Commit>,
       hoverActivated: false,
       lastReviewCommitSha: '' as string | null,
@@ -54,17 +52,6 @@ export default defineComponent({
     document.body.addEventListener('click', this.onBodyClick);
     this.$el.addEventListener('keydown', this.onKeyDown);
     this.$el.addEventListener('keyup', this.onKeyUp);
-    registerShortcut({
-      keys: 'c',
-      description: this.locale.filter_changes_by_commit,
-      section: this.shortcutSection,
-      element: this.$el,
-      action: () => {
-        if (this.menuVisible) return; // opens like a click, but never closes an open menu
-        (this.$refs.expandBtn as HTMLElement).focus(); // so Escape and the arrow keys reach the picker while its commits load
-        this.toggleMenu();
-      },
-    });
   },
   unmounted() {
     document.body.removeEventListener('click', this.onBodyClick);
