@@ -217,7 +217,7 @@ func TestFindNotificationsSort(t *testing.T) {
 
 	// user2's notifications: #2 read, #3 pinned and #4 unread in user2/repo1, #5 unread in user2/repo2, newest last
 	set := func(id int64, reason activities_model.NotificationReason, source activities_model.NotificationSource) {
-		_, err := db.GetEngine(t.Context()).ID(id).Cols("reason", "source").Update(&activities_model.Notification{Reason: reason, Source: source})
+		_, err := db.GetEngine(t.Context()).ID(id).Cols("reason", "source").NoAutoTime().Update(&activities_model.Notification{Reason: reason, Source: source}) // keeps the fixtures' times, which set the newest-first order
 		assert.NoError(t, err)
 	}
 	set(2, activities_model.NotificationReasonSubscribed, activities_model.NotificationSourceIssue)

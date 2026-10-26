@@ -34,9 +34,14 @@ func TestNotificationReason(t *testing.T) {
 	reasonOf := func(userID, issueID int64) activities_model.NotificationReason {
 		return unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: userID, IssueID: issueID}).Reason
 	}
+	loadIssue := func(id int64) *issues_model.Issue {
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: id})
+		require.NoError(t, issue.LoadAttributes(t.Context())) // the services read issue.Repo
+		return issue
+	}
 
 	t.Run("ReviewRequestedOutranksALaterComment", func(t *testing.T) {
-		pull := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+		pull := loadIssue(2)
 		_, err := issue_service.ReviewRequest(t.Context(), pull, user2, nil, user4, true)
 		require.NoError(t, err)
 		assert.Equal(t, activities_model.NotificationReasonReviewRequested, reasonOf(4, pull.ID)) // #52 AC1
@@ -47,7 +52,7 @@ func TestNotificationReason(t *testing.T) {
 	})
 
 	t.Run("Assigned", func(t *testing.T) {
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 5})
+		issue := loadIssue(5)
 		removed, _, err := issue_service.ToggleAssigneeWithNotify(t.Context(), issue, user2, user4.ID)
 		require.NoError(t, err)
 		require.False(t, removed)
@@ -55,7 +60,7 @@ func TestNotificationReason(t *testing.T) {
 	})
 
 	t.Run("MentionedAndSubscribed", func(t *testing.T) {
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+		issue := loadIssue(1)
 		_, err := issue_service.CreateIssueComment(t.Context(), user2, repo1, issue, "cc @user5", nil)
 		require.NoError(t, err)
 		assert.Equal(t, activities_model.NotificationReasonMentioned, reasonOf(5, issue.ID))  // #52 AC1
@@ -68,7 +73,7 @@ func TestNotificationSort(t *testing.T) {
 
 	// user2's notifications: #2 read, #3 pinned and #4 unread in user2/repo1, #5 unread in user2/repo2; #5 is the newest
 	set := func(id int64, reason activities_model.NotificationReason, source activities_model.NotificationSource) {
-		_, err := db.GetEngine(t.Context()).ID(id).Cols("reason", "source").Update(&activities_model.Notification{Reason: reason, Source: source})
+		_, err := db.GetEngine(t.Context()).ID(id).Cols("reason", "source").NoAutoTime().Update(&activities_model.Notification{Reason: reason, Source: source}) // keeps the fixtures' times, which set the newest-first order
 		require.NoError(t, err)
 	}
 	set(2, activities_model.NotificationReasonSubscribed, activities_model.NotificationSourceIssue)

@@ -39,14 +39,11 @@ func Test_AddReasonToNotification(t *testing.T) {
 
 	require.NoError(t, AddReasonToNotification(x))
 
-	var after []struct {
-		notificationBeforeReason `xorm:"extends"`
-		Reason                   int
-	}
+	var after []notificationBeforeReason
 	require.NoError(t, x.Table("notification").Asc("id").Find(&after))
-	require.Len(t, after, len(before))
-	for i, n := range after {
-		assert.Zero(t, n.Reason, "#52 AC3 notification %d is Other", n.ID)
-		assert.Equal(t, before[i], n.notificationBeforeReason, "#52 AC3 nothing else about notification %d changes", n.ID)
-	}
+	assert.Equal(t, before, after) // #52 AC3 nothing else changes
+
+	var reasons []int
+	require.NoError(t, x.Table("notification").Asc("id").Cols("reason").Find(&reasons))
+	assert.Equal(t, []int{0, 0, 0, 0}, reasons) // #52 AC3 every existing notification is "Other"
 }
