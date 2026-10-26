@@ -1,0 +1,50 @@
+sequenceDiagram
+  actor User
+  participant Doc as document «browser»
+  participant Obs as observer.ts «module»
+  participant Help as initShortcutHelp ★ «function»
+  participant Reg as globalRegistry : ShortcutRegistry ✎
+  participant Dlg as dialog.shortcut-help ★ «DOM»
+
+  Note over Obs,Dlg: Page load
+  Obs->>Help: callGlobalInitFunc(dialog) for data-global-init="onShortcutHelp"
+  rect rgb(227,241,231)
+  Help->>Dlg: getAttribute("data-shortcut-keys" / "-description" / "-section")
+  Dlg-->>Help: "?", "Show keyboard shortcuts", "General"
+  Help->>Reg: register({keys: "?", section: "General", element: dialog, action})
+  end
+  Note right of Dlg: ② Text from the server<br>The template rendered these locale strings, so the script needs no i18n of its own (AC6).
+
+  Note over User,Dlg: User presses ? (focus on a button, not in a field)
+  User->>Doc: keydown "?"
+  Doc->>Reg: handleKeyDown(e)
+  Reg->>Reg: guards: field? modifier? dialog[open]? — none apply
+  Reg->>Reg: matchKeys("?") → the ? shortcut
+  Reg->>Reg: e.preventDefault()
+  rect rgb(227,241,231)
+  Reg->>Help: action()
+  Help->>Reg: getShortcuts() via list()
+  Reg-->>Help: ShortcutInfo[] (only live elements)
+  Help->>Help: groupShortcuts(list, "General") → Map
+  Help->>Dlg: .shortcut-help-sections innerHTML = html`…` rows
+  Help->>Dlg: addEventListener("close", focus opener, {once: true})
+  Help->>Dlg: showModal()
+  end
+  Note right of Dlg: ① Native dialog<br>showModal() makes the page inert (AC3), and focus moves to the close button.
+  Dlg-->>User: "Keyboard shortcuts" dialog, grouped by section
+
+  User->>Doc: keydown "s"
+  Doc->>Reg: handleKeyDown(e)
+  rect rgb(253,236,236)
+  Reg->>Reg: dialog[open] found → return, no preventDefault
+  end
+  Note right of Reg: ④ Guard in the registry<br>The page behind takes no shortcut (AC8), and ? again leaves the dialog as it is (AC7).
+
+  User->>Dlg: keydown Escape
+  Dlg->>Dlg: cancel, then close (browser)
+  rect rgb(227,241,231)
+  Dlg->>Help: "close" listener runs
+  Help->>Doc: opener.focus()
+  end
+  Note right of Dlg: ⑤ Focus restore<br>Browsers differ on where focus goes after close, so the listener restores it (AC2).
+  Doc-->>User: focus back on the button

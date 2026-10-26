@@ -1,0 +1,110 @@
+classDiagram
+  direction TB
+  class footer_tmpl["footer.tmpl"] {
+    <<template>>
+    +renders dialog.shortcut-help ★
+  }
+  class help_dialog["dialog.shortcut-help"] {
+    <<DOM element>>
+    +aria-labelledby = "shortcut-help-title"
+    +data-global-init = "onShortcutHelp"
+    +data-shortcut-keys = "?"
+    +data-shortcut-description
+    +data-shortcut-section
+    +form[method=dialog] close button
+    +.shortcut-help-sections
+  }
+  class locale["locale_en-US.json"] {
+    <<resource>>
+    +shortcuts.general
+    +shortcuts.help.title ★
+    +shortcuts.help.show ★
+    +shortcuts.help.close ★
+  }
+  class HTMLDialogElement {
+    <<DOM>>
+    +open : boolean
+    +showModal() void
+    +close() void
+  }
+  class HTMLElement {
+    <<DOM>>
+    +isConnected : boolean
+    +focus() void
+  }
+  class observer_ts["observer.ts"] {
+    <<module>>
+    +registerGlobalInitFunc(name, handler) void
+  }
+  class html_ts["html.ts"] {
+    <<module>>
+    +html(tmpl, ...parts) string
+    +htmlRaw(s) rawObject
+  }
+  class shortcut_ts["shortcut.ts"] {
+    <<module>>
+    -globalRegistry : ShortcutRegistry
+    +initGlobalShortcut() void ✎
+    +registerShortcut(s : Shortcut) void
+    +getShortcuts() ShortcutInfo[]
+    +groupShortcuts(list, defaultSection) Map ★
+    +initShortcutHelp(dialog) void ★
+    -renderShortcutKeys(keys) string ★
+  }
+  class ShortcutRegistry {
+    <<class>>
+    -shortcuts : Shortcut[]
+    +register(s : Shortcut) void
+    +list() ShortcutInfo[]
+    +handleKeyDown(e : KeyboardEvent) void ✎
+  }
+  class Shortcut {
+    <<type>>
+    +keys : string
+    +description : string
+    +section? : string
+    +element? : HTMLElement
+    +action() void
+  }
+  class ShortcutInfo {
+    <<type>>
+    +keys : string
+    +description : string
+    +section? : string
+  }
+
+  footer_tmpl "1" *-- "1" help_dialog : renders
+  footer_tmpl ..> locale : ctx.Locale.Tr
+  HTMLDialogElement <|-- help_dialog
+  HTMLElement <|-- HTMLDialogElement
+  help_dialog ..> shortcut_ts : data-global-init
+  shortcut_ts ..> observer_ts : registerGlobalInitFunc
+  shortcut_ts "1" *-- "1" ShortcutRegistry : globalRegistry
+  ShortcutRegistry "1" *-- "0..*" Shortcut : shortcuts
+  Shortcut "0..*" --> "0..1" HTMLElement : element
+  ShortcutRegistry ..> HTMLDialogElement : skips keys while dialog[open]
+  shortcut_ts ..> help_dialog : fills rows, showModal()
+  shortcut_ts ..> ShortcutInfo : groups by section
+  shortcut_ts ..> html_ts : escapes rows
+  ShortcutInfo ..> Shortcut : Pick
+
+  note for help_dialog "① Native dialog (Decision 1)<br>showModal() makes the page behind inert (AC3) and closes on Escape (AC2). Not a Fomantic modal: Fomantic is deprecated and #25 removes it."
+  note for locale "② Server-rendered text (Decision 2)<br>Title, close label and General come from locale keys in the template (AC6). '?' reads its description and section from data-* like the s, t and g hints."
+  note for shortcut_ts "③ Rows rebuilt on every open<br>The action reads getShortcuts() each time, so shortcuts registered after page load appear and a new section needs no dialog change (AC5). groupShortcuts is pure and exported for unit tests."
+  note for ShortcutRegistry "④ Guard in the registry<br>handleKeyDown drops every key while a dialog[open] exists: '?' again does nothing (AC7) and s does not run (AC8), even with focus on body. #60 inherits it."
+  note for HTMLDialogElement "⑤ Focus restore<br>initShortcutHelp keeps document.activeElement and refocuses it on close ({once: true}), because browsers differ on where focus goes (AC2)."
+
+  classDef existing fill:#64748b,stroke:#475569,color:#fff
+  classDef modified fill:#1e3a5f,stroke:#0f2741,color:#fff
+  classDef added fill:#1f6f43,stroke:#14532d,color:#fff
+  class observer_ts:::existing
+  class html_ts:::existing
+  class HTMLElement:::existing
+  class HTMLDialogElement:::existing
+  class Shortcut:::existing
+  class ShortcutInfo:::existing
+  class shortcut_ts:::modified
+  class ShortcutRegistry:::modified
+  class footer_tmpl:::modified
+  class locale:::modified
+  class help_dialog:::added
