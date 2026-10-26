@@ -1,7 +1,7 @@
 ---
 source: docs/frontend-vue-components.md
-source-hash: 8117e0df6d7abe8a
-verified-at: c0092050a4
+source-hash: bc8598ad3bf10492
+verified-at: 084d5e605c
 ---
 
 <!-- Derived from docs/frontend-vue-components.md. Do not edit by hand: fix the reference doc and
@@ -112,6 +112,12 @@ rendered component, so the logic is lifted out and tested directly.
 
 **Give a component data from the server.** Small values as `data-` attributes on the mount point.
 Anything structured through the handler's page data, read from the global config object.
+
+**Give a component a keyboard shortcut.** Register it from the component's own `mounted()` hook and
+tie it to the component's root element, so the shortcut exists exactly as long as the component is
+on the page. The component knows its own state, so its action can do the right thing: the commit
+picker in `web_src/js/components/DiffCommitSelector.vue` opens on `c`, and `c` never closes it. Its
+section label comes from the server as a `data-` attribute, like any other small value.
 
 **Test one.** `pnpm exec vitest <name>`.
 
