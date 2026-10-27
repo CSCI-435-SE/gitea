@@ -418,6 +418,18 @@ describe('shortcut hints and links', {concurrent: false}, () => {
     expect(document.activeElement).toBe(button);
   });
 
+  test('#57 closing the dialog leaves focus where a fast key already moved it', () => {
+    const {input} = renderHint('s', 'Search code…');
+    const dialog = renderHelpDialog();
+    const button = document.createElement('button');
+    document.body.append(button);
+    button.focus();
+    press(button, '?', {shiftKey: true});
+    input.focus(); // browsers fire close a task after the dialog shuts, so s can land first
+    dialog.close();
+    expect(document.activeElement).toBe(input);
+  });
+
   test('#57 AC7 AC8 while the dialog is open, no shortcut runs, ? included', () => {
     const {input} = renderHint('s', 'Search code…');
     const dialog = renderHelpDialog();

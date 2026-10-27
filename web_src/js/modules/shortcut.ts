@@ -155,7 +155,11 @@ export function initShortcutHelp(dialog: HTMLDialogElement) {
       toggle.checked = areShortcutsEnabled();
       dialog.classList.toggle('shortcuts-off', !toggle.checked);
       const opener = document.activeElement as HTMLElement;
-      dialog.addEventListener('close', () => opener.focus(), {once: true}); // browsers differ on where focus goes when a dialog closes
+      dialog.addEventListener('close', () => { // browsers differ on where focus goes when a dialog closes
+        // close fires a task after the dialog shuts, so a fast key such as s may have moved focus on already
+        const active = document.activeElement;
+        if (!active || active === document.body || dialog.contains(active)) opener.focus();
+      }, {once: true});
       dialog.showModal();
     },
   });
