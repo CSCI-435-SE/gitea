@@ -130,6 +130,15 @@ function delegateDropdownModule($dropdown: any) {
     });
   }
 
+  // Escape and `dropdown('hide')` both run the module's hide, but no listener sees them when the focus stays put.
+  // wrap the method, not the onHide setting: callers like the issue sidebar pickers set their own onHide later, replacing a wrapper.
+  const oldHide = dropdownCall('internal', 'hide');
+  dropdownCall('internal', 'hide', function(this: any, ...args: any[]) {
+    const ret = oldHide.apply(this, args);
+    $dropdown[0][ariaPatchKey].deferredRefreshAriaActiveItem(100); // the same delay as the blur listener, for the hide animation
+    return ret;
+  });
+
   const oldSet = dropdownCall('internal', 'set');
   const oldSetDirection = oldSet.direction;
   oldSet.direction = function($menu: any) {
