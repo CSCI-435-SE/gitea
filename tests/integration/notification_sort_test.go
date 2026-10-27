@@ -16,6 +16,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/test"
 	issue_service "gitea.dev/services/issue"
+	notify_service "gitea.dev/services/notify"
 	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
@@ -65,6 +66,13 @@ func TestNotificationReason(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, activities_model.NotificationReasonMentioned, reasonOf(5, issue.ID))  // #52 AC1
 		assert.Equal(t, activities_model.NotificationReasonSubscribed, reasonOf(4, issue.ID)) // #52 AC1 a watcher
+	})
+
+	t.Run("MentionedWatcherOfANewPullRequest", func(t *testing.T) {
+		pr, err := issues_model.GetPullRequestByIssueID(t.Context(), 3)
+		require.NoError(t, err)
+		notify_service.NewPullRequest(t.Context(), pr, []*user_model.User{user4})              // user4 is both a watcher and mentioned
+		assert.Equal(t, activities_model.NotificationReasonMentioned, reasonOf(4, pr.IssueID)) // #52 AC1
 	})
 }
 
