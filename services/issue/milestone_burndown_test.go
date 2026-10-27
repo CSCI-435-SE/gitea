@@ -608,4 +608,15 @@ func TestCalcMilestoneBurndownChanges(t *testing.T) {
 	quiet, err := json.Marshal(b.Points[4])
 	require.NoError(t, err)
 	assert.NotContains(t, string(quiet), "changes")
+
+	// changes in the same second list by item, whatever order the database returned the items in
+	sameSecond := CalcMilestoneBurndown(m, []issues_model.MilestoneItem{
+		named(closedItem(8, jan(5, "09:00"), jan(5, "15:00")), 18, "second", false),
+		named(closedItem(7, jan(5, "09:00"), jan(5, "15:00")), 17, "first", false),
+	}, (&eventSeq{}).close(7, jan(5, "15:00")).close(8, jan(5, "15:00")).events, time.Unix(int64(jan(5, "16:00")), 0), time.UTC)
+	require.Len(t, sameSecond.Points, 1)
+	assert.Equal(t, []BurndownChange{
+		change(17, "first", false, BurndownChangeClosed),
+		change(18, "second", false, BurndownChangeClosed),
+	}, sameSecond.Points[0].Changes)
 }
