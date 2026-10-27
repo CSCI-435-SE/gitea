@@ -1,18 +1,21 @@
 import {registerGlobalInitFunc} from './observer.ts';
 import {hideElem, toggleElem} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
+import {localUserSettings} from './user-settings.ts';
 
 const sequenceTimeoutMs = 1500; // the longest wait between the keys of a sequence
+const enabledSettingKey = 'keyboard-shortcuts-enabled';
 
 export type Shortcut = {
   keys: string, // keys pressed one after another, separated by spaces, e.g. "g c"
   description: string, // translated
   section?: string, // translated
   element?: HTMLElement, // the shortcut only exists while this element is in the document
+  alwaysOn?: boolean, // still runs when the user has turned shortcuts off
   action: () => void,
 };
 
-export type ShortcutInfo = Pick<Shortcut, 'keys' | 'description' | 'section'>;
+export type ShortcutInfo = Pick<Shortcut, 'keys' | 'description' | 'section' | 'alwaysOn'>;
 
 function isActive(shortcut: Shortcut): boolean {
   return !shortcut.element || shortcut.element.isConnected;
@@ -31,6 +34,18 @@ export class ShortcutRegistry {
   private shortcuts: Shortcut[] = [];
   private pendingKeys = ''; // the start of a sequence pressed so far
   private pendingTime = 0;
+  // kept in memory as well, so the switch works for this page even where storage throws
+  private enabled = localUserSettings.getBoolean(enabledSettingKey, true);
+
+  isEnabled(): boolean {
+    return this.enabled;
+  }
+
+  setEnabled(enabled: boolean) {
+    this.enabled = enabled;
+    this.pendingKeys = '';
+    localUserSettings.setBoolean(enabledSettingKey, enabled);
+  }
 
   register(shortcut: Shortcut) {
     const keys = shortcut.keys.trim().split(/\s+/).join(' ').toLowerCase(); // "g  c" would otherwise never match a press
@@ -42,7 +57,7 @@ export class ShortcutRegistry {
   }
 
   list(): ShortcutInfo[] {
-    return this.shortcuts.filter(isActive).map(({keys, description, section}) => ({keys, description, section}));
+    return this.shortcuts.filter(isActive).map(({keys, description, section, alwaysOn}) => ({keys, description, section, alwaysOn}));
   }
 
   handleKeyDown(e: KeyboardEvent) {
@@ -57,7 +72,8 @@ export class ShortcutRegistry {
 
     if (Date.now() - this.pendingTime > sequenceTimeoutMs) this.pendingKeys = '';
     const key = e.key.toLowerCase();
-    const shortcuts = this.shortcuts.filter(isActive);
+    // WCAG 2.1.4: a dictated word must not run shortcuts, so with them off only the always-on ones match
+    const shortcuts = this.shortcuts.filter((s) => isActive(s) && (this.enabled || s.alwaysOn));
     let keys = this.pendingKeys ? `${this.pendingKeys} ${key}` : key;
     let match = matchKeys(shortcuts, keys);
     if (!match && keys !== key) {
@@ -90,6 +106,14 @@ export function getShortcuts(): ShortcutInfo[] {
   return globalRegistry.list();
 }
 
+export function areShortcutsEnabled(): boolean {
+  return globalRegistry.isEnabled();
+}
+
+export function setShortcutsEnabled(enabled: boolean) {
+  globalRegistry.setEnabled(enabled);
+}
+
 // Groups shortcuts by section in the order each section first appears, the default section first.
 // A shortcut without a section belongs to the default one.
 export function groupShortcuts(shortcuts: ShortcutInfo[], defaultSection: string): Map<string, ShortcutInfo[]> {
@@ -109,21 +133,33 @@ function renderShortcutKeys(keys: string): string {
 // the help dialog lists the shortcuts registered when it opens, so it also shows ones added after page load
 export function initShortcutHelp(dialog: HTMLDialogElement) {
   const general = dialog.getAttribute('data-shortcut-section')!;
+  const toggle = dialog.querySelector<HTMLInputElement>('.shortcut-help-enabled')!;
+  toggle.addEventListener('change', () => {
+    setShortcutsEnabled(toggle.checked);
+    dialog.classList.toggle('shortcuts-off', !toggle.checked);
+  });
   registerShortcut({
     keys: dialog.getAttribute('data-shortcut-keys')!,
     description: dialog.getAttribute('data-shortcut-description')!,
     section: general,
     element: dialog,
+    alwaysOn: true, // the keyboard-only way back to the switch that turns shortcuts on again
     action: () => {
       const groups = groupShortcuts(getShortcuts(), general);
       dialog.querySelector('.shortcut-help-sections')!.innerHTML = Array.from(groups, ([section, shortcuts]) => html`
         <section>
           <h3>${section}</h3>
-          <dl>${htmlRaw(shortcuts.map((s) => html`<div class="shortcut-help-row"><dt>${s.description}</dt><dd>${htmlRaw(renderShortcutKeys(s.keys))}</dd></div>`).join(''))}</dl>
+          <dl>${htmlRaw(shortcuts.map((s) => html`<div class="shortcut-help-row${s.alwaysOn ? ' always-on' : ''}"><dt>${s.description}</dt><dd>${htmlRaw(renderShortcutKeys(s.keys))}</dd></div>`).join(''))}</dl>
         </section>
       `).join('');
+      toggle.checked = areShortcutsEnabled();
+      dialog.classList.toggle('shortcuts-off', !toggle.checked);
       const opener = document.activeElement as HTMLElement;
-      dialog.addEventListener('close', () => opener.focus(), {once: true}); // browsers differ on where focus goes when a dialog closes
+      dialog.addEventListener('close', () => { // browsers differ on where focus goes when a dialog closes
+        // close fires a task after the dialog shuts, so a fast key such as s may have moved focus on already
+        const active = document.activeElement;
+        if (!active || active === document.body || dialog.contains(active)) opener.focus();
+      }, {once: true});
       dialog.showModal();
     },
   });
