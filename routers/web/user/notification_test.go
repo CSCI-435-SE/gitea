@@ -49,6 +49,9 @@ func TestParseNotificationFilter(t *testing.T) {
 		{"?source=unknown", notificationFilter{}, false, ""},
 		{"?repo=abc", notificationFilter{}, false, ""},
 		{"?repo=-5&source=commit", notificationFilter{Source: "commit"}, true, "source=commit"},
+		{"?group=repo", notificationFilter{GroupByRepo: true}, false, "group=repo"}, // grouping is not a filter
+		{"?group=repo&repo=2", notificationFilter{RepoID: 2, GroupByRepo: true}, true, "group=repo&repo=2"},
+		{"?group=bogus", notificationFilter{}, false, ""},
 	}
 	for _, c := range cases {
 		t.Run(c.query, func(t *testing.T) {
@@ -73,6 +76,36 @@ func TestNotificationViewLink(t *testing.T) {
 	assert.Equal(t, "/notifications?type=read", notificationViewLink("read", 1, notificationFilter{}))
 	assert.Equal(t, "/notifications?page=3&repo=2&source=pull&type=read", notificationViewLink("read", 3, filter))
 	assert.Equal(t, "/notifications?repo=2&source=pull", notificationViewLink("bogus", 1, filter))
+	assert.Equal(t, "/notifications?group=repo&page=2&type=read", notificationViewLink("read", 2, notificationFilter{GroupByRepo: true}))
+}
+
+func TestGroupNotificationsByRepo(t *testing.T) {
+	repo1 := &repo_model.Repository{ID: 1}
+	repo2 := &repo_model.Repository{ID: 2}
+	notifications := activities_model.NotificationList{
+		{ID: 4, RepoID: 1, Repository: repo1, Status: activities_model.NotificationStatusUnread},
+		{ID: 3, RepoID: 1, Repository: repo1, Status: activities_model.NotificationStatusPinned},
+		{ID: 5, RepoID: 2, Repository: repo2, Status: activities_model.NotificationStatusUnread},
+	}
+	unread := map[int64]int64{1: 7, 2: 1} // counted over every page, so larger than this page's rows
+
+	groups := groupNotificationsByRepo(notifications, 0, unread)
+	require.Len(t, groups, 2)
+	assert.Same(t, repo1, groups[0].Repo)
+	assert.Equal(t, activities_model.NotificationList{notifications[0], notifications[1]}, groups[0].Notifications) // the pinned row stays in its repository
+	assert.EqualValues(t, 7, groups[0].UnreadCount)
+	assert.False(t, groups[0].Continued)
+	assert.Same(t, repo2, groups[1].Repo)
+	assert.Equal(t, activities_model.NotificationList{notifications[2]}, groups[1].Notifications)
+
+	groups = groupNotificationsByRepo(notifications, 1, unread) // the previous page ended in repo 1
+	assert.True(t, groups[0].Continued)
+	assert.False(t, groups[1].Continued) // only the first section can continue
+
+	groups = groupNotificationsByRepo(notifications[2:], 1, unread)
+	assert.False(t, groups[0].Continued) // the previous page's repository has no rows here
+
+	assert.Empty(t, groupNotificationsByRepo(nil, 1, unread))
 }
 
 func TestParseNotificationBulkTarget(t *testing.T) {
