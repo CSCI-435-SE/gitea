@@ -45,7 +45,9 @@ scanning the lists. Server-rendered, no JS required.
 | `state` | `open`, `closed`, `all` | `open` |
 
 Every navigation and filter link carries the whole query string, so month and filters persist
-(AC3, AC4).
+(AC3, AC4). The prev and next month links come from `calendarMonthLink`, which returns "" at the
+1970 and 9998 bounds (where `parseCalendarMonth` would fall back to today); the template hides a
+link whose value is empty.
 
 ## Handler: `routers/web/repo/calendar.go`
 
@@ -58,11 +60,15 @@ Every navigation and filter link carries the whole query string, so month and fi
    `HasDeadline = Some(true)` (AC6), `MilestoneIDs`, `AssigneeID`, `IsClosed`, `IsPull`,
    `SortType: "oldest"`, `Paginator` capped at 1,000. (The `nearduedate` sort prefers a
    milestone's deadline over the issue's own, so it would truncate the wrong rows; cells re-sort by
-   deadline in Go anyway.) If the result hits the cap, set
-   `ctx.Data["CalendarTruncated"]`. Then `issues.LoadPullRequests(ctx)` once, for PR state.
-4. Milestones: `db.Find[issues_model.Milestone](ctx, FindMilestoneOptions{RepoID, IsClosed: Some(false)})`,
-   filtered in Go to `0 < DeadlineUnix < 253370764800` and inside `[start, end]`. With a milestone
-   filter, keep only that milestone.
+   deadline in Go anyway.) `Issues` loads each PR through `LoadAttributes`, so there is no separate
+   `LoadPullRequests` call. The query asks for `PageSize: calendarMaxEntries + 1`; the extra row only
+   detects truncation and is dropped, and `ctx.Data["CalendarTruncated"]` is set when it is present.
+   A negative `?milestone` other than -1 ("no milestone") is normalised to 0, so the issue and
+   milestone filters agree.
+4. Milestones: `db.Find[issues_model.Milestone](ctx, FindMilestoneOptions{RepoID})` with no
+   `IsClosed` filter, because the dropdown needs the closed milestones too. `calendarMilestones` then
+   keeps the open ones in Go, with `0 < DeadlineUnix < 253370764800` and inside `[start, end]`. With
+   a milestone filter, keep only that milestone (`-1` keeps none).
 5. Convert issues and milestones to `calendarEntry` values, then
    `ctx.Data["Weeks"] = buildMonthGrid(start, now, entries)`.
 6. Fill the milestone and assignee dropdowns with the helpers the issue list already uses.
@@ -108,18 +114,26 @@ repo/header
 .ui.container
   .list-header.flex-text-block
     ‹ prev · "October 2026" · next › · Today
-    Milestone ▾  Assignee ▾  State ▾        (same markup as repo/issue/filter_list)
+    .list-header-filters: Milestone ▾  Assignee ▾   (the issue list's filter_item_* partials)
+    State menu (Open · Closed · All), role="group" with an aria-label
   [truncated notice when CalendarTruncated]
   .repo-calendar-grid
     7 weekday header cells (Mon … Sun)
     .repo-calendar-day [.is-other-month] [.is-today]
-      day number
+      <time datetime="YYYY-MM-DD"> weekday label (narrow screens) + day number </time>
       first 3 entries
       <details><summary>+N more</summary> remaining entries </details>
+  [empty-month message when the month has no entries]
 ```
 
+The per-day weekday label is hidden on wide screens, where the header row names the columns, and
+shown under 768px, where the grid collapses to an agenda list. The empty-month message is
+`repo.calendar.empty`.
+
 Each entry is an `<a>` to its issue, PR or milestone (AC2) with an icon, `#index` for issues and
-PRs, and the title truncated with `tw-truncate`; the full title is in `title=`.
+PRs, and the title truncated with `tw-truncate`; the full title is in `title=`, prefixed with the
+state word ("Closed: " or "Merged: ") for closed issues and PRs and merged PRs, since the icon colour
+alone does not say it.
 
 | Kind | Icon | Accent |
 | --- | --- | --- |
@@ -144,10 +158,12 @@ Imported from `web_src/css/index.css`.
 
 Keys in `options/locale/locale_en-US.json` only: `repo.calendar`, `repo.calendar.today`,
 `repo.calendar.prev_month`, `repo.calendar.next_month`, `repo.calendar.more` (`+%d more`),
-`repo.calendar.truncated`, `repo.calendar.state`, `repo.calendar.state_all`, plus
+`repo.calendar.truncated`, `repo.calendar.state`, `repo.calendar.state_all`,
+`repo.calendar.empty` ("Nothing is due this month."), plus
 `repo.calendar.month_1`…`month_12` and `repo.calendar.weekday_mon`…`weekday_sun`. The locale has no
 month or weekday names, and the existing date helpers only render whole dates, so the names are
-added as keys.
+added as keys. Both families are built with `printf` / `print` in `templates/repo/calendar.tmpl`, so
+a grep for the full key finds no use; see `.claude-students/docs/i18n.md`.
 
 ## Edge cases
 
@@ -163,22 +179,19 @@ added as keys.
 ## Testing
 
 1. `routers/web/repo/calendar_test.go`, no DB:
-   - Grid shape: Oct 2026 has 5 rows starting Mon 28 Sep; Feb 2027 has 4; a month starting on a
-     Monday has no leading days.
-   - A deadline at 23:59:59 in `America/New_York` lands on its own day.
-   - Nov 2026 (DST ends in New York) puts every day on the right date.
-   - Cell order: milestones first, then by deadline.
-   - `IsToday` and `InMonth` flags.
-   - `parseCalendarMonth`: valid values, invalid values and the year bounds.
-2. Handler test with `contexttest.MockContext` and fixtures. Fixture issue 10 (repo 42, open) has
-   `deadline_unix: 1019307200` (20 Apr 2002):
-   - `?month=2002-04` shows it and `?month=2002-05` does not.
-   - `?state=closed` and `?assignee=` filter it out.
-   - Milestones with the `253370764800` value never appear.
-   - A fixture PR given a deadline in the test appears with `Kind == "pull"`.
-3. `tests/integration/repo_calendar_test.go`, aiming for under 2 seconds:
-   - Anonymous user on a public repo gets 200 and `.repo-calendar-grid` is in the HTML.
-   - Anonymous user on a private repo gets 404.
+   - `TestParseCalendarMonth`: valid values, invalid values and the year bounds.
+   - `TestCalendarEntries`: kind and state of issues, PRs (open, closed, merged) and milestones.
+   - `TestBuildMonthGrid`: grid shape (Oct 2026 starts Thursday, Feb 2027 fills four rows, Nov 2026
+     with DST ending on the 1st), entries on their deadline's day with milestones first, the cell
+     limit split, `IsToday` in the grid's location, trailing out-of-month cells, `Visible` and
+     `Overflow` edges, and ordering by title on equal deadlines.
+   - `TestCalendarIsPull`, `TestCalendarMilestones` and `TestCalendarMonthLink`: the helpers.
+2. `TestCalendarHandler` in the same file, with `contexttest.MockContext` and fixtures: an issue
+   shows only in its deadline's month, the state and assignee filters, a milestone on its due day,
+   unit permissions limiting what shows, and PRs appearing with `Kind == "pull"`.
+3. `tests/integration/repo_calendar_test.go`, `TestRepoCalendar`, aiming for under 2 seconds: issues
+   and PRs on their days, month navigation keeping the filters, the issue list linking to the
+   calendar, and anonymous access (200 on a public repo, 404 on a private one).
 
 No Playwright test: the page has no JS behaviour. Some Go tests fail on native Windows, so run the
 integration test on WSL2 or CI.
