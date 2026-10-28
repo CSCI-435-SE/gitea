@@ -1,0 +1,52 @@
+---
+title: "#98 Repository calendar view: opening a month (green = new code ★, unshaded = existing)"
+---
+sequenceDiagram
+  actor User
+  participant Browser as Browser
+  participant Router as web.go routes ✎
+  participant Guard as RepoAssignment + reqRepoIssuesOrPullsReader
+  participant Cal as Calendar ★ «handler»
+  participant Perm as ctx.Repo.Permission
+  participant Model as issues_model.Issues
+  participant DB as Database
+  participant Grid as buildMonthGrid ★
+  participant Tmpl as calendar.tmpl ★
+
+  User->>Browser: click Calendar on the Issues list, then the next-month arrow
+  Browser->>Router: GET /octo/app/calendar?month=2026-10&milestone=3&state=open
+  Router->>Guard: route group middleware
+  alt cannot read issues or pull requests
+    Guard-->>Browser: 404 (same as the issue list, AC5)
+  else can read at least one
+    Guard->>Cal: Calendar(ctx)
+    rect rgb(227,241,231)
+    Cal->>Cal: parseCalendarMonth("2026-10", now) → Oct 1 00:00 to Oct 31 23:59:59
+    Cal->>Perm: CanRead(Issues), CanRead(PullRequests)
+    Perm-->>Cal: true, true
+    Cal->>Cal: calendarIsPull(true, true) → None (both kinds)
+    end
+    Note right of Cal: ① Unit permissions decide IsPull,<br/>so a pulls-only reader never sees issues.
+    Cal->>Model: Issues(IssuesOptions{RepoIDs, MilestoneIDs:[3], IsClosed:false, DeadlineAfter/Before, HasDeadline, PageSize 1001})
+    Model->>DB: SELECT … WHERE deadline_unix BETWEEN … LIMIT 1001
+    DB-->>Model: rows
+    Model-->>Cal: IssueList (pull requests loaded)
+    Note right of Model: ② Existing query and issue 34's deadline options,<br/>reused unchanged. The 1001st row only<br/>flags truncation.
+    Cal->>DB: db.Find[Milestone]{RepoID}
+    DB-->>Cal: milestones
+    rect rgb(227,241,231)
+    Cal->>Cal: calendarMilestones(…, milestoneID 3) → open, due this month, id 3
+    Cal->>Cal: issueCalendarEntry / milestoneCalendarEntry → []calendarEntry
+    Cal->>Grid: buildMonthGrid(monthStart, now, entries)
+    Grid->>Grid: bucket by deadline date in DefaultUILocation, sort once
+    Grid->>Grid: lay out Monday-first weeks with time.Date (DST-safe)
+    Grid-->>Cal: [][]calendarDay (5 weeks for Oct 2026)
+    end
+    Note right of Grid: ③ Pure function, no ctx or database,<br/>so the date edge cases are unit-tested.
+    Cal->>Tmpl: ctx.HTML(200, "repo/calendar") with Weeks, filters, Prev/NextMonth
+    rect rgb(227,241,231)
+    Tmpl->>Tmpl: each day: Visible() entries, Overflow() in details (+N more)
+    end
+    Tmpl-->>Browser: HTML page
+    Browser-->>User: month grid, whose links keep month and filters in the URL
+  end
