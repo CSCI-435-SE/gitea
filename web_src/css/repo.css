@@ -1213,6 +1213,9 @@ td .commit-summary {
     flex-direction: column;
     align-items: stretch;
   }
+  .commit-header-buttons aria-menu > .button {
+    flex: 1;
+  }
 }
 
 .comment:target .comment-container {
@@ -1366,7 +1369,8 @@ td .commit-summary {
   height: 30px;
 }
 
-.repo-button-row .ui.dropdown > .menu {
+.repo-button-row .ui.dropdown > .menu,
+.repo-button-row aria-menu > .menu {
   margin-top: 4px;
 }
 

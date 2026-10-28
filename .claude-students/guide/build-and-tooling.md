@@ -1,7 +1,7 @@
 ---
 source: docs/build-and-tooling.md
-source-hash: 840cbd1e5af507af
-verified-at: 187c98fee9
+source-hash: ab3dc36e3e463d2d
+verified-at: be5c384c8b
 ---
 
 <!-- Derived from docs/build-and-tooling.md. Do not edit by hand: fix the reference doc and
@@ -111,7 +111,10 @@ make help              # everything else
 
 **Know what to rebuild.** A `.go` change means rebuilding the binary and restarting it. A `.ts` or
 `.css` change means rebuilding the frontend assets. A template or locale change is picked up on
-reload in development. `make watch` handles all of them, which is why it is worth the setup.
+reload in development, with one catch: Tailwind builds its `tw-` classes by reading the templates,
+so a `tw-` class that no other file uses yet only exists after the CSS is rebuilt. `make frontend`
+skips the rebuild when no `web_src` file changed, so `touch` one first. `make watch` handles all
+of them, which is why it is worth the setup.
 
 ## Traps, and what they look like
 

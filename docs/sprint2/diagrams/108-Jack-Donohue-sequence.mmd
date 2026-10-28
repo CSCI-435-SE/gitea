@@ -1,0 +1,43 @@
+sequenceDiagram
+  actor User
+  participant Go as repo.Diff «Go handler»
+  participant Tpl as commit_page.tmpl ✎ «template»
+  participant Menu as aria-menu «custom element»
+  participant Item as div.item.show-create-branch-modal «DOM»
+  participant Branch as repo-branch.ts «module»
+  participant Modal as create-tag-modal ✎ «Fomantic modal»
+
+  Note over Go,Modal: Page load: GET /{owner}/{repo}/commit/{sha}
+  Go->>Go: ctx.Repo.Permission.CanWrite(code), not archived, not deleted
+  Go->>Tpl: ctx.HTML(200, "repo/commit_page")
+  rect rgb(219,228,240)
+  Tpl-->>Menu: <aria-menu placement="bottom-end"> with button + .menu
+  Tpl-->>Modal: modals rendered after </aria-menu>, outside the popup
+  end
+  Note right of Modal: ③ Modals moved out<br>Inside the popup they would get role="none"<br>and sit under its type-ahead keydown handler.
+  Menu->>Menu: init(): aria-haspopup, aria-controls, role="menu", role="menuitem"
+  Branch->>Item: addEventListener("click") on every .show-create-branch-modal
+
+  Note over User,Modal: User tabs to "Operations" and presses Enter
+  User->>Menu: keydown Enter on trigger
+  Menu->>Menu: onTriggerKeyDown → open("first")
+  Menu-->>User: aria-expanded="true", focus on "Create branch"
+  Note right of Menu: ① Real focus<br>The item itself is focused, so VoiceOver<br>reads it whether opened by key or mouse.
+  User->>Menu: keydown ArrowDown
+  Menu-->>User: focus on "Create tag"
+
+  User->>Menu: keydown Enter on "Create tag"
+  Menu->>Menu: onPopupKeyDown: preventDefault()
+  Menu->>Item: click()
+  Note right of Item: ② Decision 2<br>The same click a mouse sends, so<br>repo-branch.ts needs no change (AC3, AC5).
+  Item->>Branch: click listener
+  Branch->>Modal: set form action + "from" span, showFomanticModal()
+  Item-->>Menu: click bubbles to the popup
+  Menu->>Menu: close(true): hide popup, aria-expanded="false", focus trigger
+  Modal->>Modal: Fomantic detaches into its dimmer, then autofocuses the tag name input
+
+  User->>Modal: types "v1.0-rc"
+  rect rgb(227,241,231)
+  Modal-->>User: input value "v1.0-rc"
+  end
+  Note right of Modal: AC9 (spec review)<br>The keys reach the input, not<br>the menu's type-ahead.
