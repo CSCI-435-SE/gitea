@@ -1,0 +1,139 @@
+classDiagram
+  direction LR
+
+  namespace Go_server {
+    class repo_handlers["routers/web/repo"] {
+      <<package>>
+      +Home(ctx : *context.Context)
+      +Branches(ctx : *context.Context)
+      +Diff(ctx : *context.Context)
+    }
+    class Context["context.Context"] {
+      <<struct>>
+      +*Base
+      +Repo : *context.Repository
+      +HTML(status : int, name : TplName)
+    }
+    class Base["context.Base"] {
+      <<struct>>
+      +Data : map[string]any
+    }
+    class CtxRepo["context.Repository"] {
+      <<struct>>
+      +Permission : access_model.Permission
+      +Repository : *repo_model.Repository
+      +RefFullName : git.RefName
+      +TreePath : string
+      +CommitID : string
+    }
+    class Permission["access_model.Permission"] {
+      <<struct>>
+      +CanWrite(unitType : unit.Type) bool
+    }
+    class RepoModel["repo_model.Repository"] {
+      <<struct>>
+      +IsMirror : bool
+      +IsArchived : bool
+      +CanEnableEditor() bool
+    }
+  }
+
+  namespace Templates {
+    class view_content["repo/view_content.tmpl"] {
+      <<template>>
+      +Add file aria-menu ✎
+      +folder More Operations aria-menu ✎
+    }
+    class branch_list["repo/branch/list.tmpl"] {
+      <<template>>
+      +download aria-menu per branch ✎
+      +actions td.tw-overflow-visible ✎
+    }
+    class commit_page["repo/commit_page.tmpl"] {
+      <<template>>
+      +Operations aria-menu ✎
+      +3 modals, now siblings of the menu ✎
+    }
+  }
+
+  namespace Browser {
+    class AriaMenu["aria-menu.ts"] {
+      <<custom element>>
+      +trigger : HTMLElement
+      +popup : HTMLElement
+      +open(focus : first|last) void
+      +close(restoreFocus : boolean) void
+      -onTriggerKeyDown(e) void
+      -onPopupKeyDown(e) void
+    }
+    class HTMLElement {
+      <<DOM>>
+      +click() void
+      +focus() void
+    }
+    class item_handlers["repo-branch.ts, common-button.ts, clipboard.ts"] {
+      <<modules>>
+      +initRepoBranchButton() void
+      +initGlobalButtons() void
+      +initGlobalCopyToClipboardListener() void
+    }
+    class repo_common["repo-common.ts"] {
+      <<module>>
+      +initRepoArchiveLinks() void
+      -onDownloadArchive(e) void ✎
+    }
+    class menu_css["aria-menu.css, repo.css"] {
+      <<stylesheet>>
+      +.ui.button caret in right padding ★
+      +menu offsets and mobile stretch ★
+    }
+    class repo_menus_test["repo-menus.test.ts"] {
+      <<e2e test>>
+      +5 keyboard tests ★
+    }
+  }
+
+  repo_handlers ..> Context : uses
+  Context *-- Base : embeds
+  Context "1" --> "1" CtxRepo : Repo
+  CtxRepo *-- Permission
+  CtxRepo "1" --> "1" RepoModel : Repository
+
+  repo_handlers ..> view_content : ctx.HTML
+  repo_handlers ..> branch_list : ctx.HTML
+  repo_handlers ..> commit_page : ctx.HTML
+  view_content ..> RepoModel : CanEnableEditor()
+  commit_page ..> Permission : CanWrite(code)
+
+  view_content "1" *-- "1..2" AriaMenu
+  branch_list "1" *-- "1..*" AriaMenu
+  commit_page "1" *-- "1" AriaMenu
+  HTMLElement <|-- AriaMenu
+  AriaMenu ..> HTMLElement : item.click() on Enter/Space
+  item_handlers ..> HTMLElement : click listeners
+  repo_common ..> AriaMenu : spinner on trigger
+  menu_css ..> AriaMenu : styles
+  repo_menus_test ..> AriaMenu : drives by keyboard
+
+  note for AriaMenu "① Decision 1: aria-menu, not Fomantic<br>Real focus on items (roving tabindex), so<br>VoiceOver reads them after a mouse open too."
+  note for item_handlers "② Decision 2: item handlers unchanged<br>Enter and Space send item.click(), so these<br>listeners run as before (AC5)."
+  note for commit_page "③ Modals moved out of the popup<br>Its keydown handler does type-ahead. Fomantic<br>already detaches modals; now nothing relies on it."
+  note for RepoModel "④ AC6 comes from Go<br>CanEnableEditor() = !IsMirror && !IsArchived<br>renders the trigger disabled."
+  note for repo_common "⑤ The menu closes on click<br>so the archive spinner moves from the<br>.ui.dropdown to the aria-menu trigger."
+  note for branch_list "⑥ .ui.fixed.table td clips overflow<br>Found in the before/after screenshots."
+
+  style repo_handlers fill:#64748b,stroke:#475569,color:#fff
+  style Context fill:#64748b,stroke:#475569,color:#fff
+  style Base fill:#64748b,stroke:#475569,color:#fff
+  style CtxRepo fill:#64748b,stroke:#475569,color:#fff
+  style Permission fill:#64748b,stroke:#475569,color:#fff
+  style RepoModel fill:#64748b,stroke:#475569,color:#fff
+  style AriaMenu fill:#64748b,stroke:#475569,color:#fff
+  style HTMLElement fill:#64748b,stroke:#475569,color:#fff
+  style item_handlers fill:#64748b,stroke:#475569,color:#fff
+  style view_content fill:#1e3a5f,stroke:#0f2741,color:#fff
+  style branch_list fill:#1e3a5f,stroke:#0f2741,color:#fff
+  style commit_page fill:#1e3a5f,stroke:#0f2741,color:#fff
+  style repo_common fill:#1e3a5f,stroke:#0f2741,color:#fff
+  style menu_css fill:#1e3a5f,stroke:#0f2741,color:#fff
+  style repo_menus_test fill:#1f6f43,stroke:#14532d,color:#fff
