@@ -50,6 +50,7 @@
 @import "./features/console.css";
 @import "./features/captcha.css";
 @import "./features/char-counter.css";
+@import "./features/calendar.css";
 
 @import "./markup/content.css";
 @import "./markup/codeblock.css";

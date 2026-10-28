@@ -1,0 +1,108 @@
+.repo-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: 1px solid var(--color-secondary);
+  border-left: 1px solid var(--color-secondary);
+  margin-top: 1rem;
+}
+
+.repo-calendar-weekday,
+.repo-calendar-day {
+  border-right: 1px solid var(--color-secondary);
+  border-bottom: 1px solid var(--color-secondary);
+  padding: 4px 6px;
+}
+
+.repo-calendar-weekday {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-light-2);
+  text-align: center;
+}
+
+.repo-calendar-day {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 7rem;
+  min-width: 0; /* lets entry titles truncate inside the grid track */
+}
+
+.repo-calendar-day.is-other-month {
+  background: var(--color-box-header);
+  color: var(--color-text-light-3);
+}
+
+.repo-calendar-day.is-today {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.repo-calendar-date {
+  font-size: 12px;
+}
+
+.repo-calendar-date-weekday {
+  display: none; /* the header row shows it on wide screens */
+}
+
+.repo-calendar-more-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.repo-calendar-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--color-text-light-2);
+}
+
+.repo-calendar-entry {
+  border-left: 3px solid var(--color-green);
+  padding-left: 4px;
+  font-size: 12px;
+  color: var(--color-text);
+  min-width: 0;
+}
+
+.repo-calendar-entry.is-milestone {
+  border-left-color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.repo-calendar-entry.is-closed {
+  border-left-color: var(--color-red);
+}
+
+.repo-calendar-entry.is-merged {
+  border-left-color: var(--color-purple);
+}
+
+.repo-calendar-index {
+  color: var(--color-text-light-2);
+}
+
+.repo-calendar-more summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--color-text-light-2);
+}
+
+/* narrow screens: an agenda list of the days that have something due */
+@media (max-width: 767.98px) {
+  .repo-calendar-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .repo-calendar-weekday,
+  .repo-calendar-day.is-other-month,
+  .repo-calendar-day.is-empty {
+    display: none;
+  }
+  .repo-calendar-day {
+    min-height: 0;
+  }
+  .repo-calendar-date-weekday {
+    display: inline;
+  }
+}
