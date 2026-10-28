@@ -1,13 +1,15 @@
+{{$typeName := ctx.Locale.Tr (print "repo.settings.web_hook_name_" ctx.RootData.HookType)}}
 <h4 class="ui top attached header">
 	{{.CustomHeaderTitle}}
-	<div class="ui right type dropdown">
-		<div class="text flex-text-inline">
+	<aria-menu class="ui right" placement="bottom-end">
+		{{/* the visible text only shows the current type, so the label also says what the menu switches */}}
+		<button type="button" class="btn" aria-label="{{ctx.Locale.Tr "repo.settings.webhook.type_switcher" $typeName}}">
 			{{template "shared/webhook/icon" (dict "Size" 20 "HookType" ctx.RootData.HookType)}}
-			{{ctx.Locale.Tr (print "repo.settings.web_hook_name_" ctx.RootData.HookType)}}
-		</div>
-		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			{{$typeName}}
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+		</button>
 		{{template "repo/settings/webhook/link_menu" ctx.RootData}}
-	</div>
+	</aria-menu>
 </h4>
 <div class="ui attached segment">
 	{{template "repo/settings/webhook/gitea" ctx.RootData}}

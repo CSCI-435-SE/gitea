@@ -2384,6 +2384,7 @@
   "repo.settings.webhook.name": "Webhook name",
   "repo.settings.webhook.name_helper": "Optionally give this webhook a friendly name",
   "repo.settings.webhook.name_empty": "Unnamed Webhook",
+  "repo.settings.webhook.type_switcher": "Webhook type: %s",
   "repo.settings.secret": "Secret",
   "repo.settings.webhook_secret_desc": "If the webhook server supports using secret, you can follow the webhook's manual and fill in a secret here.",
   "repo.settings.slack_username": "Username",

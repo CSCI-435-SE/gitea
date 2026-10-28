@@ -73,11 +73,12 @@ so the VoiceOver arrow key problem above cannot happen. Try it on the `/devtest/
 </aria-menu>
 ```
 
-The popup opens below the trigger, aligned to its start. Two optional host attributes, read only by CSS, move it:
+The popup opens below the trigger, aligned to its start. Optional host attributes, read only by CSS, move or style it:
 
 * `placement="bottom-start|bottom-end|top-start|top-end"`, the same words as `data-tooltip-placement`.
   The template knows where the menu sits, so there is no automatic flip: a menu at the right edge needs `bottom-end`.
 * `pointing` draws Fomantic's small arrow on a bottom placement.
+* `floating` matches Fomantic's `ui floating dropdown`: a small gap from the trigger and all corners rounded.
 
 Put `data-tooltip-content` on the trigger, not the host, so the tooltip text also becomes the trigger's `aria-label`.
 The tooltip will not show while the menu is open.
