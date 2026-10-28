@@ -376,3 +376,33 @@ test('the Quote Reply menu item still quotes the whole comment, and leaves the P
   await expect(replyBox).toHaveValue(/^draft\n\n> first line\n> \n> second line\n> \n> filler paragraph 0\n/); // the raw Markdown
   await assertNoJsError(page);
 });
+
+test('shortcuts turned off in the dialog stay off after a reload, and turn back on from the keyboard', async ({page}) => {
+  await page.goto(await createRepo(page));
+  const search = page.locator('.repo-home-sidebar-top input[name="q"]');
+  const dialog = page.getByRole('dialog', {name: 'Keyboard shortcuts'});
+  const toggle = dialog.getByRole('checkbox', {name: 'Enable character key shortcuts'});
+  await expect(page.locator('.repo-home-sidebar-top kbd')).toHaveAttribute('aria-keyshortcuts', 's');
+
+  await page.keyboard.press('?');
+  await expect(toggle).toBeChecked();
+  await toggle.focus();
+  await page.keyboard.press('Space');
+  await expect(toggle).not.toBeChecked();
+  await page.keyboard.press('Escape');
+
+  await page.reload();
+  await expect(page.locator('.repo-home-sidebar-top kbd')).toHaveAttribute('aria-keyshortcuts', 's');
+  await page.keyboard.press('s');
+  await expect(search).not.toBeFocused();
+
+  await page.keyboard.press('?'); // still opens with shortcuts off
+  await expect(toggle).not.toBeChecked();
+  await toggle.focus();
+  await page.keyboard.press('Space');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#shortcut-help-enabled')).not.toBeFocused(); // Chromium can take the next key before the dialog has finished closing
+  await page.keyboard.press('s');
+  await expect(search).toBeFocused();
+  await assertNoJsError(page);
+});

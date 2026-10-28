@@ -244,7 +244,10 @@ func CalcMilestoneBurndown(m *issues_model.Milestone, items []issues_model.Miles
 			deltas = append(deltas, d)
 		}
 	}
-	slices.SortStableFunc(deltas, func(a, b burndownDelta) int { return cmp.Compare(a.at, b.at) })
+	// the items come in database order, so break same-second ties by item to list changes the same way on every run
+	slices.SortStableFunc(deltas, func(a, b burndownDelta) int {
+		return cmp.Or(cmp.Compare(a.at, b.at), cmp.Compare(a.item.ID, b.item.ID))
+	})
 
 	start, end := int64(m.CreatedUnix), now.Unix()
 	if start == 0 { // fixtures and some legacy rows have no creation time

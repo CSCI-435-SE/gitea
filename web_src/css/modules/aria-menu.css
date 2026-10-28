@@ -19,6 +19,23 @@ aria-menu > .btn {
   line-height: inherit;
 }
 
+/* a ".ui.button" trigger keeps the caret where ".ui.dropdown.button" put it, in the right padding */
+aria-menu > .ui.button:has(> .dropdown.icon) {
+  position: relative;
+  padding-right: 22px;
+}
+
+aria-menu > .ui.tiny.button:has(> .dropdown.icon) {
+  padding-right: 20px;
+}
+
+aria-menu > .ui.button > .dropdown.icon {
+  position: absolute;
+  top: 50%;
+  right: 0.5em;
+  transform: translateY(-50%);
+}
+
 aria-menu > .menu {
   position: absolute;
   top: 100%;

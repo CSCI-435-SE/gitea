@@ -16,6 +16,9 @@
 			{{if eq $one.Status $statusPinned}}
 				{{svg "octicon-pin" 13 "tw-text-blue"}}
 			{{end}}
+			{{if $one.Reason}}{{/* "Other" shows no label */}}
+				<span class="ui tiny label notification-reason">{{ctx.Locale.Tr $one.Reason.LocaleKey}}</span>
+			{{end}}
 		</div>
 		<div class="tw-text-16 tw-py-0.5">
 			{{if $one.Issue}}

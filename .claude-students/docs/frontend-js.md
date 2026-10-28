@@ -82,10 +82,10 @@ is left out. Keyword matches are limited to the kinds the viewer may read
 viewer who can't read pull requests still gets one typed by its number. The duplicate close
 reason's preview in `features/repo-issue-status-button.ts` uses it.
 
-**Add a keyboard shortcut.** Call `registerShortcut` (`modules/shortcut.ts`). One given an `element`
-exists while that element is in the document, hidden or not; a clash with a live one throws. A link
-can declare one that follows it (`onShortcutLink`, `templates/repo/header.tmpl`), live while it's
-rendered; markup rendered twice (navbar icons, `templates/base/head_navbar.tmpl`) marks one copy.
+**Add a keyboard shortcut.** Call `registerShortcut` (`modules/shortcut.ts`). One given an `element` exists while that element
+is in the document, hidden or not; a clash with a live one throws. A link can declare one that follows it (`onShortcutLink`,
+`templates/repo/header.tmpl`), live while it's rendered; markup rendered twice (navbar icons, `templates/base/head_navbar.tmpl`)
+marks one copy. The `?` dialog (`templates/base/footer.tmpl`) can turn shortcuts off (WCAG 2.1.4); only `alwaysOn` ones still run.
 
 **Run one test file.** `pnpm exec vitest <path-filter>` (`testing.md`).
 

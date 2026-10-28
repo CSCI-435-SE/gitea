@@ -15,6 +15,12 @@
 			<button class="btn interact-fg" aria-label="{{ctx.Locale.Tr "shortcuts.help.close"}}">{{svg "octicon-x" 16}}</button>
 		</form>
 		<div class="shortcut-help-sections"></div>
+		<div class="shortcut-help-footer">
+			<div class="ui checkbox">
+				<input id="shortcut-help-enabled" class="shortcut-help-enabled" type="checkbox" checked>
+				<label for="shortcut-help-enabled">{{ctx.Locale.Tr "shortcuts.help.enable"}}</label>
+			</div>
+		</div>
 	</dialog>
 	{{ctx.ScriptImport "web_src/js/index.ts" "module"}}
 	{{template "custom/footer" .}}

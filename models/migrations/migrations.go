@@ -422,6 +422,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
 		newMigration(343, "Add close reason columns to issue", v1_27.AddCloseReasonToIssue),
 		newMigration(344, "Add require two-factor setting to organizations", v1_27.AddRequireTwoFactorToUser),
+		newMigration(345, "Add reason column to notification", v1_27.AddReasonToNotification),
 	}
 	return preparedMigrations
 }

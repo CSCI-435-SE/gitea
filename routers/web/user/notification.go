@@ -103,6 +103,7 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	}
 	findOpts.Status = []activities_model.NotificationStatus{queryStatus, activities_model.NotificationStatusPinned}
 	findOpts.GroupByRepo = filter.GroupByRepo
+	findOpts.Sort = filter.Sort
 	nls, err := db.Find[activities_model.Notification](ctx, findOpts)
 	if err != nil {
 		ctx.ServerError("db.Find[activities_model.Notification]", err)
@@ -182,6 +183,7 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	ctx.Data["PageType"] = pageType
 	ctx.Data["Notifications"] = notifications
 	ctx.Data["GroupByRepo"] = filter.GroupByRepo
+	ctx.Data["SortType"] = string(filter.Sort)
 	if filter.GroupByRepo {
 		ctx.Data["NotificationGroups"] = groupNotificationsByRepo(notifications, prevPageRepoID, groupUnreadCounts)
 	}
@@ -257,17 +259,22 @@ var notificationSourceParams = map[string]activities_model.NotificationSource{
 	"repository": activities_model.NotificationSourceRepository,
 }
 
-// notificationFilter is the repository and type filter of the notifications page, plus its grouping
+// notificationFilter is the repository and type filter of the notifications page, plus its grouping and sort
 type notificationFilter struct {
 	RepoID      int64
-	Source      string // a key of notificationSourceParams, or "" for any
-	GroupByRepo bool   // a view setting, not a filter: it never hides a notification
+	Source      string                            // a key of notificationSourceParams, or "" for any
+	GroupByRepo bool                              // a view setting, not a filter: it never hides a notification
+	Sort        activities_model.NotificationSort // a view setting too; "" is newest first
 }
 
 func parseNotificationFilter(ctx *context.Context) notificationFilter {
 	filter := notificationFilter{RepoID: max(0, ctx.FormInt64("repo")), GroupByRepo: ctx.FormString("group") == "repo"}
 	if source := ctx.FormString("source"); notificationSourceParams[source] != 0 {
 		filter.Source = source // unknown values are ignored rather than matching nothing
+	}
+	switch sortParam := activities_model.NotificationSort(ctx.FormString("sort")); sortParam {
+	case activities_model.NotificationSortReason, activities_model.NotificationSortType:
+		filter.Sort = sortParam // anything else is newest first
 	}
 	return filter
 }
@@ -295,6 +302,9 @@ func (f notificationFilter) queryValues() url.Values {
 	}
 	if f.GroupByRepo {
 		q.Set("group", "repo")
+	}
+	if f.Sort != "" {
+		q.Set("sort", string(f.Sort))
 	}
 	return q
 }

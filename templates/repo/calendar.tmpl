@@ -1,0 +1,63 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository repo-calendar">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		{{$queryLink := QueryBuild "?" "month" $.Month "milestone" $.MilestoneID "assignee" $.AssigneeID "state" $.State}}
+		<div class="list-header flex-text-block tw-flex-wrap">
+			<div class="flex-text-block">
+				{{if $.PrevMonth}}<a class="ui small icon button" href="{{QueryBuild $queryLink "month" $.PrevMonth}}" aria-label="{{ctx.Locale.Tr "repo.calendar.prev_month"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.calendar.prev_month"}}">{{svg "octicon-chevron-left"}}</a>{{end}}
+				<h2 class="repo-calendar-title tw-text-lg tw-m-0">{{ctx.Locale.Tr (printf "repo.calendar.month_%d" $.MonthNum)}} {{$.Year}}</h2>
+				{{if $.NextMonth}}<a class="ui small icon button" href="{{QueryBuild $queryLink "month" $.NextMonth}}" aria-label="{{ctx.Locale.Tr "repo.calendar.next_month"}}" data-tooltip-content="{{ctx.Locale.Tr "repo.calendar.next_month"}}">{{svg "octicon-chevron-right"}}</a>{{end}}
+				<a class="ui small button" href="{{QueryBuild $queryLink "month" NIL}}">{{ctx.Locale.Tr "repo.calendar.today"}}</a>
+			</div>
+			<div class="tw-flex-1"></div>
+			<div class="list-header-filters ui secondary filter menu labels">
+				{{template "repo/issue/filter_item_milestone" dict
+					"QueryLink" $queryLink
+					"MilestoneID" $.MilestoneID
+					"OpenMilestones" .OpenMilestones
+					"ClosedMilestones" .ClosedMilestones
+				}}
+				{{template "repo/issue/filter_item_user_assign" dict
+					"QueryParamKey" "assignee"
+					"QueryLink" $queryLink
+					"UserSearchList" $.Assignees
+					"SelectedUserId" $.AssigneeID
+					"TextFilterTitle" (ctx.Locale.Tr "repo.issues.filter_assignee")
+					"TextFilterMatchNone" (ctx.Locale.Tr "repo.issues.filter_assignee_no_assignee")
+					"TextFilterMatchAny" (ctx.Locale.Tr "repo.issues.filter_assignee_any_assignee")
+				}}
+			</div>
+			<div class="small-menu-items ui compact tiny menu" role="group" aria-label="{{ctx.Locale.Tr "repo.calendar.state"}}">
+				<a class="{{if eq $.State "open"}}active {{end}}item" {{if eq $.State "open"}}aria-current="true" {{end}}href="{{QueryBuild $queryLink "state" "open"}}">{{ctx.Locale.Tr "repo.issues.open_title"}}</a>
+				<a class="{{if eq $.State "closed"}}active {{end}}item" {{if eq $.State "closed"}}aria-current="true" {{end}}href="{{QueryBuild $queryLink "state" "closed"}}">{{ctx.Locale.Tr "repo.issues.closed_title"}}</a>
+				<a class="{{if eq $.State "all"}}active {{end}}item" {{if eq $.State "all"}}aria-current="true" {{end}}href="{{QueryBuild $queryLink "state" "all"}}">{{ctx.Locale.Tr "repo.calendar.state_all"}}</a>
+			</div>
+		</div>
+
+		{{if .CalendarTruncated}}
+			<div class="ui warning message">{{ctx.Locale.Tr "repo.calendar.truncated" .CalendarMaxEntries}}</div>
+		{{end}}
+
+		<div class="repo-calendar-grid">
+			{{range .CalendarWeekdays}}<div class="repo-calendar-weekday">{{ctx.Locale.Tr (print "repo.calendar.weekday_" .)}}</div>{{end}}
+			{{range $week := .Weeks}}
+				{{range $i, $day := $week}}
+					<div class="repo-calendar-day{{if not $day.InMonth}} is-other-month{{end}}{{if $day.IsToday}} is-today{{end}}{{if not $day.Entries}} is-empty{{end}}">
+						<time class="repo-calendar-date" datetime="{{$day.Date.Format "2006-01-02"}}"><span class="repo-calendar-date-weekday">{{ctx.Locale.Tr (print "repo.calendar.weekday_" (index $.CalendarWeekdays $i))}}</span> {{$day.Date.Day}}</time>
+						{{range $day.Visible}}{{template "repo/calendar_entry" .}}{{end}}
+						{{if $day.Overflow}}
+							<details class="repo-calendar-more">
+								<summary>{{ctx.Locale.Tr "repo.calendar.more" (len $day.Overflow)}}</summary>
+								<div class="repo-calendar-more-list">{{range $day.Overflow}}{{template "repo/calendar_entry" .}}{{end}}</div>
+							</details>
+						{{end}}
+					</div>
+				{{end}}
+			{{end}}
+		</div>
+		{{if not .CalendarHasEntries}}<div class="repo-calendar-empty">{{ctx.Locale.Tr "repo.calendar.empty"}}</div>{{end}}
+	</div>
+</div>
+{{template "base/footer" .}}
