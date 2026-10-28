@@ -1,0 +1,102 @@
+classDiagram
+  direction TB
+
+  %% ---------- existing ----------
+  class FindOptions["db.FindOptions"] {
+    <<interface>>
+    +ToConds() builder.Cond
+  }
+  class Notification["activities.Notification"] {
+    <<struct>>
+    +ID int64
+    +RepoID int64
+    +Status NotificationStatus
+    +UpdatedUnix TimeStamp
+  }
+  class Repository["repo_model.Repository"] {
+    <<struct>>
+    +ID int64
+    +OwnerName string
+    +LowerName string
+  }
+
+  %% ---------- modified ----------
+  class FindNotificationOptions["activities.FindNotificationOptions ✎"] {
+    <<struct>>
+    +db.ListOptions «embedded»
+    +UserID int64
+    +Status []NotificationStatus
+    +GroupByRepo bool ★
+    +ToConds() builder.Cond
+    +ToJoins() []JoinFunc ★
+    +ToOrders() string ✎
+  }
+  class notificationFilter["user.notificationFilter ✎"] {
+    <<struct>>
+    +RepoID int64
+    +Source string
+    +GroupByRepo bool ★
+    -findOptions(userID) FindNotificationOptions
+  }
+  class handlers["user notification handlers ✎"] {
+    <<functions>>
+    -prepareUserNotificationsData(ctx) ✎
+    -groupNotificationsByRepo(list, prevPageRepoID, unreadCounts) []*notificationGroup ★
+  }
+
+  %% ---------- new ----------
+  class activitiesFuncs["activities (package functions) ✎"] {
+    <<functions>>
+    +CountNotificationsByRepo(ctx, opts) (map[int64]int64, error) ★
+  }
+  class notificationGroup["user.notificationGroup ★"] {
+    <<struct>>
+    +Repo *Repository
+    +UnreadCount int64
+    +Continued bool
+    +Notifications NotificationList
+  }
+  class groupTs["notification-group.ts ★"] {
+    <<module>>
+    -collapsedRepoIDs Set~string~
+    +initNotificationGroups(table)
+  }
+
+  %% ---------- relationships ----------
+  FindNotificationOptions ..|> FindOptions
+  Notification "0..*" --> "1" Repository : RepoID
+  notificationGroup "1" o-- "1..*" Notification : Notifications
+  notificationGroup "0..*" --> "1" Repository : Repo
+  handlers ..> notificationFilter : parses from URL
+  notificationFilter ..> FindNotificationOptions : «create»
+  handlers ..> FindNotificationOptions : passes to db.Find
+  handlers ..> activitiesFuncs : unread counts
+  handlers ..> notificationGroup : «create» 0..*
+  groupTs ..> notificationGroup : collapses rendered sections
+
+  %% ---------- annotations ----------
+  note "LEGEND: grey = existing code, blue ✎ = modified, green ★ = new (also marks single members).
+  GO TO UML: structs are classes, package-level funcs are «functions» boxes. Go interfaces are
+  implemented implicitly, so this is drawn as a dashed realization arrow. The embedded
+  db.ListOptions supplies the paging methods, which with ToConds() satisfy db.FindOptions.
+  db.Find also calls ToJoins()/ToOrders() when the options type has them."
+  note for FindNotificationOptions "Decision 1: grouping happens in SQL. GroupByRepo
+  joins repository and orders by owner, repo, newest,
+  id, so a repository's rows stay together across pages."
+  note for Repository "Decision 2: sections are sorted A-Z by
+  owner/name, not by latest activity, so they
+  don't jump around on a live refresh."
+  note for notificationFilter "Decision 3: group=repo lives in the URL like
+  the repo/source filters, so links and redirects
+  keep it. It changes the view, never hides rows."
+
+  %% ---------- colours ----------
+  style FindOptions fill:#eceff3,stroke:#6b7280
+  style Notification fill:#eceff3,stroke:#6b7280
+  style Repository fill:#eceff3,stroke:#6b7280
+  style FindNotificationOptions fill:#dbe7fb,stroke:#1e3a8a,stroke-width:2px
+  style notificationFilter fill:#dbe7fb,stroke:#1e3a8a,stroke-width:2px
+  style handlers fill:#dbe7fb,stroke:#1e3a8a,stroke-width:2px
+  style activitiesFuncs fill:#dbe7fb,stroke:#1e3a8a,stroke-width:2px
+  style notificationGroup fill:#d9f2df,stroke:#15803d,stroke-width:2px
+  style groupTs fill:#d9f2df,stroke:#15803d,stroke-width:2px
