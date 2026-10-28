@@ -21,6 +21,8 @@ func TestBlockExpensive(t *testing.T) {
 		{true, "/{username}/{reponame}/src/xxx"},
 		{true, "/{username}/{reponame}/wiki/xxx"},
 		{true, "/{username}/{reponame}/activity/xxx"},
+		{true, "/{username}/{reponame}/issues.ics"},      // the iCal handler hides this feed in expensive mode
+		{false, "/{username}/{reponame}/milestones.ics"}, // not blocked, so its feed stays available
 	}
 	for _, c := range cases {
 		assert.Equal(t, c.expensive, isRoutePathExpensive(c.routePath), "routePath: %s", c.routePath)
