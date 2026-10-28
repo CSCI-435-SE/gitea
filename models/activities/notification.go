@@ -27,6 +27,10 @@ type (
 	NotificationStatus uint8
 	// NotificationSource is the source of the notification (issue, PR, commit, etc)
 	NotificationSource uint8
+	// NotificationReason is why the user was notified. Its value is its rank: a higher reason sorts first and is never replaced by a lower one
+	NotificationReason uint8
+	// NotificationSort is an ordering of the notification list other than newest first. Its value is the "sort" query value
+	NotificationSort string
 )
 
 const (
@@ -49,6 +53,41 @@ const (
 	NotificationSourceRepository
 )
 
+const (
+	// NotificationReasonOther is a notification from before reasons were stored, or one created outside the issue notification queue
+	NotificationReasonOther NotificationReason = iota
+	// NotificationReasonSubscribed is a notification sent because the user watches the repository or participates in the thread
+	NotificationReasonSubscribed
+	// NotificationReasonMentioned is a notification sent because the user was @-mentioned
+	NotificationReasonMentioned
+	// NotificationReasonAssigned is a notification sent because the user was assigned
+	NotificationReasonAssigned
+	// NotificationReasonReviewRequested is a notification sent because the user's review was requested
+	NotificationReasonReviewRequested
+)
+
+// LocaleKey is the label shown for the reason, or "" for NotificationReasonOther, which shows none
+func (r NotificationReason) LocaleKey() string {
+	switch r {
+	case NotificationReasonSubscribed:
+		return "notification.reason_subscribed"
+	case NotificationReasonMentioned:
+		return "notification.reason_mentioned"
+	case NotificationReasonAssigned:
+		return "notification.reason_assigned"
+	case NotificationReasonReviewRequested:
+		return "notification.reason_review_requested"
+	}
+	return ""
+}
+
+const (
+	// NotificationSortReason orders by why the user was notified, highest rank first
+	NotificationSortReason NotificationSort = "reason"
+	// NotificationSortType orders by what the notification is about, in the order of the type filter
+	NotificationSortType NotificationSort = "type"
+)
+
 // Notification represents a notification
 type Notification struct {
 	ID     int64 `xorm:"pk autoincr"`
@@ -57,6 +96,7 @@ type Notification struct {
 
 	Status NotificationStatus `xorm:"SMALLINT NOT NULL"`
 	Source NotificationSource `xorm:"SMALLINT NOT NULL"`
+	Reason NotificationReason `xorm:"SMALLINT NOT NULL DEFAULT 0"`
 
 	IssueID   int64 `xorm:"NOT NULL"`
 	CommitID  string
@@ -116,7 +156,8 @@ func init() {
 	db.RegisterModel(new(Notification))
 }
 
-// CreateRepoTransferNotification creates  notification for the user a repository was transferred to
+// CreateRepoTransferNotification creates  notification for the user a repository was transferred to.
+// Its reason is NotificationReasonOther, because reasons come from the issue notification queue.
 func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		var notify []*Notification
@@ -149,11 +190,12 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 	})
 }
 
-func createIssueNotification(ctx context.Context, userID int64, issue *issues_model.Issue, commentID, updatedByID int64) error {
+func createIssueNotification(ctx context.Context, userID int64, issue *issues_model.Issue, commentID, updatedByID int64, reason NotificationReason) error {
 	notification := &Notification{
 		UserID:    userID,
 		RepoID:    issue.RepoID,
 		Status:    NotificationStatusUnread,
+		Reason:    reason,
 		IssueID:   issue.ID,
 		CommentID: commentID,
 		UpdatedBy: updatedByID,
@@ -168,7 +210,7 @@ func createIssueNotification(ctx context.Context, userID int64, issue *issues_mo
 	return db.Insert(ctx, notification)
 }
 
-func updateIssueNotification(ctx context.Context, userID, issueID, commentID, updatedByID int64) error {
+func updateIssueNotification(ctx context.Context, userID, issueID, commentID, updatedByID int64, reason NotificationReason) error {
 	notification, err := GetIssueNotification(ctx, userID, issueID)
 	if err != nil {
 		return err
@@ -184,6 +226,10 @@ func updateIssueNotification(ctx context.Context, userID, issueID, commentID, up
 	} else {
 		notification.UpdatedBy = updatedByID
 		cols = []string{"update_by"}
+	}
+	if reason > notification.Reason { // the reason only rises, so a later comment doesn't bury a review request
+		notification.Reason = reason
+		cols = append(cols, "reason")
 	}
 
 	_, err = db.GetEngine(ctx).ID(notification.ID).Cols(cols...).Update(notification)

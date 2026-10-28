@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/queue"
+	"gitea.dev/modules/util"
 	notify_service "gitea.dev/services/notify"
 )
 
@@ -28,7 +29,8 @@ type (
 		IssueID              int64
 		CommentID            int64
 		NotificationAuthorID int64
-		ReceiverID           int64 // 0 -- ALL Watcher
+		ReceiverID           int64                               // 0 -- ALL Watcher
+		Reason               activities_model.NotificationReason // unset means subscribed, including items queued before reasons were stored
 	}
 )
 
@@ -52,7 +54,8 @@ func NewNotifier() notify_service.Notifier {
 
 func handler(items ...issueNotificationOpts) []issueNotificationOpts {
 	for _, opts := range items {
-		if err := activities_model.CreateOrUpdateIssueNotifications(graceful.GetManager().ShutdownContext(), opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
+		reason := util.IfZero(opts.Reason, activities_model.NotificationReasonSubscribed)
+		if err := activities_model.CreateOrUpdateIssueNotifications(graceful.GetManager().ShutdownContext(), opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID, reason); err != nil {
 			log.Error("Was unable to create issue notification: %v", err)
 		}
 	}
@@ -79,6 +82,7 @@ func (ns *notificationService) CreateIssueComment(ctx context.Context, doer *use
 			IssueID:              issue.ID,
 			NotificationAuthorID: doer.ID,
 			ReceiverID:           mention.ID,
+			Reason:               activities_model.NotificationReasonMentioned,
 		}
 		if comment != nil {
 			opts.CommentID = comment.ID
@@ -97,6 +101,7 @@ func (ns *notificationService) NewIssue(ctx context.Context, issue *issues_model
 			IssueID:              issue.ID,
 			NotificationAuthorID: issue.Poster.ID,
 			ReceiverID:           mention.ID,
+			Reason:               activities_model.NotificationReasonMentioned,
 		})
 	}
 }
@@ -157,13 +162,21 @@ func (ns *notificationService) NewPullRequest(ctx context.Context, pr *issues_mo
 	}
 	delete(toNotify, pr.Issue.PosterID)
 	for _, mention := range mentions {
-		toNotify.Add(mention.ID)
+		toNotify.Remove(mention.ID) // pushed below, so a mentioned watcher gets one notification, as mentioned
 	}
 	for receiverID := range toNotify {
 		_ = ns.issueQueue.Push(issueNotificationOpts{
 			IssueID:              pr.Issue.ID,
 			NotificationAuthorID: pr.Issue.PosterID,
 			ReceiverID:           receiverID,
+		})
+	}
+	for _, mention := range mentions {
+		_ = ns.issueQueue.Push(issueNotificationOpts{
+			IssueID:              pr.Issue.ID,
+			NotificationAuthorID: pr.Issue.PosterID,
+			ReceiverID:           mention.ID,
+			Reason:               activities_model.NotificationReasonMentioned,
 		})
 	}
 }
@@ -182,6 +195,7 @@ func (ns *notificationService) PullRequestReview(ctx context.Context, pr *issues
 			IssueID:              pr.Issue.ID,
 			NotificationAuthorID: r.Reviewer.ID,
 			ReceiverID:           mention.ID,
+			Reason:               activities_model.NotificationReasonMentioned,
 		}
 		if c != nil {
 			opts.CommentID = c.ID
@@ -197,6 +211,7 @@ func (ns *notificationService) PullRequestCodeComment(ctx context.Context, pr *i
 			NotificationAuthorID: c.Poster.ID,
 			CommentID:            c.ID,
 			ReceiverID:           mention.ID,
+			Reason:               activities_model.NotificationReasonMentioned,
 		})
 	}
 }
@@ -225,6 +240,7 @@ func (ns *notificationService) IssueChangeAssignee(ctx context.Context, doer *us
 			IssueID:              issue.ID,
 			NotificationAuthorID: doer.ID,
 			ReceiverID:           assignee.ID,
+			Reason:               activities_model.NotificationReasonAssigned,
 		}
 
 		if comment != nil {
@@ -241,6 +257,7 @@ func (ns *notificationService) PullRequestReviewRequest(ctx context.Context, doe
 			IssueID:              issue.ID,
 			NotificationAuthorID: doer.ID,
 			ReceiverID:           reviewer.ID,
+			Reason:               activities_model.NotificationReasonReviewRequested,
 		}
 
 		if comment != nil {

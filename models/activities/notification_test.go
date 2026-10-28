@@ -21,7 +21,7 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 
-	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), issue.ID, 0, 2, 0))
+	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), issue.ID, 0, 2, 0, activities_model.NotificationReasonSubscribed))
 
 	// User 9 is inactive, thus notifications for user 1 and 4 are created
 	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 1, IssueID: issue.ID})
@@ -192,6 +192,62 @@ func TestFindNotificationsGroupByRepo(t *testing.T) {
 	assert.Equal(t, []int64{2, 5}, page2) // the order holds across pages
 }
 
+func TestCreateOrUpdateIssueNotificationsReason(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	reasonOf := func(userID int64) activities_model.NotificationReason {
+		return unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: userID, IssueID: 1}).Reason
+	}
+
+	// #52 AC1 a notification stores the reason it was created for
+	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), 1, 0, 2, 4, activities_model.NotificationReasonMentioned))
+	assert.Equal(t, activities_model.NotificationReasonMentioned, reasonOf(4))
+
+	// #52 AC2 a lower reason doesn't replace a higher one, but raises user1's older "Other" notification
+	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), 1, 0, 2, 0, activities_model.NotificationReasonSubscribed))
+	assert.Equal(t, activities_model.NotificationReasonMentioned, reasonOf(4))
+	assert.Equal(t, activities_model.NotificationReasonSubscribed, reasonOf(1))
+
+	// #52 AC2 a higher reason replaces a lower one
+	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), 1, 0, 2, 4, activities_model.NotificationReasonReviewRequested))
+	assert.Equal(t, activities_model.NotificationReasonReviewRequested, reasonOf(4))
+}
+
+func TestFindNotificationsSort(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// user2's notifications: #2 read, #3 pinned and #4 unread in user2/repo1, #5 unread in user2/repo2, newest last
+	set := func(id int64, reason activities_model.NotificationReason, source activities_model.NotificationSource) {
+		_, err := db.GetEngine(t.Context()).ID(id).Cols("reason", "source").NoAutoTime().Update(&activities_model.Notification{Reason: reason, Source: source}) // keeps the fixtures' times, which set the newest-first order
+		assert.NoError(t, err)
+	}
+	set(2, activities_model.NotificationReasonSubscribed, activities_model.NotificationSourceIssue)
+	set(3, activities_model.NotificationReasonReviewRequested, activities_model.NotificationSourcePullRequest)
+	set(4, activities_model.NotificationReasonOther, activities_model.NotificationSourceIssue)
+	set(5, activities_model.NotificationReasonMentioned, activities_model.NotificationSourceIssue)
+
+	ids := func(opts activities_model.FindNotificationOptions) []int64 {
+		opts.UserID = 2
+		nls, err := db.Find[activities_model.Notification](t.Context(), opts)
+		assert.NoError(t, err)
+		ids := make([]int64, 0, len(nls))
+		for _, n := range nls {
+			ids = append(ids, n.ID)
+		}
+		return ids
+	}
+
+	assert.Equal(t, []int64{5, 4, 3, 2}, ids(activities_model.FindNotificationOptions{}))                                              // #52 AC6 newest first
+	assert.Equal(t, []int64{5, 4, 3, 2}, ids(activities_model.FindNotificationOptions{Sort: "bogus"}))                                 // #52 AC6
+	assert.Equal(t, []int64{3, 5, 2, 4}, ids(activities_model.FindNotificationOptions{Sort: activities_model.NotificationSortReason})) // #52 AC4 review requested, mentioned, subscribed, other
+	assert.Equal(t, []int64{5, 4, 2, 3}, ids(activities_model.FindNotificationOptions{Sort: activities_model.NotificationSortType}))   // #52 AC5 issues newest first, then pull requests
+
+	// #52 AC8 grouped, the repositories stay A-Z and the sort applies inside each one
+	grouped := activities_model.FindNotificationOptions{GroupByRepo: true, Sort: activities_model.NotificationSortReason}
+	assert.Equal(t, []int64{3, 2, 4, 5}, ids(grouped))
+	grouped.ListOptions = db.ListOptions{Page: 2, PageSize: 2}
+	assert.Equal(t, []int64{4, 5}, ids(grouped)) // the order holds across pages
+}
+
 func TestCountNotificationsByRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -293,7 +349,7 @@ func TestDeletedNotificationReturnsOnNewActivity(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: user.ID, IssueID: 1})
 
 	// delete must not unsubscribe, so new activity on issue 1 notifies user 1 again
-	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), 1, 0, 2, 0))
+	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), 1, 0, 2, 0, activities_model.NotificationReasonSubscribed))
 	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: user.ID, IssueID: 1})
 	assert.Equal(t, activities_model.NotificationStatusUnread, notf.Status)
 }
