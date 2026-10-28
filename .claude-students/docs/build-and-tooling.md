@@ -1,6 +1,6 @@
 ---
 scope: Makefile, package.json, pyproject.toml, vite.config.ts, .golangci.yml, eslint.config.ts, stylelint.config.ts
-verified-at: 187c98fee9
+verified-at: be5c384c8b
 ---
 
 # build and tooling — targets, linters, generated files
@@ -77,7 +77,9 @@ changes if you are running `make watch`.
 
 **The rebuild loop.** A `.go` change needs the binary rebuilt and restarted. A `.ts` or `.css`
 change needs the frontend assets rebuilt. A `.tmpl` or locale change is picked up on reload in
-development. `make watch` covers all of them (`docs/development.md`).
+development, except a `tw-` class no other file uses yet: Tailwind generates it from the templates
+only when the CSS is rebuilt, and `make frontend` skips that if no `web_src` file changed (`touch`
+one). `make watch` covers all of them (`docs/development.md`).
 
 ## Gotchas
 
