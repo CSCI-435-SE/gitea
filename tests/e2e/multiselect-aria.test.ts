@@ -82,8 +82,7 @@ test('issue label picker exposes its combobox state', async ({page}) => {
   });
 });
 
-test('issue label picker reports collapsed after Escape', async ({page}) => {
-  test.fail(); // bug: https://github.com/CSCI-435-SE/gitea/issues/104
+test('issue label picker reports collapsed after Escape', async ({page}) => { // #104
   await page.clock.install();
   await withLabeledIssue(page, ['bug'], async () => {
     const dropdown = labelPicker(page);
@@ -91,7 +90,7 @@ test('issue label picker reports collapsed after Escape', async ({page}) => {
     await expect(dropdown).toHaveAttribute('aria-expanded', 'true');
     await page.clock.runFor(200); // past the refresh that focus schedules, which otherwise hides the bug
     await page.keyboard.press('Escape');
-    await expect(dropdown).toHaveAttribute('aria-expanded', 'false', {timeout: 1000}); // keeps the expected failure under 2s
+    await expect(dropdown).toHaveAttribute('aria-expanded', 'false', {timeout: 1000}); // keeps a regression's failure under 2s
   });
 });
 
