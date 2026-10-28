@@ -71,9 +71,11 @@
 					{{$addFilePath = ""}}
 				{{end}}
 			{{end}}
-			<button class="ui dropdown basic compact jump button repo-add-file" {{if not .Repository.CanEnableEditor}}disabled{{end}}>
-				{{ctx.Locale.Tr "repo.editor.add_file"}}
-				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<aria-menu>
+				<button type="button" class="ui basic compact button repo-add-file" {{if not .Repository.CanEnableEditor}}disabled{{end}}>
+					{{ctx.Locale.Tr "repo.editor.add_file"}}
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				</button>
 				<div class="menu">
 					<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{$addFilePath | PathEscapeSegments}}">
 						{{svg "octicon-file-added" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.editor.new_file"}}
@@ -87,11 +89,13 @@
 						{{svg "octicon-diff" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.editor.patch"}}
 					</a>
 				</div>
-			</button>
+			</aria-menu>
 
 			{{if and (not .IsViewFile) (not $isTreePathRoot)}}
-			<button class="ui dropdown basic compact jump button tw-px-3" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
-				{{svg "octicon-kebab-horizontal"}}
+			<aria-menu placement="bottom-end">
+				<button type="button" class="ui basic compact button tw-px-3" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
+					{{svg "octicon-kebab-horizontal"}}
+				</button>
 				<div class="menu">
 					<a class="item" data-clipboard-text="{{ctx.AppFullLink}}{{.Repository.Link}}/src/commit/{{.CommitID}}/{{PathEscapeSegments .TreePath}}">
 						{{svg "octicon-link" 16}}{{ctx.Locale.Tr "repo.file_copy_permalink"}}
@@ -108,7 +112,7 @@
 						</a>
 					{{end}}
 				</div>
-			</button>
+			</aria-menu>
 			{{end}}
 		{{end}}
 		<!-- Only show clone panel in repository home page -->
