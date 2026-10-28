@@ -45,6 +45,8 @@ type FindMilestoneOptions struct {
 	SortType string
 	RepoCond builder.Cond
 	RepoIDs  []int64
+	// HasDeadline excludes 0 and the legacy 9999-01-01 "none", so a page limit only counts dated milestones
+	HasDeadline bool
 }
 
 func (opts FindMilestoneOptions) ToConds() builder.Cond {
@@ -63,6 +65,9 @@ func (opts FindMilestoneOptions) ToConds() builder.Cond {
 	}
 	if len(opts.Name) != 0 {
 		cond = cond.And(db.BuildCaseInsensitiveLike("name", opts.Name))
+	}
+	if opts.HasDeadline {
+		cond = cond.And(builder.Gt{"deadline_unix": 0}, builder.Lt{"deadline_unix": int64(milestoneNoDeadline)})
 	}
 
 	return cond

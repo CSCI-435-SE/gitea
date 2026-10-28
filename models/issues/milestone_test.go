@@ -368,3 +368,21 @@ func TestMigrate_InsertMilestones(t *testing.T) {
 
 	unittest.CheckConsistencyFor(t, &issues_model.Milestone{})
 }
+
+func TestMilestoneHasDeadline(t *testing.T) {
+	assert.False(t, (&issues_model.Milestone{}).HasDeadline())
+	assert.False(t, (&issues_model.Milestone{DeadlineUnix: 253370764800}).HasDeadline()) // older versions stored "none" as 9999-01-01
+	assert.True(t, (&issues_model.Milestone{DeadlineUnix: 1791676799}).HasDeadline())
+}
+
+func TestFindMilestonesHasDeadline(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	_, err := db.GetEngine(t.Context()).ID(1).Cols("deadline_unix").Update(&issues_model.Milestone{DeadlineUnix: 1791676799})
+	assert.NoError(t, err)
+
+	milestones, err := db.Find[issues_model.Milestone](t.Context(), issues_model.FindMilestoneOptions{RepoID: 1, HasDeadline: true})
+	assert.NoError(t, err)
+	if assert.Len(t, milestones, 1) { // 2 and 3 keep the legacy 9999-01-01 "none"
+		assert.EqualValues(t, 1, milestones[0].ID)
+	}
+}
