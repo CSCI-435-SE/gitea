@@ -1,0 +1,35 @@
+sequenceDiagram
+  autonumber
+  actor U as User
+  participant B as Browser
+  participant H as user.Notifications<br/>(notification.go) ✎
+  participant M as activities model ✎
+  participant DB as Database
+
+  U->>B: clicks "Group by repository"
+  B->>H: GET /notifications?group=repo
+  rect rgb(219, 231, 251)
+    H->>H: parseNotificationFilter(ctx) ✎ gives GroupByRepo = true
+    Note right of H: Decision 3: group=repo is kept in the URL
+  end
+  rect rgb(217, 242, 223)
+    H->>M: db.Find[Notification](opts with GroupByRepo) ★
+    M->>DB: SELECT ... JOIN repository ORDER BY LOWER(owner_name),<br/>lower_name, updated_unix DESC, id DESC
+    Note over M,DB: Decisions 1 and 2: SQL keeps each repository's rows<br/>together, with repositories sorted A-Z
+    DB-->>M: one page of notifications
+    M-->>H: notifications
+    H->>M: CountNotificationsByRepo(unread opts) ★
+    M->>DB: SELECT repo_id, COUNT(*) ... GROUP BY repo_id
+    DB-->>M: unread count per repository
+    M-->>H: map[repoID]count
+  end
+  H->>M: LoadRepos(), LoadIssues(), LoadComments()
+  M-->>H: notifications with repository and issue loaded
+  rect rgb(217, 242, 223)
+    H->>H: groupNotificationsByRepo(...) ★
+    Note right of H: new section each time RepoID changes
+  end
+  H-->>B: HTML with one section per repository
+  rect rgb(217, 242, 223)
+    B->>B: initNotificationGroups() ★ restores collapsed sections
+  end

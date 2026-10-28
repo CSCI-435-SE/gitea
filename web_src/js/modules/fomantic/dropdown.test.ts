@@ -270,6 +270,52 @@ describe('icon-only trigger names', {concurrent: false}, () => {
   });
 });
 
+describe('expanded state on hide', {concurrent: false}, () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.replaceChildren();
+  });
+
+  // as the issue sidebar label picker, which sets its own onHide after the patch has delegated the module.
+  // a hidden input instead of its search box: happy-dom moves focus into the box, whose blur would hide the bug
+  function createLabelPicker(onHide: () => void) {
+    const el = createElementFromHTML<HTMLElement>(`<div class="ui dropdown">
+  <input type="hidden" name="label_ids">
+  <a class="fixed-text">Labels</a>
+  <div class="menu"><a class="item" data-value="1">bug</a></div>
+</div>`);
+    document.body.append(el);
+    $(el).dropdown('setting', {action: 'nothing', onHide});
+    return el;
+  }
+
+  test('#104 Escape reports the picker collapsed and still runs its onHide', () => {
+    const onHide = vi.fn();
+    const el = createLabelPicker(onHide);
+    el.focus(); // opens the menu
+    vi.advanceTimersByTime(200); // past the refresh that focus schedules
+    expect(el.getAttribute('aria-expanded')).toBe('true');
+
+    el.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', keyCode: 27, bubbles: true}));
+    vi.advanceTimersByTime(100);
+    expect($(el).dropdown('is hidden')).toBe(true);
+    expect(el.getAttribute('aria-expanded')).toBe('false');
+    expect(onHide).toHaveBeenCalledTimes(1); // the picker saves its labels here
+  });
+
+  test('#104 hiding by API reports the picker collapsed', () => {
+    const el = createLabelPicker(() => {});
+    el.focus();
+    vi.advanceTimersByTime(200);
+    $(el).dropdown('hide');
+    vi.advanceTimersByTime(100);
+    expect(el.getAttribute('aria-expanded')).toBe('false');
+  });
+});
+
 describe('type-ahead keys', {concurrent: false}, () => {
   afterEach(() => {
     document.body.replaceChildren();

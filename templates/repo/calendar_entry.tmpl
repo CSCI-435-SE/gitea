@@ -1,0 +1,12 @@
+{{/* One calendar entry; the dot is a calendarEntry */}}
+<a class="repo-calendar-entry flex-text-inline is-{{.Kind}} is-{{.State}}" href="{{.Link}}" title="{{if eq .State "merged"}}{{ctx.Locale.Tr "repo.pulls.merged"}}: {{else if eq .State "closed"}}{{ctx.Locale.Tr "repo.issues.closed_title"}}: {{end}}{{.Title}}">
+	{{if eq .Kind "milestone"}}
+		{{svg "octicon-milestone" 14}}
+	{{else if eq .Kind "pull"}}
+		{{if eq .State "merged"}}{{svg "octicon-git-merge" 14}}{{else if eq .State "closed"}}{{svg "octicon-git-pull-request-closed" 14}}{{else}}{{svg "octicon-git-pull-request" 14}}{{end}}
+	{{else}}
+		{{if eq .State "closed"}}{{svg "octicon-issue-closed" 14}}{{else}}{{svg "octicon-issue-opened" 14}}{{end}}
+	{{end}}
+	{{if .Index}}<span class="repo-calendar-index">#{{.Index}}</span>{{end}}
+	<span class="tw-truncate">{{.Title}}</span>
+</a>

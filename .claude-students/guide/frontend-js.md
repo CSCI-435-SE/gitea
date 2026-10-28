@@ -1,6 +1,6 @@
 ---
 source: docs/frontend-js.md
-source-hash: 2502295c22398189
+source-hash: bac18fa704793632
 verified-at: 07a6be3788
 ---
 
@@ -126,11 +126,11 @@ element first and **return immediately if it is missing**. Then add the import a
 **Find out why a page feels slow.** Add `?_ui_performance_trace=1` to the URL and the timings for
 every init function are printed. `index.ts` already logs an error if the total exceeds 500ms.
 
-**Add a keyboard shortcut.** Call `registerShortcut` (`modules/shortcut.ts`); keys `g c` mean `g`
-then `c`. Tie it to an element and it lasts only while that element is on the page, even if hidden.
-Two live shortcuts that clash throw at once, instead of one quietly winning. A shortcut that only
-follows a link is marked on the link in its template (see `templates/repo/header.tmpl`), so it exists
-exactly while the link is on the page; if the page renders that markup twice, mark one copy, or they clash.
+**Add a keyboard shortcut.** Call `registerShortcut` (`modules/shortcut.ts`); keys `g c` mean `g` then `c`. Tie it to an element and
+it lasts only while that element is on the page, even if hidden. Two live shortcuts that clash throw at once, instead of one quietly
+winning. A shortcut that only follows a link is marked on the link in its template (see `templates/repo/header.tmpl`), so it exists
+exactly while the link is on the page; if the page renders that markup twice, mark one copy, or they clash. Users can turn shortcuts
+off in the `?` help dialog (`templates/base/footer.tmpl`) so dictated words don't trigger them; then only `alwaysOn` ones still work.
 
 **Run one test file.** `pnpm exec vitest <path-filter>`.
 
