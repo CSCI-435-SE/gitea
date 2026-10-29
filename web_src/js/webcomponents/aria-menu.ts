@@ -53,6 +53,12 @@ window.customElements.define('aria-menu', class extends HTMLElement {
     trigger.addEventListener('keyup', this.preventSpaceClick);
     popup.addEventListener('keydown', this.onPopupKeyDown);
     popup.addEventListener('keyup', this.preventSpaceClick);
+    // capture phase, so neither the item's own click handlers nor the delegated ones like "link-action" run
+    popup.addEventListener('click', (e) => {
+      if (!(e.target as Element).closest('[role="menuitem"][aria-disabled="true"]')) return;
+      e.preventDefault();
+      e.stopPropagation();
+    }, {capture: true});
     popup.addEventListener('click', (e) => {
       // bubble phase, so the item's own click handlers have already run
       if ((e.target as Element).closest('[role="menuitem"]')) this.close(true);
@@ -65,6 +71,9 @@ window.customElements.define('aria-menu', class extends HTMLElement {
       if (child.classList.contains('item')) {
         child.setAttribute('role', 'menuitem');
         child.setAttribute('tabindex', '-1');
+        // a disabled item stays focusable so a screen reader user learns it exists, see the APG menu pattern
+        child.removeAttribute('aria-disabled'); // not toggleAttribute: an empty aria-disabled doesn't mean disabled
+        if (child.classList.contains('disabled')) child.setAttribute('aria-disabled', 'true');
       } else if (child.classList.contains('divider')) {
         child.setAttribute('role', 'separator');
       } else {
@@ -143,7 +152,7 @@ window.customElements.define('aria-menu', class extends HTMLElement {
       items.at(-1)!.focus();
     } else if (e.key === 'Enter' || e.key === ' ') {
       if (current < 0) return;
-      items[current].click();
+      if (items[current].getAttribute('aria-disabled') !== 'true') items[current].click();
     } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
       this.focusByFirstChar(items, current, e.key);
     } else {

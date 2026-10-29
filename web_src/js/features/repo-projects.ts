@@ -46,6 +46,8 @@ async function initRepoProjectSortable(): Promise<void> {
     group: 'project-column',
     draggable: '.project-column',
     handle: '.project-column-header',
+    filter: 'aria-menu', // the column's "…" menu sits in the handle, and pressing it must not pick the column up
+    preventOnFilter: false, // or the press could not focus and click the menu's button
     delayOnTouchOnly: true,
     delay: 500,
     onSort: async () => { // eslint-disable-line @typescript-eslint/no-misused-promises

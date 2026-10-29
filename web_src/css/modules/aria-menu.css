@@ -160,6 +160,13 @@ aria-menu > .menu > .item:focus {
   outline: none;
 }
 
+/* like ".ui.menu .item.disabled", but still focusable so the arrow keys reach it */
+aria-menu > .menu > .item[aria-disabled="true"] {
+  cursor: default;
+  background: transparent;
+  opacity: var(--opacity-disabled);
+}
+
 aria-menu > .menu > .item.active,
 aria-menu > .menu > .item:active {
   background: var(--color-active);
