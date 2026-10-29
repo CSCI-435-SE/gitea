@@ -191,7 +191,7 @@ Arjun Bhat
 | --- | --- |
 | Tools Used | Claude Code (VS Code extension) + SpecStory |
 | Total Sessions | 4 |
-| Link to logs | [https://github.com/CSCI-435-SE/gitea/tree/main/ai-logs/sprint2/arjunsb26](https://github.com/CSCI-435-SE/gitea/tree/main/ai-logs/sprint2/arjunsb26) |
+| Link to logs | [arjunsb26 folder](https://github.com/CSCI-435-SE/gitea/tree/main/ai-logs/sprint2/arjunsb26):<br>[2026-10-20_claude-code_issue-14-burndown-screenshots.md](https://github.com/CSCI-435-SE/gitea/blob/main/ai-logs/sprint2/arjunsb26/2026-10-20_claude-code_issue-14-burndown-screenshots.md)<br>[2026-10-20_claude-code_sprint1-quiz-prep.md](https://github.com/CSCI-435-SE/gitea/blob/main/ai-logs/sprint2/arjunsb26/2026-10-20_claude-code_sprint1-quiz-prep.md)<br>[2026-10-22_claude-code_sprint2-checkin.md](https://github.com/CSCI-435-SE/gitea/blob/main/ai-logs/sprint2/arjunsb26/2026-10-22_claude-code_sprint2-checkin.md)<br>[2026-10-28_claude-code_issue-131-109-specs-impl-diagrams.md](https://github.com/CSCI-435-SE/gitea/blob/main/ai-logs/sprint2/arjunsb26/2026-10-28_claude-code_issue-131-109-specs-impl-diagrams.md) |
 | Notable Obsv. vs. Sprint 1 | Claude is a go-getter and very proactive, unprompted it will (for instance when I asked if new changes would break anything, it said it would be easier to test itself than explain and did exactly so) |
 
 Aman Bhoot
