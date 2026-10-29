@@ -27,7 +27,7 @@ The shortcut work was planned in dependency order. #56 replaces Gitea's single p
 - **#118 was deferred to Sprint 3.** The tab badge and desktop notifications issue under #7 was taken off the milestone. Its owner explained on the issue that #52's migration and notifier changes left no time to finish it this sprint.
 - **#101 and #102 were left off the milestone.** #36 was split into four issues: the calendar view (#98) and the public iCalendar feed (#100) were kept for this sprint, and the private-repository feed with revocable tokens (#101) and the personal cross-repository feed (#102) were left for later.
 
-In total, 14 of the 16 issues on the Sprint 2 milestone are closed, each by a merged PR. The PostgreSQL burndown fix was merged as PR #125.
+In total, all 16 issues on the Sprint 2 milestone are closed, each by a merged PR. The PostgreSQL burndown fix was merged as PR #125.
 
 ## Sprint 1 Carryovers
 
@@ -69,10 +69,10 @@ Estimated points come from each issue's scope label, as in Sprint 1: small = 1, 
 | #100 Subscribe to a public repository's milestones and issue deadlines as an iCalendar feed | vvchopra | 2 | Medium | Done (PR #129) |
 | #104 Label picker keeps `aria-expanded="true"` after Escape closes it | Jack-Donohue | 1 | Small | Done (PR #124) |
 | #108 Move the Code tab, branch list and commit page action menus to `<aria-menu>` | Jack-Donohue | 2 | Medium | Done (PR #127) |
-| #109 Move the "…" row menus on the Actions, Projects and Packages pages to `<aria-menu>` | arjunsb26 | 2 | Medium | In review (PR #135) **[TODO: update when merged]** |
+| #109 Move the "…" row menus on the Actions, Projects and Packages pages to `<aria-menu>` | arjunsb26 | 2 | Medium | Done (PR #135) |
 | #110 Move the "Add webhook", "Link account" and admin notice "Operations" menus to `<aria-menu>` | Jack-Donohue | 2 | Medium | Done (PR #128) |
 | #117 Group notifications by repository | CarsonRackley | 2 | Medium | Done (PR #120) |
-| #131 Show each open milestone's projected finish on the milestones list | arjunsb26 | 2 | Medium | In review (PR #134) **[TODO: update when merged]** |
+| #131 Show each open milestone's projected finish on the milestones list | arjunsb26 | 2 | Medium | Done (PR #134) |
 
 ## Requirements & Design
 
@@ -131,8 +131,8 @@ Every implemented issue records at least one decision with two or more alternati
 | #98 Repository calendar view | vvchopra | #36 | [#123](https://github.com/CSCI-435-SE/gitea/pull/123) | vvchopra | ab-wm | Merged | A month grid at `/{owner}/{repo}/calendar` with milestone due dates and issue and PR deadlines |
 | #100 iCalendar feeds | vvchopra | #36 | [#129](https://github.com/CSCI-435-SE/gitea/pull/129) | vvchopra | ab-wm | Merged | `milestones.ics` and `issues.ics` feeds for public repositories, with "Subscribe (iCal)" buttons on the lists |
 | Sprint 1 carryover: #77's PostgreSQL test failure | ab-wm | #14 | [#125](https://github.com/CSCI-435-SE/gitea/pull/125) | ab-wm | controlled-opposition | Merged | The burndown chart now orders same-second changes by issue, fixing the flaky test |
-| #109 Actions, Projects and Packages row menus | arjunsb26 | #25 | [#135](https://github.com/CSCI-435-SE/gitea/pull/135) | arjunsb26 | **[TODO: reviewer]** | Open | The workflow, run, project column and package cleanup rule "…" menus move to `<aria-menu>`, which now supports disabled items |
-| #131 Milestone projected finish on the list | arjunsb26 | #14 | [#134](https://github.com/CSCI-435-SE/gitea/pull/134) | arjunsb26 | **[TODO: reviewer]** | Open | Each open milestone on the Milestones tab shows its projected finish, worded like the burndown chart's summary |
+| #109 Actions, Projects and Packages row menus | arjunsb26 | #25 | [#135](https://github.com/CSCI-435-SE/gitea/pull/135) | arjunsb26 | CarsonRackley | Merged | The workflow, run, project column and package cleanup rule "…" menus move to `<aria-menu>`, which now supports disabled items |
+| #131 Milestone projected finish on the list | arjunsb26 | #14 | [#134](https://github.com/CSCI-435-SE/gitea/pull/134) | arjunsb26 | vvchopra | Merged | Each open milestone on the Milestones tab shows its projected finish, worded like the burndown chart's summary |
 
 Every PR above has a `## Tech Debt` section in its description (D4). CodeRabbit also commented on every code PR as an automated first pass, alongside the human reviews.
 
@@ -147,10 +147,10 @@ Documentation and log PRs merged this sprint, outside the issue table:
 
 As in Sprint 1, tests were written against each acceptance criterion:
 
-- **Go unit tests** for models, services and handlers: #120, #122, #123, #125, #129
-- **Integration tests** through the full HTTP request path: #120, #122, #123, #128, #129
-- **Vitest** frontend unit tests: #96, #97, #114, #115, #116, #120, #121, #124
-- **Playwright end-to-end tests**: #96, #97, #105, #114, #115, #116, #120, #121, #124, #127, #128
+- **Go unit tests** for models, services and handlers: #120, #122, #123, #125, #129, #134
+- **Integration tests** through the full HTTP request path: #120, #122, #123, #128, #129, #134
+- **Vitest** frontend unit tests: #96, #97, #114, #115, #116, #120, #121, #124, #135
+- **Playwright end-to-end tests**: #96, #97, #105, #114, #115, #116, #120, #121, #124, #127, #128, #135
 
 The shortcut PRs are mostly frontend, so they lean on Vitest for the registry logic and on Playwright for real key presses on real pages. #52's migration has its own migration test with fixtures (`v345_test.go`). #125 fixed a test that failed only on PostgreSQL by making the code's ordering deterministic, rather than loosening the test.
 
@@ -236,7 +236,7 @@ v1.27.3-csci435-s2
 | D1 | Sprint backlog | [Sprint 2 milestone](https://github.com/CSCI-435-SE/gitea/milestone/3) with 16 issues, one assignee each |
 | D2 | Requirements specs, peer-reviewed | All 16 issues in the course format, each with a "Spec reviewed" comment from a teammate |
 | D3 | Design decisions with at least two alternatives | Recorded in each issue's Design Decisions section; #58 and #59 recorded theirs in issue comments |
-| D4 | PRs with a `## Tech Debt` section | 15 code PRs merged (table above), all with Tech Debt sections |
+| D4 | PRs with a `## Tech Debt` section | 17 code PRs merged (table above), all with Tech Debt sections |
 | D5 | AI logs | `ai-logs/sprint2/<username>/` for each member, linked from each issue's AI Assistance comment |
 | D6 | UML class and sequence diagrams plus Q&A | ab-wm ([#56](https://github.com/CSCI-435-SE/gitea/blob/main/docs/sprint2/diagrams/56-ab-wm.md)), controlled-opposition ([#57](https://github.com/CSCI-435-SE/gitea/blob/main/docs/sprint2/diagrams/57-controlled-opposition.md)), vvchopra ([#98](https://github.com/CSCI-435-SE/gitea/blob/main/docs/sprint2/diagrams/98-vvchopra.md)), Jack-Donohue ([#108](https://github.com/CSCI-435-SE/gitea/blob/main/docs/sprint2/diagrams/108-Jack-Donohue.md)), CarsonRackley ([#117](https://github.com/CSCI-435-SE/gitea/blob/main/docs/sprint2/diagrams/117-CarsonRackley.md)), arjunsb26 **[TODO (Arjun)]** |
 | D7 | Mid-sprint check-in (due Oct 22) | All six in [`docs/sprint2/checkin/`](https://github.com/CSCI-435-SE/gitea/tree/main/docs/sprint2/checkin) |
@@ -255,9 +255,9 @@ v1.27.3-csci435-s2
 
 ### What slowed the team down
 
-- **PRs still bunched up at the end.** 12 of the 15 code PRs were opened on or after Oct 24, and six of them (#122, #123, #124, #127, #128, #129) merged in the last two days. Our Sprint 1 goal of opening PRs by mid-sprint was met only by the first shortcut PRs (#96 and #97).
+- **PRs still bunched up at the end.** 14 of the 17 code PRs were opened on or after Oct 24, and eight of them (#122, #123, #124, #127, #128, #129, #134, #135) merged in the last two days. Our Sprint 1 goal of opening PRs by mid-sprint was met only by the first shortcut PRs (#96 and #97).
 - **Specs were written late.** Most of the new issues (#98, #100, #104, #108, #109, #110) were written on Oct 22, and #117 on Oct 26, so the write, review and implement cycle for them fit into the last week.
-- **Review load fell on one person.** ab-wm reviewed 9 of the 15 code PRs. Spreading reviews more evenly would have shortened the wait at the end.
+- **Review load fell on one person.** ab-wm reviewed 9 of the 17 code PRs. Spreading reviews more evenly would have shortened the wait at the end.
 - **CI trouble around #114.** After #114 merged, a revert (#119) was opened to get CI passing and then closed without merging.
 - **#52's migration.** Adding a column to every notification row and changing the notifier queue was more work than its medium estimate suggested, which pushed #118 into Sprint 3.
 
