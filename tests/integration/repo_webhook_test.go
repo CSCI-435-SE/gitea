@@ -60,7 +60,9 @@ func TestNewWebHookLink(t *testing.T) {
 	for _, reqHref := range cases {
 		resp := session.MakeRequest(t, NewRequest(t, "GET", reqHref), http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		menus := htmlDoc.doc.Find(".ui.top.attached.header .ui.dropdown .menu a")
+		AssertHTMLElement(t, htmlDoc, ".ui.top.attached.header .ui.dropdown", false)
+		menus := htmlDoc.doc.Find(".ui.top.attached.header aria-menu > .menu > a")
+		assert.NotZero(t, menus.Length(), reqHref)
 		menus.Each(func(i int, menu *goquery.Selection) {
 			foundHref := menu.AttrOr("href", "")
 			assert.True(t, strings.HasPrefix(foundHref, webhooksBaseHref))

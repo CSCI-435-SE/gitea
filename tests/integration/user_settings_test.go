@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
+	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/tests"
 
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -272,6 +273,19 @@ func TestUserSettingsSecurity(t *testing.T) {
 		session := loginUser(t, "user2")
 		req := NewRequest(t, "GET", "/user/settings/security")
 		session.MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("link account menu", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		addOAuth2Source(t, "test link source", oauth2.Source{})
+
+		session := loginUser(t, "user2")
+		req := NewRequest(t, "GET", "/user/settings/security")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+
+		AssertHTMLElement(t, doc, ".ui.top.attached.header .ui.dropdown", false)
+		AssertHTMLElement(t, doc, ".ui.top.attached.header aria-menu > .menu > a[href='/user/oauth2/test%20link%20source']", true)
 	})
 }
 

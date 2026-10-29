@@ -4,8 +4,8 @@
 	{{ctx.Locale.Tr "settings.manage_account_links"}}
 	{{if .OrderedOAuth2Names}}
 		<div class="ui right">
-			<div class="ui dropdown">
-				<div class="ui primary tiny button">{{ctx.Locale.Tr "settings.link_account"}}</div>
+			<aria-menu placement="bottom-end">
+				<button type="button" class="ui primary tiny button">{{ctx.Locale.Tr "settings.link_account"}}</button>
 				<div class="menu">
 					{{range $key := .OrderedOAuth2Names}}
 						{{$provider := index $.OAuth2Providers $key}}
@@ -15,7 +15,7 @@
 						</a>
 					{{end}}
 				</div>
-			</div>
+			</aria-menu>
 		</div>
 	{{end}}
 </h4>
