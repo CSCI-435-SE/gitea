@@ -82,6 +82,7 @@ Yes. Every issue was written in the course format: User Story, User Scenario, nu
 
 - The shortcut and test issues (#56–#60, #65, #95) were reviewed on Oct 18, the day #56's PR was opened.
 - The later issues (#52, #98, #100, #104, #108, #110, #117) were reviewed between Oct 26 and Oct 27, before or on the day their PRs were opened.
+- #109 and #131 were reviewed on Oct 29 (#131 by Jack-Donohue, #109 by vvchopra), the same morning, before #134 and #135 were opened.
 
 This sprint, reviewers checked each spec against the code, not just its wording. That caught real problems before implementation:
 
@@ -111,6 +112,8 @@ Every implemented issue records at least one decision with two or more alternati
 - **#108 and #110:** Only action menus move to `<aria-menu>`. Menus that show a current selection, like Sort and Filter, stay on Fomantic. #110 records why the webhook type switcher still counts as an action menu.
 - **#117:** Grouping is done in the SQL query, not on the page, so each repository's rows stay together across pages. Sections are ordered A–Z, the choice lives in the URL like Sprint 1's #50 filters, and collapsed sections are kept in page memory so a live refresh doesn't reopen them.
 - **#52:** The reason is stored in a new column as a number that matches its priority, and the highest-priority reason wins. Existing notifications get "Other" and sort last, and the sort works inside #117's groups.
+- **#109:** The four row menus are rebuilt as `<aria-menu>`, which now keeps disabled items focusable but inert, as the WAI-ARIA menu pattern recommends, instead of hiding them. The project column's Sortable uses `filter: 'aria-menu'`, so pressing the menu never drags the column.
+- **#131:** Projections are computed on the server for each open milestone on the current page. This reuses #14's `GetMilestoneBurndown` and a shared `burndownOptions` helper, which picks issues or pull requests from the viewer's permissions, instead of fetching each row's projection in the browser. The row reuses the chart's own locale sentences, so the list and the chart can't disagree.
 
 ## Completed Issues
 
@@ -141,7 +144,7 @@ Documentation and log PRs merged this sprint, outside the issue table:
 - Check-ins: #99, #103, #107, #111, #112, #113
 - AI logs: #106, #130, #132
 - Course rules update: #94
-- UML diagrams: #126
+- UML diagrams: #126, #136
 
 ## Test Strategy
 
@@ -159,7 +162,6 @@ Changes we couldn't test automatically:
 - **Screen reader output** can't be driven in CI. The `<aria-menu>` and ARIA work (#104, #108, #110, #65) asserts ARIA attributes and roles instead.
 - **Real calendar apps** can't subscribe to a CI server. #129 tests the feed builder (`services/feed/ical_test.go`) and the endpoints (`tests/integration/repo_ical_test.go`), but not how a calendar app displays the feed.
 - **Visual layout** of new UI was checked by hand and with light and dark screenshots in `docs/sprint2/screenshots/` (#52, #57, #60, #95).
-- **Firefox and WebKit** end-to-end runs happen only in CI.
 
 ## AI Tool Usage
 
@@ -187,7 +189,7 @@ Arjun Bhat
 
 | **Arjun Bhat (arjunsb26)** | |
 | --- | --- |
-| Tools Used | Claude Code Desktop |
+| Tools Used | Claude Code (VS Code extension) + SpecStory |
 | Total Sessions | 1 |
 | Link to logs | [https://github.com/CSCI-435-SE/gitea/tree/main/ai-logs/sprint2/arjunsb26](https://github.com/CSCI-435-SE/gitea/tree/main/ai-logs/sprint2/arjunsb26) |
 | Notable Obsv. vs. Sprint 1 | Claude is a go-getter and very proactive, unprompted it will (for instance when I asked if new changes would break anything, it said it would be easier to test itself than explain and did exactly so) |
@@ -256,7 +258,7 @@ v1.27.3-csci435-s2
 ### What slowed the team down
 
 - **PRs still bunched up at the end.** 14 of the 17 code PRs were opened on or after Oct 24, and eight of them (#122, #123, #124, #127, #128, #129, #134, #135) merged in the last two days. Our Sprint 1 goal of opening PRs by mid-sprint was met only by the first shortcut PRs (#96 and #97).
-- **Specs were written late.** Most of the new issues (#98, #100, #104, #108, #109, #110) were written on Oct 22, and #117 on Oct 26, so the write, review and implement cycle for them fit into the last week.
+- **Specs were written late.** Most of the new issues (#98, #100, #104, #108, #109, #110) were written on Oct 22, #117 on Oct 26, and #131 late on Oct 28, so the write, review and implement cycle for them fit into the last week.
 - **Review load fell on one person.** ab-wm reviewed 9 of the 17 code PRs. Spreading reviews more evenly would have shortened the wait at the end.
 - **CI trouble around #114.** After #114 merged, a revert (#119) was opened to get CI passing and then closed without merging.
 - **#52's migration.** Adding a column to every notification row and changing the notifier queue was more work than its medium estimate suggested, which pushed #118 into Sprint 3.
@@ -274,3 +276,10 @@ Carryover and follow-up issues:
 
 - **#118** (CarsonRackley): tab icon badge and opt-in desktop notifications, deferred from Sprint 2, which finishes #7.
 - **#101 and #102** (#36): private repository feeds with a revocable calendar token, and one personal deadline feed across all of a user's repositories, building on #100.
+
+Initial ideas, from this sprint's Tech Debt sections:
+
+- Batch the per-milestone burndown queries on the milestones list (#134).
+- Move the burndown summary wording to the server, so the Go and TypeScript copies become one (#134).
+- Move the remaining Fomantic menus left out of #108–#110, such as the runner "Create new runner" popup and the Actions filters.
+- Fix `UpdatedBy` never changing on an unread notification: `updateIssueNotification` passes `"update_by"` instead of `"updated_by"` to `Cols()` (#122).
