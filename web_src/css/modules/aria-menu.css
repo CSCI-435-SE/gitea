@@ -14,9 +14,16 @@ aria-menu > :not(.menu) {
   user-select: none;
 }
 
-/* normalize.css gives buttons line-height 1.15 */
+/* normalize.css gives buttons line-height 1.15, and browsers reset their font weight */
 aria-menu > .btn {
   line-height: inherit;
+  font-weight: inherit;
+}
+
+/* like ".ui.dropdown > .text > img", an image before the trigger text keeps its gap */
+aria-menu > .btn > img,
+aria-menu > .btn > .img {
+  margin-right: 0.78571429rem;
 }
 
 /* a ".ui.button" trigger keeps the caret where ".ui.dropdown.button" put it, in the right padding */
@@ -34,6 +41,11 @@ aria-menu > .ui.button > .dropdown.icon {
   top: 50%;
   right: 0.5em;
   transform: translateY(-50%);
+}
+
+/* like ".ui.active.dropdown.button", a neutral button trigger looks pressed while its menu is open */
+aria-menu > .ui.button:not(.primary, .red, .green)[aria-expanded="true"] {
+  background: var(--color-active);
 }
 
 aria-menu > .menu {
@@ -62,6 +74,19 @@ aria-menu[placement^="top-"] > .menu {
   top: auto;
   bottom: 100%;
   border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+/* "floating" matches ".ui.floating.dropdown": a gap from the trigger and all corners rounded */
+aria-menu[floating] > .menu {
+  border-radius: var(--border-radius);
+}
+
+aria-menu[floating]:not([placement^="top-"]) > .menu {
+  margin-top: 0.5em;
+}
+
+aria-menu[floating][placement^="top-"] > .menu {
+  margin-bottom: 0.5em;
 }
 
 aria-menu[pointing]:not([placement^="top-"]) > .menu {
@@ -98,6 +123,7 @@ aria-menu > .menu > .item {
   padding: 0.78571429rem 1.14285714rem;
   font-size: 1rem;
   color: var(--color-text);
+  font-weight: var(--font-weight-normal); /* not a surrounding header's weight */
   line-height: var(--line-height-default);
   white-space: nowrap;
   cursor: pointer;
@@ -106,6 +132,14 @@ aria-menu > .menu > .item {
 
 aria-menu > .menu > .item > svg {
   margin-right: 0.78rem;
+}
+
+aria-menu > .menu > .item > img {
+  display: inline-block;
+  vertical-align: top;
+  width: auto;
+  max-height: 2em;
+  margin: -0.25rem 0.78571429rem -0.25rem 0;
 }
 
 aria-menu > .menu > .item:first-child {
@@ -124,6 +158,13 @@ aria-menu > .menu > .item.selected {
 
 aria-menu > .menu > .item:focus {
   outline: none;
+}
+
+/* like ".ui.menu .item.disabled", but still focusable so the arrow keys reach it */
+aria-menu > .menu > .item[aria-disabled="true"] {
+  cursor: default;
+  background: transparent;
+  opacity: var(--opacity-disabled);
 }
 
 aria-menu > .menu > .item.active,

@@ -129,8 +129,10 @@
 						</div>
 
 						{{if or $showCreateWorkflowBadge $showEnableDisableWorkflow}}
-						<button class="ui jump dropdown btn interact-bg tw-p-2" aria-label="{{ctx.Locale.Tr "repo.more_operations"}}">
-							{{svg "octicon-kebab-horizontal"}}
+						<aria-menu placement="bottom-end">
+							<button type="button" class="btn interact-bg tw-p-2" aria-label="{{ctx.Locale.Tr "repo.more_operations"}}">
+								{{svg "octicon-kebab-horizontal"}}
+							</button>
 							<div class="menu">
 								{{if $showCreateWorkflowBadge}}
 								<div class="item show-modal" data-modal="#workflow-status-badge-modal">
@@ -143,7 +145,7 @@
 								</a>
 								{{end}}
 							</div>
-						</button>
+						</aria-menu>
 						{{end}}
 					</div>
 				</div>
