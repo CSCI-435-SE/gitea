@@ -82,6 +82,23 @@ func Milestones(ctx *context.Context) {
 	}
 	ctx.Data["Milestones"] = miles
 
+	// open milestones on this page only, so the cost is bounded by the page size
+	projections := make(map[int64]*issue.MilestoneProjection, len(miles))
+	if !isShowClosed {
+		opts := burndownOptions(ctx, false)
+		for _, m := range miles {
+			burndown, err := issue.GetMilestoneBurndown(ctx, m, opts)
+			if err != nil {
+				ctx.ServerError("GetMilestoneBurndown", err)
+				return
+			}
+			if p := issue.NewMilestoneProjection(burndown); p != nil {
+				projections[m.ID] = p
+			}
+		}
+	}
+	ctx.Data["MilestoneProjections"] = projections
+
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
 	} else {
@@ -294,17 +311,22 @@ func MilestoneBurndownData(ctx *context.Context) {
 		return
 	}
 
-	// issues by default, pull requests on request, and neither kind unless the viewer may read it: the route
-	// lets in a reader of either, and the chart must not count or list the other. A reader of pull requests
-	// only gets them by default, or their chart would always claim the milestone is empty.
-	canReadIssues := ctx.Repo.Permission.CanRead(unit.TypeIssues)
-	burndown, err := issue.GetMilestoneBurndown(ctx, milestone, issue.BurndownOptions{
-		Issues: canReadIssues,
-		Pulls:  ctx.Repo.Permission.CanRead(unit.TypePullRequests) && (ctx.FormBool("include_pulls") || !canReadIssues),
-	})
+	burndown, err := issue.GetMilestoneBurndown(ctx, milestone, burndownOptions(ctx, ctx.FormBool("include_pulls")))
 	if err != nil {
 		ctx.ServerError("GetMilestoneBurndown", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, burndown)
+}
+
+// burndownOptions picks the kinds a burndown counts, shared by the chart and the milestone list so the two agree.
+// Issues by default, pull requests on request, and neither kind unless the viewer may read it: the routes
+// let in a reader of either, and the burndown must not count or list the other. A reader of pull requests
+// only gets them by default, or their chart would always claim the milestone is empty.
+func burndownOptions(ctx *context.Context, includePulls bool) issue.BurndownOptions {
+	canReadIssues := ctx.Repo.Permission.CanRead(unit.TypeIssues)
+	return issue.BurndownOptions{
+		Issues: canReadIssues,
+		Pulls:  ctx.Repo.Permission.CanRead(unit.TypePullRequests) && (includePulls || !canReadIssues),
+	}
 }
