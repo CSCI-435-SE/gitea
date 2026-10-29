@@ -7,6 +7,9 @@
 		<div class="list-header">
 			{{template "repo/issue/navbar" .}}
 			{{template "repo/issue/search" .}}
+			{{if .ICalFeedLink}}
+				<a class="ui small button" href="{{.ICalFeedLink}}">{{svg "octicon-calendar" 16}} {{ctx.Locale.Tr "repo.ical.subscribe"}}</a>
+			{{end}}
 			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
 				<a class="ui small primary button" href="{{$.Link}}/new">{{ctx.Locale.Tr "repo.milestones.new"}}</a>
 			{{end}}

@@ -1315,6 +1315,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/comments/{id}/attachments", repo.GetCommentAttachments)
 		m.Get("/labels", repo.RetrieveLabelsForList, repo.Labels)
 		m.Get("/milestones", repo.Milestones)
+		m.Get("/milestones.ics", feedEnabled, feed.RepoMilestonesICal) // anonymous-only, see feed.anonymousRepoPermission
+		m.Get("/issues.ics", feedEnabled, feed.RepoIssuesICal)
 		m.Get("/milestone/{id}", repo.MilestoneIssuesAndPulls)
 		m.Get("/milestone/{id}/burndown", repo.MilestoneBurndownData)
 		m.Get("/calendar", repo.Calendar)

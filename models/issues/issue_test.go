@@ -509,3 +509,26 @@ func TestMigrate_CreateIssuesIsPullFalse(t *testing.T) {
 func TestMigrate_CreateIssuesIsPullTrue(t *testing.T) {
 	assertCreateIssues(t, true)
 }
+
+func TestIssuesClosestDeadlineSort(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// repo 1: from reference 2000, pull 3 is 100 away, issue 1 is 300 away, pull 2 is 600 away; pull 11 has no deadline
+	for id, deadline := range map[int64]timeutil.TimeStamp{1: 2300, 2: 2600, 3: 1900} {
+		assert.NoError(t, issues_model.UpdateIssueCols(t.Context(), &issues_model.Issue{ID: id, DeadlineUnix: deadline}, "deadline_unix"))
+	}
+
+	issues, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
+		RepoIDs:               []int64{1},
+		HasDeadline:           optional.Some(true),
+		SortType:              "closestdeadline",
+		DeadlineReferenceUnix: 2000,
+		Paginator:             &db.ListOptions{PageSize: 2},
+	})
+	assert.NoError(t, err)
+	ids := make([]int64, 0, len(issues))
+	for _, issue := range issues {
+		ids = append(ids, issue.ID)
+	}
+	assert.Equal(t, []int64{3, 1}, ids) // the cap keeps the nearest deadlines, in either direction
+}

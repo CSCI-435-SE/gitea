@@ -180,7 +180,7 @@ func PullRequests(ctx context.Context, baseRepoID int64, opts *PullRequestsOptio
 	}
 
 	findSession := listPullRequestStatement(ctx, baseRepoID, opts)
-	applySorts(findSession, opts.SortType, 0)
+	applySorts(findSession, opts.SortType, 0, 0)
 	db.SetSessionPagination(findSession, opts)
 	prs := make([]*PullRequest, 0, opts.PageSize)
 	found := findSession.Find(&prs)

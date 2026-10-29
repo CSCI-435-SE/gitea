@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
+	"gitea.dev/routers/web/feed"
 	"gitea.dev/routers/web/shared/issue"
 	shared_user "gitea.dev/routers/web/shared/user"
 	"gitea.dev/services/context"
@@ -819,6 +820,11 @@ func Issues(ctx *context.Context) {
 	}
 
 	ctx.Data["CanWriteIssuesOrPulls"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(isPullList)
+
+	feed.SetRepoICalFeedLink(ctx, "issues.ics", true) // the feed holds pulls too, so the pull list links it as well
+	if ctx.Written() {
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplIssues)
 }

@@ -94,6 +94,14 @@ func (m *Milestone) AfterLoad() {
 	m.IsOverdue, m.IsNearDue = calcDeadlineStatus(m.DeadlineUnix, m.IsClosed, m.ClosedDateUnix)
 }
 
+// milestoneNoDeadline is how older versions stored "no due date"
+const milestoneNoDeadline = timeutil.TimeStamp(253370764800) // 9999-01-01 UTC
+
+// HasDeadline reports whether a due date is set
+func (m *Milestone) HasDeadline() bool {
+	return m.DeadlineUnix > 0 && m.DeadlineUnix < milestoneNoDeadline
+}
+
 // State returns string representation of milestone status.
 func (m *Milestone) State() api.StateType {
 	if m.IsClosed {

@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/common"
+	"gitea.dev/routers/web/feed"
 	shared_issue "gitea.dev/routers/web/shared/issue"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -94,6 +95,11 @@ func Milestones(ctx *context.Context) {
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
+
+	feed.SetRepoICalFeedLink(ctx, "milestones.ics", false)
+	if ctx.Written() {
+		return
+	}
 
 	ctx.HTML(http.StatusOK, tplMilestone)
 }

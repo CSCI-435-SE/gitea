@@ -1,0 +1,157 @@
+---
+title: "#98 Repository calendar view: class diagram (★ new, ✎ modified, unmarked = existing)"
+---
+classDiagram
+  direction TB
+
+  class web_go["web.go ✎"] {
+    <<routes>>
+    +GET /owner/repo/calendar → Calendar ★
+    -reqRepoIssuesOrPullsReader guard
+  }
+
+  class calendar_go["calendar.go ★"] {
+    <<module>>
+    -calendarCellLimit = 3
+    -calendarMaxEntries = 1000
+    -milestoneNoDeadline = 253370764800
+    -calendarWeekdays []string
+    +Calendar(ctx *Context)
+    -parseCalendarMonth(s, now) time.Time
+    -calendarMonthLink(t) string
+    -calendarIsPull(canReadIssues, canReadPulls) Option~bool~
+    -calendarMilestones(ms, start, end, milestoneID) []*Milestone
+    -issueCalendarEntry(repoLink, issue) calendarEntry
+    -milestoneCalendarEntry(repoLink, m) calendarEntry
+    -buildMonthGrid(monthStart, now, entries) [][]calendarDay
+  }
+
+  class calendarDay["calendarDay ★"] {
+    <<struct>>
+    +Date time.Time
+    +InMonth bool
+    +IsToday bool
+    +Entries []calendarEntry
+    +Visible() []calendarEntry
+    +Overflow() []calendarEntry
+  }
+
+  class calendarEntry["calendarEntry ★"] {
+    <<struct>>
+    +Kind string
+    +State string
+    +Index int64
+    +Title string
+    +Link string
+    -unix int64
+  }
+
+  class Context["context.Context"] {
+    <<struct>>
+    +Repo *Repository
+    +Doer *User
+    +Data map
+    +FormString(key) string
+    +HTML(status, tpl)
+  }
+
+  class Repository["context.Repository"] {
+    <<struct>>
+    +Repository *repo_model.Repository
+    +Permission access_model.Permission
+    +RepoLink string
+  }
+
+  class Permission["access_model.Permission"] {
+    <<struct>>
+    +CanRead(unit.Type) bool
+  }
+
+  class IssuesOptions["issues_model.IssuesOptions"] {
+    <<struct>>
+    +RepoIDs []int64
+    +MilestoneIDs []int64
+    +AssigneeID string
+    +IsClosed Option~bool~
+    +IsPull Option~bool~
+    +DeadlineAfterUnix int64
+    +DeadlineBeforeUnix int64
+    +HasDeadline Option~bool~
+  }
+
+  class issue_search["issue_search.go"] {
+    <<module>>
+    +Issues(ctx, opts) IssueList
+  }
+
+  class Issue["issues_model.Issue"] {
+    <<struct>>
+    +Index int64
+    +Title string
+    +IsPull bool
+    +IsClosed bool
+    +DeadlineUnix TimeStamp
+    +PullRequest *PullRequest
+  }
+
+  class PullRequest["issues_model.PullRequest"] {
+    <<struct>>
+    +HasMerged bool
+  }
+
+  class Milestone["issues_model.Milestone"] {
+    <<struct>>
+    +ID int64
+    +Name string
+    +IsClosed bool
+    +DeadlineUnix TimeStamp
+  }
+
+  class calendar_tmpl["calendar.tmpl ★"] {
+    <<template>>
+    +renders .Weeks as a 7-column grid
+    +prev / next / today links
+    +state switch Open / Closed / All
+  }
+
+  class calendar_entry_tmpl["calendar_entry.tmpl ★"] {
+    <<template>>
+    +renders one calendarEntry link
+  }
+
+  class filter_partials["filter_item_milestone / user_assign.tmpl"] {
+    <<template>>
+    +milestone and assignee dropdowns
+  }
+
+  class list_tmpl["issue/list.tmpl ✎"] {
+    <<template>>
+    +Calendar button next to Milestones ★
+  }
+
+  web_go ..> calendar_go : routes to Calendar
+  calendar_go ..> Context : reads query, writes Data
+  Context --> "1" Repository : Repo
+  Repository *-- Permission : Permission
+  calendar_go ..> Permission : CanRead(Issues / PullRequests)
+  calendar_go ..> IssuesOptions : builds
+  calendar_go ..> issue_search : Issues(opts)
+  issue_search ..> IssuesOptions : applies
+  issue_search ..> Issue : returns 0..1000
+  Issue o-- "0..1" PullRequest : PullRequest
+  Issue --> "0..1" Milestone : MilestoneID
+  calendar_go ..> Milestone : db.Find, then calendarMilestones
+  calendar_go ..> calendarEntry : creates from Issue and Milestone
+  calendarDay *-- "0..*" calendarEntry : Entries
+  calendar_go ..> calendarDay : buildMonthGrid
+  calendar_tmpl ..> calendarDay : ranges over Weeks
+  calendar_tmpl ..> calendar_entry_tmpl : template call
+  calendar_tmpl ..> filter_partials : reuses
+  calendar_go ..> calendar_tmpl : renders tplCalendar
+  list_tmpl ..> calendar_go : links to /calendar
+
+  note for calendar_go "① Pure helpers, no database: the grid, month parsing and milestone filtering are unit-tested without fixtures. Only Calendar() touches ctx and the database."
+  note for IssuesOptions "② Reused, not changed: the deadline bounds and HasDeadline came from issue 34, so the whole month is one SQL query."
+  note for Permission "③ IsPull comes from which units the user can read: issues only, pull requests only, or both."
+  note for calendarDay "④ Visible() returns the first 3 entries, capacity-clipped. Overflow() goes behind the native details element (+N more)."
+  note for Milestone "⑤ DeadlineUnix 0 or 253370764800 (legacy year 9999) means no due date, so it is skipped."

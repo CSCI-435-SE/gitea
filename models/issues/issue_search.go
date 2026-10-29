@@ -54,6 +54,8 @@ type IssuesOptions struct { //nolint:revive // export stutter
 	DeadlineAfterUnix  int64
 	DeadlineBeforeUnix int64
 	HasDeadline        optional.Option[bool]
+	// the "closestdeadline" sort orders by distance from this time
+	DeadlineReferenceUnix int64
 	// prioritize issues from this repo
 	PriorityRepoID int64
 	IsArchived     optional.Option[bool]
@@ -77,7 +79,7 @@ func (o *IssuesOptions) Copy(edit ...func(options *IssuesOptions)) *IssuesOption
 
 // applySorts sort an issues-related session based on the provided
 // sortType string
-func applySorts(sess db.Session, sortType string, priorityRepoID int64) {
+func applySorts(sess db.Session, sortType string, priorityRepoID, deadlineReferenceUnix int64) {
 	// Since this sortType is dynamically created, it has to be treated specially.
 	if after, ok := strings.CutPrefix(sortType, ScopeSortPrefix); ok {
 		scope := after
@@ -130,6 +132,8 @@ func applySorts(sess db.Session, sortType string, priorityRepoID int64) {
 			Desc("issue.id")
 	case "project-column-sorting":
 		sess.Asc("project_issue.sorting").Desc("issue.created_unix").Desc("issue.id")
+	case "closestdeadline":
+		sess.OrderBy("ABS(issue.deadline_unix - ?) ASC", deadlineReferenceUnix).Asc("issue.id")
 	default:
 		sess.Desc("issue.created_unix").Desc("issue.id")
 	}
@@ -530,7 +534,7 @@ func Issues(ctx context.Context, opts *IssuesOptions) (IssueList, error) {
 	applyLimit(sess, opts)
 	applyConditions(sess, opts)
 	applyGroupByLabelScope(sess, opts.GroupLabelScope)
-	applySorts(sess, opts.SortType, opts.PriorityRepoID)
+	applySorts(sess, opts.SortType, opts.PriorityRepoID, opts.DeadlineReferenceUnix)
 
 	issues := IssueList{}
 	if err := sess.Find(&issues); err != nil {
@@ -555,7 +559,7 @@ func IssueIDs(ctx context.Context, opts *IssuesOptions, otherConds ...builder.Co
 
 	applyLimit(sess, opts)
 	applyGroupByLabelScope(sess, opts.GroupLabelScope)
-	applySorts(sess, opts.SortType, opts.PriorityRepoID)
+	applySorts(sess, opts.SortType, opts.PriorityRepoID, opts.DeadlineReferenceUnix)
 
 	var res []int64
 	total, err := sess.Select("`issue`.id").Table(&Issue{}).FindAndCount(&res)
