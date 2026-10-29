@@ -1,0 +1,140 @@
+classDiagram
+  direction TB
+
+  %% ---------- existing ----------
+  class Milestone["issues_model.Milestone"] {
+    <<struct>>
+    +ID int64
+    +RepoID int64
+    +IsClosed bool
+    +NumIssues int
+    +NumClosedIssues int
+    +Completeness int
+    +CreatedUnix TimeStamp
+    +DeadlineUnix TimeStamp
+  }
+  class historyFuncs["issues_model (package functions)"] {
+    <<functions>>
+    +GetMilestoneScopeEvents(ctx, repoID, milestoneID) []MilestoneEvent
+    +GetMilestoneItems(ctx, repoID, milestoneID, extraIDs) []MilestoneItem
+    +GetMilestoneStateEvents(ctx, issueIDs) []MilestoneEvent
+  }
+  class MilestoneBurndown["issue.MilestoneBurndown"] {
+    <<struct>>
+    +Points []BurndownPoint
+    +Deadline string
+    +Status BurndownStatus
+    +Projected string
+    +DaysLate *int
+    +CompletedOn string
+  }
+  class BurndownStatus["issue.BurndownStatus"] {
+    <<enumeration>>
+    empty
+    done
+    closed
+    projected
+    not_burning
+    insufficient_data
+  }
+  class BurndownOptions["issue.BurndownOptions"] {
+    <<struct>>
+    +Issues bool
+    +Pulls bool
+  }
+  class burndownService["issue (burndown service)"] {
+    <<functions>>
+    +GetMilestoneBurndown(ctx, m, opts) *MilestoneBurndown
+    +CalcMilestoneBurndown(m, items, events, now, loc) *MilestoneBurndown
+  }
+  class Permission["access_model.Permission"] {
+    <<struct>>
+    +CanRead(unitType) bool
+  }
+  class Locale["translation.Locale"] {
+    <<interface>>
+    +Tr(key, args...) template.HTML
+    +TrN(cnt, key1, keyN, args...) template.HTML
+  }
+  class burndownSummaryTs["RepoMilestoneBurndown.utils.ts"] {
+    <<module>>
+    +burndownSummary(data, locale) string
+  }
+
+  %% ---------- modified ----------
+  class handlers["repo milestone handlers ✎"] {
+    <<functions>>
+    +✎ Milestones(ctx)
+    +✎ MilestoneBurndownData(ctx)
+    -★ burndownOptions(ctx, includePulls) BurndownOptions
+  }
+  class listTemplate["milestones.tmpl ✎"] {
+    <<template>>
+    +milestone row: index .MilestoneProjections .ID ★
+  }
+
+  %% ---------- new ----------
+  class MilestoneProjection["issue.MilestoneProjection ★"] {
+    <<struct>>
+    +Key1 string
+    +KeyN string
+    +Date string
+    +Days int
+    +WithDays bool
+    +Late bool
+    +NotBurning bool
+  }
+  class projectionFuncs["issue (projection) ★"] {
+    <<functions>>
+    +NewMilestoneProjection(b *MilestoneBurndown) *MilestoneProjection
+  }
+
+  %% ---------- relationships ----------
+  handlers ..> Permission : CanRead(Issues / PullRequests)
+  handlers ..> BurndownOptions : «create» via burndownOptions
+  handlers ..> burndownService : 1 call per open milestone on the page (0..20)
+  handlers "1" --> "0..*" MilestoneProjection : MilestoneProjections map, one per milestone ID
+  handlers ..> projectionFuncs : maps each burndown
+  burndownService ..> historyFuncs : 3 queries per milestone
+  burndownService ..> BurndownOptions : filters kinds by
+  burndownService ..> MilestoneBurndown : «create»
+  burndownService ..> Milestone : replays history of
+  MilestoneBurndown --> "1" BurndownStatus : Status
+  projectionFuncs ..> MilestoneBurndown : reads Status, Projected, DaysLate
+  projectionFuncs ..> MilestoneProjection : «create» 0..1
+  projectionFuncs ..> burndownSummaryTs : mirrors (same keys, same rules)
+  MilestoneProjection "0..1" --> "1" Milestone : keyed by ID
+  listTemplate ..> MilestoneProjection : renders
+  listTemplate ..> Locale : TrN(Days, Key1, KeyN, date, Days)
+
+  %% ---------- annotations ----------
+  note "LEGEND: grey = existing code (found during concept location), blue ✎ = modified,
+  green ★ = new (★ also marks single new members).
+  GO TO UML: Go has no classes, so structs are drawn as classes, and package-level funcs are
+  grouped in «functions» boxes. BurndownStatus is a named string type with constants, so it is
+  an «enumeration». A pointer such as *int or *MilestoneProjection means 0..1. Locale is a Go
+  interface. No type here embeds another; embedding would be drawn as an «embedded» member."
+  note for handlers "Decision 1: computed on the server, per open
+  milestone on the current page. burndownOptions is
+  shared with the chart, so the two count the same kinds."
+  note for MilestoneProjection "Decision 2: holds locale keys, not text, so the
+  row reuses the chart's own sentences
+  (projected_late_1/_n, on_due_date, on_time_1/_n)."
+  note for Milestone "Progress bar uses NumIssues (issues + PRs);
+  the projection counts the chart's default kind.
+  Out of scope, per the spec review."
+
+  %% ---------- colours ----------
+  style Milestone fill:#eceff3,stroke:#6b7280
+  style historyFuncs fill:#eceff3,stroke:#6b7280
+  style MilestoneBurndown fill:#eceff3,stroke:#6b7280
+  style BurndownStatus fill:#eceff3,stroke:#6b7280
+  style BurndownOptions fill:#eceff3,stroke:#6b7280
+  style burndownService fill:#eceff3,stroke:#6b7280
+  style Permission fill:#eceff3,stroke:#6b7280
+  style Locale fill:#eceff3,stroke:#6b7280
+  style burndownSummaryTs fill:#eceff3,stroke:#6b7280
+  style handlers fill:#dbe7fb,stroke:#1e3a8a,stroke-width:2px
+  style listTemplate fill:#dbe7fb,stroke:#1e3a8a,stroke-width:2px
+  style MilestoneProjection fill:#d9f2df,stroke:#15803d,stroke-width:2px
+  style projectionFuncs fill:#d9f2df,stroke:#15803d,stroke-width:2px

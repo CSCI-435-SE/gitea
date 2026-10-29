@@ -1,0 +1,60 @@
+sequenceDiagram
+  autonumber
+  actor U as Maintainer
+  participant B as Browser
+  participant H as repo.Milestones<br/>(milestone.go) ✎
+  participant S as issue burndown service
+  participant P as NewMilestoneProjection ★
+  participant M as issues_model
+  participant DB as Database
+  participant T as milestones.tmpl ✎
+
+  U->>B: opens the repository's Milestones tab
+  B->>H: GET /{owner}/{repo}/milestones
+  H->>M: db.FindAndCount[Milestone](page, IsClosed=false)
+  M->>DB: SELECT ... FROM milestone LIMIT 20
+  DB-->>M: one page of open milestones
+  M-->>H: miles
+  H->>H: render descriptions, load tracked times
+
+  rect rgb(219, 231, 251)
+    H->>H: burndownOptions(ctx, false) ★
+    Note right of H: shared with the chart's MilestoneBurndownData:<br/>Issues if readable, Pulls only for a PR-only reader (AC5, AC6)
+  end
+
+  loop each open milestone on the page (Decision 1: at most 20)
+    H->>S: GetMilestoneBurndown(ctx, m, opts) ★ new call, existing service
+    S->>M: GetMilestoneScopeEvents / GetMilestoneItems
+    M->>DB: comment + issue queries for this milestone
+    DB-->>M: joins, leaves, items
+    S->>S: drop the kinds the viewer can't read
+    S->>M: GetMilestoneStateEvents(item IDs)
+    M->>DB: close / reopen comments
+    DB-->>M: state events
+    S->>S: CalcMilestoneBurndown(m, items, events, now, loc)
+    Note right of S: existing burndown logic from issue 14:<br/>replay history, 14-day burn rate, projected date, DaysLate
+    S-->>H: *MilestoneBurndown
+    rect rgb(217, 242, 223)
+      H->>P: NewMilestoneProjection(burndown) ★
+      alt status projected
+        P-->>H: keys for late / on due date / early / no due date, Date, Days
+      else status not_burning
+        P-->>H: status_not_burning key, NotBurning
+      else any other status
+        P-->>H: nil, so the row shows nothing
+      end
+      H->>H: projections[m.ID] = p (when not nil) ★
+    end
+  end
+  rect rgb(217, 242, 223)
+    H->>H: ctx.Data["MilestoneProjections"] = projections ★
+  end
+
+  H->>T: ctx.HTML(tplMilestone)
+  rect rgb(219, 231, 251)
+    T->>T: with index .MilestoneProjections .ID
+    T->>T: ctx.Locale.TrN(Days, Key1, KeyN, AbsoluteShort(Date), Days)
+    Note right of T: Decision 2: the chart's own sentence,<br/>red when late, muted otherwise
+  end
+  T-->>B: HTML page
+  B-->>U: "Projected to finish on Nov 12, 4 days after the due date"
