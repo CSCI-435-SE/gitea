@@ -69,10 +69,10 @@ Estimated points come from each issue's scope label, as in Sprint 1: small = 1, 
 | #100 Subscribe to a public repository's milestones and issue deadlines as an iCalendar feed | vvchopra | 2 | Medium | Done (PR #129) |
 | #104 Label picker keeps `aria-expanded="true"` after Escape closes it | Jack-Donohue | 1 | Small | Done (PR #124) |
 | #108 Move the Code tab, branch list and commit page action menus to `<aria-menu>` | Jack-Donohue | 2 | Medium | Done (PR #127) |
-| #109 Move the "…" row menus on the Actions, Projects and Packages pages to `<aria-menu>` | arjunsb26 | 2 | Medium | **[TODO (Arjun)]** |
+| #109 Move the "…" row menus on the Actions, Projects and Packages pages to `<aria-menu>` | arjunsb26 | 2 | Medium | In review (PR #135) **[TODO: update when merged]** |
 | #110 Move the "Add webhook", "Link account" and admin notice "Operations" menus to `<aria-menu>` | Jack-Donohue | 2 | Medium | Done (PR #128) |
 | #117 Group notifications by repository | CarsonRackley | 2 | Medium | Done (PR #120) |
-| #131 Show each open milestone's projected finish on the milestones list | arjunsb26 | 2 | Medium | **[TODO (Arjun)]** |
+| #131 Show each open milestone's projected finish on the milestones list | arjunsb26 | 2 | Medium | In review (PR #134) **[TODO: update when merged]** |
 
 ## Requirements & Design
 
@@ -131,8 +131,8 @@ Every implemented issue records at least one decision with two or more alternati
 | #98 Repository calendar view | vvchopra | #36 | [#123](https://github.com/CSCI-435-SE/gitea/pull/123) | vvchopra | ab-wm | Merged | A month grid at `/{owner}/{repo}/calendar` with milestone due dates and issue and PR deadlines |
 | #100 iCalendar feeds | vvchopra | #36 | [#129](https://github.com/CSCI-435-SE/gitea/pull/129) | vvchopra | ab-wm | Merged | `milestones.ics` and `issues.ics` feeds for public repositories, with "Subscribe (iCal)" buttons on the lists |
 | Sprint 1 carryover: #77's PostgreSQL test failure | ab-wm | #14 | [#125](https://github.com/CSCI-435-SE/gitea/pull/125) | ab-wm | controlled-opposition | Merged | The burndown chart now orders same-second changes by issue, fixing the flaky test |
-| #109 Actions, Projects and Packages row menus | arjunsb26 | #25 | **[TODO (Arjun)]** | | | | |
-| #131 Milestone projected finish on the list | arjunsb26 | #14 | **[TODO (Arjun)]** | | | | |
+| #109 Actions, Projects and Packages row menus | arjunsb26 | #25 | [#135](https://github.com/CSCI-435-SE/gitea/pull/135) | arjunsb26 | **[TODO: reviewer]** | Open | The workflow, run, project column and package cleanup rule "…" menus move to `<aria-menu>`, which now supports disabled items |
+| #131 Milestone projected finish on the list | arjunsb26 | #14 | [#134](https://github.com/CSCI-435-SE/gitea/pull/134) | arjunsb26 | **[TODO: reviewer]** | Open | Each open milestone on the Milestones tab shows its projected finish, worded like the burndown chart's summary |
 
 Every PR above has a `## Tech Debt` section in its description (D4). CodeRabbit also commented on every code PR as an automated first pass, alongside the human reviews.
 
