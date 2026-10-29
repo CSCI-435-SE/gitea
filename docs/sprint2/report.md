@@ -135,14 +135,14 @@ Every implemented issue records at least one decision with two or more alternati
 | #100 iCalendar feeds | vvchopra | #36 | [#129](https://github.com/CSCI-435-SE/gitea/pull/129) | vvchopra | ab-wm | Merged | `milestones.ics` and `issues.ics` feeds for public repositories, with "Subscribe (iCal)" buttons on the lists |
 | Sprint 1 carryover: #77's PostgreSQL test failure | ab-wm | #14 | [#125](https://github.com/CSCI-435-SE/gitea/pull/125) | ab-wm | controlled-opposition | Merged | The burndown chart now orders same-second changes by issue, fixing the flaky test |
 | #109 Actions, Projects and Packages row menus | arjunsb26 | #25 | [#135](https://github.com/CSCI-435-SE/gitea/pull/135) | arjunsb26 | CarsonRackley | Merged | The workflow, run, project column and package cleanup rule "…" menus move to `<aria-menu>`, which now supports disabled items |
-| #131 Milestone projected finish on the list | arjunsb26 | #14 | [#134](https://github.com/CSCI-435-SE/gitea/pull/134) | arjunsb26 | vvchopra | Merged | Each open milestone on the Milestones tab shows its projected finish, worded like the burndown chart's summary |
+| #131 Milestone projected finish on the list | arjunsb26 | #14 | [#134](https://github.com/CSCI-435-SE/gitea/pull/134) | arjunsb26 | vvchopra, CarsonRackley | Merged | Each open milestone on the Milestones tab shows its projected finish, worded like the burndown chart's summary |
 
 Every PR above has a `## Tech Debt` section in its description (D4). CodeRabbit also commented on every code PR as an automated first pass, alongside the human reviews.
 
 Documentation and log PRs merged this sprint, outside the issue table:
 
 - Check-ins: #99, #103, #107, #111, #112, #113
-- AI logs: #106, #130, #132
+- AI logs: #106, #130, #132, #137
 - Course rules update: #94
 - UML diagrams: #126, #136
 
@@ -190,7 +190,7 @@ Arjun Bhat
 | **Arjun Bhat (arjunsb26)** | |
 | --- | --- |
 | Tools Used | Claude Code (VS Code extension) + SpecStory |
-| Total Sessions | 1 |
+| Total Sessions | 4 |
 | Link to logs | [https://github.com/CSCI-435-SE/gitea/tree/main/ai-logs/sprint2/arjunsb26](https://github.com/CSCI-435-SE/gitea/tree/main/ai-logs/sprint2/arjunsb26) |
 | Notable Obsv. vs. Sprint 1 | Claude is a go-getter and very proactive, unprompted it will (for instance when I asked if new changes would break anything, it said it would be easier to test itself than explain and did exactly so) |
 
