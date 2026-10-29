@@ -76,6 +76,18 @@
 									{{end}}
 								{{end}}
 							</div>
+							{{with index $.MilestoneProjections .ID}}
+								<div class="milestone-projection flex-text-inline{{if .Late}} tw-text-red{{else if .NotBurning}} tw-text-warning-text{{end}}">
+									{{svg "octicon-graph" 14}}
+									{{if .NotBurning}}
+										{{ctx.Locale.Tr .Key1}}
+									{{else if .WithDays}}
+										{{ctx.Locale.TrN .Days .Key1 .KeyN (DateUtils.AbsoluteShort (.Date|DateUtils.ParseLegacy)) .Days}}
+									{{else}}
+										{{ctx.Locale.Tr .Key1 (DateUtils.AbsoluteShort (.Date|DateUtils.ParseLegacy))}}
+									{{end}}
+								</div>
+							{{end}}
 						</div>
 						{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
 							<div class="flex-text-block tw-flex-wrap">
