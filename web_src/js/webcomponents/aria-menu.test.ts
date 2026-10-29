@@ -255,3 +255,54 @@ describe('AC6 activation', () => {
     cleanup();
   });
 });
+
+describe('disabled items', () => {
+  function renderWithDisabled() {
+    const menu = renderMenu(['Apple', 'Banana', 'Cherry']);
+    menu.items[1].classList.add('disabled');
+    return menu;
+  }
+
+  test('a disabled item is marked and still reached by the arrow keys', () => {
+    const {trigger, items, cleanup} = renderWithDisabled();
+    press(trigger, 'Enter');
+    expect(items[1].getAttribute('aria-disabled')).toBe('true');
+    expect(items[0].hasAttribute('aria-disabled')).toBe(false);
+    press(items[0], 'ArrowDown');
+    expect(document.activeElement).toBe(items[1]);
+    cleanup();
+  });
+
+  test('an item enabled after init loses its mark on the next open', () => {
+    const {trigger, popup, items, cleanup} = renderWithDisabled();
+    press(trigger, 'Enter');
+    press(items[0], 'Escape');
+    items[1].classList.remove('disabled');
+    press(trigger, 'Enter');
+    expect(isOpen(trigger, popup)).toBe(true);
+    expect(items[1].hasAttribute('aria-disabled')).toBe(false);
+    cleanup();
+  });
+
+  for (const [name, activate] of [
+    ['Enter', (item: HTMLElement) => press(item, 'Enter')],
+    ['Space', (item: HTMLElement) => press(item, ' ')],
+    ['click', (item: HTMLElement) => item.click()],
+  ] as const) {
+    test(`${name} on a disabled item does nothing and leaves the menu open`, () => {
+      const {root, trigger, popup, items, cleanup} = renderWithDisabled();
+      const handler = vi.fn();
+      const delegated = vi.fn();
+      items[1].addEventListener('click', handler);
+      root.addEventListener('click', delegated); // like the document-level "link-action" handler
+      press(trigger, 'Enter');
+      items[1].focus();
+      activate(items[1]);
+      expect(handler).not.toHaveBeenCalled();
+      expect(delegated).not.toHaveBeenCalled();
+      expect(isOpen(trigger, popup)).toBe(true);
+      expect(document.activeElement).toBe(items[1]);
+      cleanup();
+    });
+  }
+});
