@@ -188,7 +188,7 @@ Arjun Bhat
 | **Arjun Bhat (arjunsb26)** | |
 | --- | --- |
 | Tools Used | Claude Code Desktop |
-| Total Sessions | **[TODO (Arjun)]** |
+| Total Sessions | 1 |
 | Link to logs | [https://github.com/CSCI-435-SE/gitea/tree/main/ai-logs/sprint2/arjunsb26](https://github.com/CSCI-435-SE/gitea/tree/main/ai-logs/sprint2/arjunsb26) |
 | Notable Obsv. vs. Sprint 1 | Claude is a go-getter and very proactive, unprompted it will (for instance when I asked if new changes would break anything, it said it would be easier to test itself than explain and did exactly so) |
 
