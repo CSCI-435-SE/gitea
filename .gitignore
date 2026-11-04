@@ -70,6 +70,10 @@ cpu.out
 /tests/integration/indexers-*
 /tests/*.ini
 /tests/**/*.git/**/*.sample
+/.stryker-tmp
+/reports/mutation
+# go-mutesting always writes its report to the directory it runs in
+/report.json
 /node_modules
 /.venv
 /yarn.lock

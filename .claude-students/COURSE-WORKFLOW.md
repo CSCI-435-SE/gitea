@@ -380,7 +380,8 @@ Files:
   go-mutesting: save the terminal output to a text file. The scores in the write-up must match the
   reports, and the mutant your new test kills must show as killed in the "after" report.
 - The tool configuration you used, committed and linked from the write-up. Reusing a teammate's
-  setup is encouraged, as long as you run the tool yourself and credit them.
+  setup is encouraged, as long as you run the tool yourself and credit them. The team's shared
+  setup (go-mutesting for Go), its commands and its pitfalls: `.claude-students/docs/mutation-testing.md`.
 
 Common problems:
 

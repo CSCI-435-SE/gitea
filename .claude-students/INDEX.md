@@ -11,6 +11,7 @@ Before exploring the tree, read the 1-3 docs below that match your task. Paths a
 | Drafting an issue, spec review, PR (Test Evidence), code review, mutation testing write-up or other sprint deliverable (course formats, deadlines) | `COURSE-WORKFLOW.md`, `AI-ASSISTANCE.md` |
 | Which layer does this belong in? What may import what? | `docs/architecture.md` |
 | Writing or running any test; needs a DB, context or fixture | `docs/testing.md` |
+| Running mutation testing (StrykerJS, go-mutesting), or a run that stops before mutating | `docs/mutation-testing.md` |
 | An HTML page, a form POST, a web route or guard | `docs/routers-web.md` |
 | An `/api/v1` endpoint, or a failing swagger check | `docs/routers-api-v1.md` |
 | Anything on `ctx`: the doer, `ctx.Repo`, permissions, error responses | `docs/services-context.md` |
