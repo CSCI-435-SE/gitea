@@ -21,6 +21,7 @@ reviews:
     - "!ai-logs/**" # course logs are filed unedited
     - "!.claude-students/guide/**" # generated from .claude-students/docs
     - "!docs/superpowers/**" # AI planning notes
+    - "!docs/sprint3/mutation/reports/**" # raw mutation tool output for D6
     - "!templates/swagger/v1_json.tmpl" # generated, and CI checks it is up to date
     - "!templates/swagger/v1_openapi3_json.tmpl"
     - "!web_src/fomantic/build/**" # vendored
@@ -34,6 +35,7 @@ reviews:
         - Comments: short, explaining why, never narrating the code. Flag a removed comment that is still true. Never ask for docstrings.
         - Docs drift: if the change makes a statement in a .claude-students/docs page wrong, ask for that page to be fixed in the same PR (AGENTS.md).
         - Commits: a commit made with AI help, including one pushed by a bot, ends with an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer, and no commit carries `Co-Authored-By` or `Signed-off-by` (AGENTS.md, .claude-students/COURSE-WORKFLOW.md). If possible, the message also names the person who approved the change, since a human approves every commit.
+        - Skipped tests and disabled checks: a newly skipped test (`t.Skip`, `it.skip`, `test.skip`, `test.fixme` and the like) or a disabled CI check or workflow job needs a linked issue and a reason in a code comment (AGENTS.md; Sprint 3, D8).
         - Skip anything `make fmt`, `make lint-go`, `make lint-js`, `make lint-css` or `make lint-templates` enforces; CI runs them.
     - path: "**/*.go"
       instructions: |
@@ -90,16 +92,23 @@ reviews:
         - Avoid `!important`. Where it can't be avoided, a comment says why.
         - Add a new, prefixed class rather than restyling a Fomantic class.
         - Colours come from the theme's `var(--color-*)` variables, never a literal colour, or the other themes break (.claude-students/docs/frontend-css.md).
-    - path: "docs/sprint2/diagrams/**"
+    - path: "docs/sprint3/mutation/*.md"
       instructions: |
-        Course deliverable D6 (.claude-students/COURSE-WORKFLOW.md, "UML diagrams (D6)"); review it as a course submission, not as code.
-        - Files are named `<issue#>-<github-username>-class.png`, `<issue#>-<github-username>-sequence.png` (or `.pdf`) and `<issue#>-<github-username>.md`.
-        - The `.md` embeds both diagrams under "## Class Diagram" and "## Sequence Diagram", and answers every question under "## Q&A": 3 class-diagram, 3 sequence-diagram and 1 AI-use question ("N/A" is valid for AI use).
-        - Flag class or method names in the diagram or answers that do not exist in the code or in the linked PR.
-        - Flag a missing note on how Go structs, interfaces and embedding map to UML.
-    - path: "docs/sprint2/checkin/**"
+        Course deliverable D6 (.claude-students/COURSE-WORKFLOW.md, "Mutation testing (D6)"); review it as a course submission, not as code.
+        - The file is named `<issue#>-<github-username>.md` and follows the template: a header with PR(s), Tool, Config, Command, Reports and Mutation score (before → after); "## Surviving mutants"; "## New or strengthened test"; "## Questions" with all three questions answered ("N/A" is valid for the AI question).
+        - The Reports links point at `reports/<issue#>-<github-username>-before.json` and `-after.json` (`.txt` for go-mutesting). The tool is StrykerJS, Gremlins or go-mutesting; mutating by hand doesn't count.
+        - The surviving-mutants table has a row for every survivor, or at least 10 when there are more, each marked equivalent or test gap with a reason. Flag a mutant called equivalent whose reason doesn't show the behaviour is identical.
+        - "New or strengthened test" names a commit, a test and the mutant it kills, unless the table justifies that no survivor revealed a gap.
+        - Flag file paths or test names that don't exist in the repository or the linked PR.
+    - path: "docs/sprint3/checkin/**"
       instructions: |
-        Course deliverable D7: `docs/sprint2/checkin/<github-username>.md`, due Oct 22. It answers three questions in about 150 words each: what is done and what remains, one thing learned, one thing to do differently. Flag a missing answer or one only a sentence or two long. Do not comment on writing style.
+        Course deliverable D7: `docs/sprint3/checkin/<github-username>.md`, due Nov 12. It answers three questions in about 100 words each: what is implemented so far and what remains; one thing learned about testing in the project; one risk to finishing by Nov 19 and what the author will do about it. It links at least one code PR the author opened, ready for review or merged. Flag a missing answer, one only a sentence or two long, or a missing PR link. Do not comment on writing style.
+    - path: "docs/sprint3/report.md"
+      instructions: |
+        Course deliverable D8 (.claude-students/COURSE-WORKFLOW.md, "Sprint report (D8) sections"); review it as a course submission.
+        - Flag Markdown that will not render on GitHub: escaped `\|` or `\[`, broken tables, or relative links to files that don't exist.
+        - Flag a missing section, in particular Suite health: a baseline table per test suite at `v1.27.3-csci435-s2` and at the end of the sprint, failures grouped by cause with one linked issue per cause, and every skipped test or disabled check linked to an issue.
+        - Flag text that describes an earlier sprint as if it were this one.
     - path: "options/locale/**"
       instructions: |
         - Only `locale_en-US.json` is edited by hand. Edits to any other locale file are overwritten by the Crowdin sync and must be reverted (CONTRIBUTING.md, "Translation").
@@ -131,10 +140,11 @@ reviews:
         instructions: |
           Judge only the PR description. Pass only if all of these hold, otherwise fail and list what is missing:
           - Each issue the PR closes is on its own line, as "Closes #<number>", "Fixes #<number>" or "Resolves #<number>".
-          - It has these sections, each with the author's own text rather than only the template's comments: "What changed", "Why", "How it was tested", "CI / manual verification", "Design", "Tech Debt", "AI assistance".
+          - It has these sections, each with the author's own text rather than only the template's comments: "What changed", "Why", "Test Evidence", "CI / manual verification", "Design", "Tech Debt", "AI assistance".
           - When the linked issue lists acceptance criteria, "Why" names the ones the PR satisfies (AC1, AC2, ...).
-          - "Tech Debt" has an "Introduced:" line and an "Encountered:" line, each with the author's own text or "None.". Missing this section costs grading points (Sprint 2, D4).
-          - When "Design" states a design decision rather than pointing at the issue's, it names at least two alternatives (Sprint 2, D3).
+          - "Test Evidence" has a table with the columns "Acceptance criterion", "Test(s)", "Level" and "Source of expected value", and an "AI-written tests:" line naming tests or saying "None.". Each acceptance criterion of the linked issue has a row (for a bug report, the Expected Behavior); a PR that changes no product behaviour may write "N/A" with a reason. Level is unit, integration, E2E or manual. Source is AC, issue discussion, docs, upstream behavior, or other with an explanation; fail if it is the code's own output. An AC checked only by hand is explained under "Not tested automatically, and why:" (Sprint 3, D4).
+          - "Tech Debt" has an "Introduced:" line and an "Encountered:" line, each with the author's own text or "None.". Missing this section costs grading points (Sprint 3, D4).
+          - When "Design" states a design decision rather than pointing at the issue's, it names at least two alternatives (Sprint 3, D3).
           - "AI assistance" either says "No AI used", or names the tool and model, what the AI did, and what the author did to check it.
           - Nothing links to a file under ai-logs/. AI logs belong in the issue's AI Assistance comment (.claude-students/AI-ASSISTANCE.md).
       - name: Screenshots for UI changes
