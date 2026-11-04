@@ -76,6 +76,8 @@
     "@eslint-community/eslint-plugin-eslint-comments": "4.7.2",
     "@eslint/json": "2.0.1",
     "@playwright/test": "1.61.1",
+    "@stryker-mutator/core": "10.1.1",
+    "@stryker-mutator/vitest-runner": "10.1.1",
     "@stylistic/eslint-plugin": "5.10.0",
     "@stylistic/stylelint-plugin": "5.2.1",
     "@types/codemirror": "5.60.17",
