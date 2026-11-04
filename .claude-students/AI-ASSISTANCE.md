@@ -33,8 +33,9 @@ person — never edit someone else's. Add later sessions by editing your own tab
 ## 2. A short section in the pull request description — no log link
 
 Reviewers read the PR, and the review rubric scores "AI transparency", so the PR says how AI was
-used and how you verified it. It does **not** link or cite the AI log: from Sprint 1 on, logs are
-referenced in **issue comments only**, never in PR descriptions or PR comments (Sprint 1 page, D5).
+used and how you verified it. It does **not** link or cite the AI log: from Sprint 1 on, the team
+references logs in **issue comments only**, never in PR descriptions or PR comments (Sprint 1 page,
+D5; later sprint pages also accept the PR, and the issue comment satisfies both).
 
 ```markdown
 ## AI assistance
@@ -44,7 +45,9 @@ code; I reviewed every line, ran the tests, checked the page by hand, and can ex
 AI log: see the AI Assistance comment on the linked issue.
 ```
 
-Name the model, say what AI did and what you did, and point at the issue comment for the log.
+Name the model, say what AI did and what you did, and point at the issue comment for the log. The
+PR's Test Evidence section has its own **AI-written tests** line, which names the tests AI wrote or
+changed and how you checked their expected values (`COURSE-WORKFLOW.md`, "Pull request format").
 
 ## Rules that make a disclosure wrong
 

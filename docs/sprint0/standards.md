@@ -66,7 +66,8 @@ will be followed to the maximum extent, along with the following guidelines:
   just an approval. Reviewers should pull the branch and test it when possible, say what they checked, and
   mark each point as required or optional (`docs/community-governance.md`). Answer reviewer questions
   yourself, without AI (`CONTRIBUTING.md`).
-- A PR can be merged once it is approved, all review comments are addressed, and CI passes.
+- A PR can be merged once a teammate has approved its latest commit, all review comments are addressed,
+  and CI passes. A push after the approval, including a merge from main, needs a new approval.
 
 ## Testing expectations
 
