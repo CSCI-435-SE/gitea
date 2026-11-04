@@ -2,6 +2,7 @@
 CSCI 435 code review rubric. Copy everything below this comment into a PR comment when you review,
 in addition to the GitHub review itself. Format source: .claude-students/COURSE-WORKFLOW.md.
 Pull the branch and test it when you can; mark each note as (required) or (optional).
+Respond within 24 hours. Approve only the latest commit; review again if the author pushes after you approve.
 Every student reviews at least one PR per sprint, and every teammate at least once per semester.
 -->
 
@@ -13,6 +14,7 @@ Every student reviews at least one PR per sprint, and every teammate at least on
 | --- | --- | --- |
 | Correctness — implements issue requirements | | |
 | Test coverage — tests present and meaningful | | |
+| Test evidence — does every AC have a test? Are the expected values justified? Which tests did you run locally? | | |
 | Code quality — style, naming, no duplication | | |
 | Documentation — comments and PR description clear | | |
 | AI transparency — evidence of human verification if AI used | | |

@@ -5,8 +5,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        One owner per issue. Add the `scope:` label and the sprint milestone. A teammate must review the spec
-        (comment `Spec reviewed — <notes>`) before implementation starts.
+        One owner per issue. Add the `scope:` label and the sprint milestone. Before implementation starts, a teammate
+        posts a review comment here starting `Spec reviewed` that says what they checked: whether each acceptance
+        criterion is clear and testable, which cases they considered, and whether the scope fits.
   - type: textarea
     id: user-story
     attributes:
@@ -66,5 +67,12 @@ body:
         - small
         - medium
         - large
+    validations:
+      required: true
+  - type: textarea
+    id: scope-justification
+    attributes:
+      label: Scope Justification
+      description: One or two sentences on why this scope - which components it touches and how much change you expect.
     validations:
       required: true

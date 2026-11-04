@@ -1,6 +1,6 @@
 ---
 source: docs/models-issues.md
-source-hash: 464abebbab914f0e
+source-hash: cd2b7feeb46282b7
 verified-at: 94dfae067e
 ---
 
@@ -18,9 +18,6 @@ or reviews.
 
 The database side of the whole issue domain — and in Gitea, **pull requests live here too**, because
 a pull request is an issue with extra columns.
-
-The files divide by concern: issue core, pull requests, comments, reviews, labels and milestones,
-people and time tracking, and the relationships between issues.
 
 There is also a separate small package, `models/pull`, which despite its name is not where pull
 requests live. It holds only automerge scheduling and per-user review state.
@@ -80,9 +77,8 @@ always too high.
 
 **`Index` is not `ID`.** `ID` is the global primary key. `Index` is the number in the URL, unique
 only *within* a repository — so every repository has an issue `#1`. Looking something up from a URL
-means matching on the repository **and** the index. Using the URL number as an `ID` finds a
-completely unrelated issue in another repository, which is worse than an error because it looks like
-it worked.
+means matching on the repository **and** the index. Using the URL number as an `ID` finds an
+unrelated issue in another repository, which is worse than an error because it seems to work.
 
 **Never set `Index` yourself.** It comes from the shared numbering helper, called inside the same
 transaction that inserts the row. Assigning it by hand races with anyone else creating an issue in
@@ -138,8 +134,7 @@ comment keeps what was true when it was written.
 
 **Display a list of issues.** Fetch into an `IssueList`, then call `LoadAttributes(ctx)` **once, on
 the list**. That type exists precisely to load everything for every issue in a handful of queries.
-Looping and calling the single-issue loader is the N+1 it was built to prevent, and it is the
-difference between a fast page and a slow one.
+Looping and calling the single-issue loader is the N+1 it was built to prevent: a slow page.
 
 **Add a column to `Issue`.** Add the field with its tag, write a migration, and if the value
 duplicates something stored elsewhere, extend the consistency check in `models/main_test.go` and the

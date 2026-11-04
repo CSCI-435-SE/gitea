@@ -40,14 +40,12 @@ One package for the whole issue domain, because pull requests *are* issues in th
 ## Conventions & invariants
 
 - **One `issue` table holds both issues and pull requests.** `Issue.IsPull` discriminates. The
-  PR-only columns live in a separate `PullRequest` row linked by `IssueID`, reachable via
-  `issue.LoadPullRequest(ctx)` then `issue.PullRequest`. A query that forgets `IsPull` returns both
-  kinds.
+  PR-only columns live in a separate `PullRequest` row linked by `IssueID` (recipe below). A query
+  that forgets `IsPull` returns both kinds.
 - `Issue.Index` is the **per-repository** number users see in URLs (`UNIQUE(repo_index)` with
   `RepoID`); `Issue.ID` is the global primary key. Look-ups by URL go through `RepoID` + `Index`.
-- Never assign `Index` yourself: it comes from
-  `db.GetNextResourceIndex(ctx, "issue_index", repo.ID)` inside the inserting transaction, as
-  `issue_update.go` and `pull.go` do.
+- Never assign `Index` yourself: `issue_update.go` and `pull.go` take it from
+  `db.GetNextResourceIndex(ctx, "issue_index", repo.ID)` inside the inserting transaction.
 - Fields tagged `xorm:"-"` (`Repo`, `Poster`, `Labels`, `Milestone`, `Assignee`, `Attachments`,
   `Comments`, `PullRequest`, ...) are in-memory only, filled by the matching `LoadXxx(ctx)` method.
   `LoadAttributes(ctx)` loads the common set.
@@ -104,8 +102,7 @@ direction, `pr.Issue` after the PR's own loader.
   `MilestoneID`): migrated issues have none and `DeleteMilestoneByRepoID` writes none. Those columns
   are unindexed and `comment` has no `repo_id`, so `milestone_history.go` joins `issue`. Milestone
   counters (`UpdateMilestoneCounters`) count pull requests as well as issues.
-- `models/pull` is not "pull requests" — those are here in `models/issues/pull.go`. `models/pull`
-  is only automerge and review state.
+- `models/pull` holds no pull requests; they are in `models/issues/pull.go` (see Responsibilities).
 - `GroupByExclusiveLabelScope` and `applyGroupByLabelScope` (`models/issues/issue_search.go`, driven
   by `IssuesOptions.GroupLabelScope`) derive the same groups twice — once in SQL to keep a page's
   rows contiguous, once in Go to split that page. Their ordering rules must stay identical, and

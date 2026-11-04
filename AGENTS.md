@@ -15,11 +15,13 @@
 - Keep comments short, prefer same-line, explain why, never narrate code
 - Prefer unit tests over integration tests when logic is testable in isolation
 - Aim for sub-2s local runtime for integration and e2e tests
+- Take each test's expected value from the issue's acceptance criteria, issue discussion, docs or upstream behaviour, never from the code's current output, and tell the human which tests AI wrote or changed so the PR's Test Evidence section can list them
+- Never skip a test or disable a CI check without a linked issue and a code comment giving the reason
 - In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to always exist
 - For CSS layout, prefer `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins; fall back to `tw-*` utilities when specificity requires `!important`
 - Include authorship attribution in issue and pull request comments
 - Every pull request description you draft needs an AI assistance section, and every issue you work needs an AI Assistance issue comment drafted for the human to post, filled in from the actual session and never with placeholders. AI log links go in the issue comment only, never in PRs. See `.claude-students/AI-ASSISTANCE.md`
-- Draft issues, pull requests and code reviews in the course formats in `.claude-students/COURSE-WORKFLOW.md` (user story / bug report with a Design Decision section, PR sections, review rubric); it also lists the current sprint's deliverables and deadline
+- Draft issues, pull requests and code reviews in the course formats in `.claude-students/COURSE-WORKFLOW.md` (user story / bug report / hardening task with a Design Decision section, spec review, PR sections including Test Evidence, review rubric, mutation testing write-up); it also lists the current sprint's deliverables and deadline
 - Every AI session on this project must be logged per `ai-logs/README.md`: remind the human to start sessions with `specstory run claude`, and when a piece of work finishes (issue spec posted, PR merged, review done), remind them to `specstory sync`, file the log under `ai-logs/sprint<N>/<github-username>/`, and post their AI Assistance issue comment. When filing logs, only copy and rename; never edit, summarise or trim a log's contents
 - Always add `Assisted-By` trailers to commit messages in format `Assisted-by: AGENT_NAME:MODEL_VERSION`
 - Never add `Co-Authored-By` `Signed-off-by` trailer to commit messages. Sign off must be done by a human.

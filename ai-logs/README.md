@@ -14,7 +14,7 @@ questions unrelated to the project don't need logging.
 
 ```
 ai-logs/
-  sprint1/
+  sprint<N>/
     <github-username>/                          ← exact GitHub username, matching case
       .gitkeep                                  ← the folder must exist even if you used no AI
       YYYY-MM-DD_<tool>_<short-slug>.md
@@ -56,6 +56,8 @@ incomplete.
 - The **complete** prompt and response history. For agentic tools, that includes file edits and
   commands (SpecStory includes them). Logs with missing responses or truncated histories are
   **invalid**. Don't hand-write, summarise or trim a log; only rename it.
+- These are **not** logs and get no full credit: a summary of a session, paraphrased prompts, a
+  share link to a chat, or tool output without the prompts that produced it (Sprint 3 page).
 - Attachments (screenshots, snippets) go in a folder with the log's name minus `.md`.
 - Log **every** session, including ones that went nowhere. Grading is on how complete the record
   is, not on whether AI helped.
@@ -66,8 +68,9 @@ incomplete.
   on the issue, with full `https://github.com/...` links to their logs. Format:
   [`.claude-students/AI-ASSISTANCE.md`](../.claude-students/AI-ASSISTANCE.md).
 - **Not** in PR descriptions or PR comments. The PR has a short AI-use note with no log link. The
-  AI Log Instructions page says "Issue/PR comments", but the Sprint 1 page narrows this to issue
-  comments only, and the sprint page wins.
+  AI Log Instructions page says "Issue/PR comments" and the Sprint 3 page "the issue or PR", but
+  the Sprint 1 page narrows it to issue comments only; the team keeps that rule, which satisfies
+  all three.
 - Each teammate posts their own comment, including reviewers who used AI to review.
 - No AI used? Post an issue comment saying so, and keep your folder with its `.gitkeep`.
 - The sprint report lists each member's tools, session count, folder link, and 2–3 sentences on

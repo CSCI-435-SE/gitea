@@ -1,8 +1,10 @@
 <!--
 CSCI 435 PR format, see .claude-students/COURSE-WORKFLOW.md.
 - Title: Conventional Commits, e.g. `fix(issues): keep label filter after search`.
-- Keep as a draft until ready, then request a teammate's review.
+- Put the PR and its issue on the sprint milestone.
+- Keep as a draft until ready, then request a teammate's review on GitHub and tell them on Zulip.
 - The reviewer posts the Code Review rubric (.github/code-review-rubric.md) as a PR comment.
+- Merge only after a teammate approves the latest commit; a push after the approval needs a new one.
 - Do NOT link AI logs here; they go in the issue's AI Assistance comment.
 -->
 
@@ -14,13 +16,26 @@ Closes #
 
 <!-- The problem, and which acceptance criteria (AC1, AC2, ...) from the issue this satisfies. -->
 
-## How it was tested
+## Test Evidence
 
-<!-- Tests added or updated and why these ones. Name anything that can't be tested automatically and how it was checked by hand. -->
+<!--
+One row per acceptance criterion (for a bug, the Expected Behavior); "N/A" and why if the PR changes no product behaviour.
+Test(s): test name (and file); for a manual check, "Manual:" then the steps and what you saw.
+Level: unit, integration, E2E or manual.
+Source of expected value: AC, issue discussion, docs, upstream behavior, or other (explain). Never your code's current output.
+-->
+
+| Acceptance criterion | Test(s) | Level | Source of expected value |
+| --- | --- | --- | --- |
+| AC1: | | | |
+
+**Not tested automatically, and why:** <!-- Only for ACs checked manually only. -->
+
+**AI-written tests:** <!-- Which tests AI wrote or changed, and how you checked their expected values. "None." if none. -->
 
 ## CI / manual verification
 
-<!-- CI status, or the commands you ran and their results. -->
+<!-- CI status. If CI doesn't run your tests, the commands you ran and a summary (passed, failed, skipped). -->
 
 ## Design
 
