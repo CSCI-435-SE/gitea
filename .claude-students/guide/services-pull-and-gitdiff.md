@@ -1,7 +1,7 @@
 ---
 source: docs/services-pull-and-gitdiff.md
-source-hash: 8b2526b516737ae9
-verified-at: c0092050a4
+source-hash: 99973cf0928282b7
+verified-at: 5b8719fee2
 ---
 
 <!-- Derived from docs/services-pull-and-gitdiff.md. Do not edit by hand: fix the reference doc and
@@ -91,6 +91,14 @@ strings.
 **Merging is not the permission check.** `Merge` merges. `IsUserAllowedToMerge` and
 `CheckPullBranchProtections` sit next to it in the same file but are **separate calls the caller has
 to make**. Calling `Merge` alone merges without checking anything.
+
+**Merging and closing judge dependencies differently.** The merge button, the API and a scheduled
+merge all go through `CheckPullMergeable`, which asks `MergeBlockedByDependencies`: does
+this pull request still depend on an open issue, or on a pull request that was never merged?
+Closing asks a looser question, through `IssueNoDependenciesLeft`: is everything it depends on
+closed? So a dependency that was closed without merging blocks a merge but not a close. When a
+repository turns dependencies off in its settings, the merge check skips them, as closing already
+does. The two rules live apart, so changing one leaves the other as it was.
 
 **Review comments are anchored to a commit, not a line number.** `CreateCodeComment` records which
 commit and which file path. When the branch moves, `InvalidateCodeComments` marks the ones that no

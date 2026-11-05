@@ -1,6 +1,6 @@
 ---
 scope: docs/testing.md, models/unittest, models/fixtures, services/contexttest, tests
-verified-at: 2629e98ef9
+verified-at: 5b8719fee2
 ---
 
 # testing — the five tiers and their harnesses
@@ -83,6 +83,9 @@ under `models/migrations/fixtures/`; helpers in `models/migrations/migrationtest
 
 - `GITEA_TEST_LOG_SQL=1` logs every SQL statement — the fastest way to see what a failing DB test
   actually queried.
+- Fixture repos leave `EnableDependencies` out of their issues config (`models/fixtures/repo_unit.yml`),
+  so dependencies read as off and block nothing. A test that needs them turns them on with
+  `repo_model.UpdateRepoUnitConfig` (`tests/integration/pull_merge_dependency_test.go`).
 - `GITEA_TEST_E2E_TIMEOUT_FACTOR` multiplies e2e timeouts (default 4 on CI, 1 locally); a test that
   only passes with a raised factor is a flaky test, not a slow machine.
 - A handful of Go unit tests fail on native Windows for platform reasons (symlinks, temp-file
