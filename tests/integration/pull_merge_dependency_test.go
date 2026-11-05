@@ -9,12 +9,15 @@ import (
 	"testing"
 	"time"
 
+	auth_model "gitea.dev/models/auth"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	"gitea.dev/services/forms"
 	issue_service "gitea.dev/services/issue"
 	"gitea.dev/tests"
 
@@ -53,5 +56,18 @@ func TestPullMergeBlockedByDependency(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/repo1/pulls/%d/merge", pr.Index), map[string]string{"do": string(repo_model.MergeStyleMerge)})
 	resp := session.MakeRequest(t, req, http.StatusBadRequest)
 	assert.Equal(t, "This pull request can't be merged until the pull requests it depends on are merged and the issues it depends on are closed.", test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID}).HasMerged)
+}
+
+func TestAPIMergePullBlockedByDependency(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	owner, pr := preparePullBlockedByClosedPull(t)
+
+	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeWriteRepository)
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/merge", pr.Index), &forms.MergePullRequestForm{
+		Do: string(repo_model.MergeStyleMerge),
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusMethodNotAllowed)
+	assert.Equal(t, "This pull request can't be merged until the pull requests it depends on are merged and the issues it depends on are closed.", DecodeJSON(t, resp, &api.APIError{}).Message)
 	assert.False(t, unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID}).HasMerged)
 }

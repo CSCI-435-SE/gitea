@@ -983,6 +983,8 @@ func MergePullRequest(ctx *context.APIContext) {
 			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
 		} else if errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified) {
 			ctx.APIError(http.StatusMethodNotAllowed, err.Error())
+		} else if errors.Is(err, pull_service.ErrDependenciesLeft) {
+			ctx.APIError(http.StatusMethodNotAllowed, "This pull request can't be merged until the pull requests it depends on are merged and the issues it depends on are closed.")
 		} else {
 			ctx.APIErrorInternal(err)
 		}
