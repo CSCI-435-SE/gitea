@@ -922,7 +922,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "405":
-	//     "$ref": "#/responses/empty"
+	//     "$ref": "#/responses/error"
 	//   "409":
 	//     "$ref": "#/responses/error"
 	//   "423":
