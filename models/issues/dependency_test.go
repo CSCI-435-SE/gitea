@@ -6,12 +6,66 @@ package issues_test
 import (
 	"testing"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestCreateIssueDependencyLoop(t *testing.T) {
+	// issues 1, 2 and 3 (repo1) have no dependencies in the fixtures
+	create := func(t *testing.T, issueID, depID int64) error {
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issueID})
+		dep := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: depID})
+		return issues_model.CreateIssueDependency(t.Context(), doer, issue, dep)
+	}
+	assertRefused := func(t *testing.T, issueID, depID int64) {
+		err := create(t, issueID, depID)
+		assert.True(t, issues_model.IsErrCircularDependency(err), "expected a loop error, got %v", err)
+		unittest.AssertNotExistsBean(t, &issues_model.IssueDependency{IssueID: issueID, DependencyID: depID})
+	}
+	assertAccepted := func(t *testing.T, issueID, depID int64) {
+		require.NoError(t, create(t, issueID, depID))
+		unittest.AssertExistsAndLoadBean(t, &issues_model.IssueDependency{IssueID: issueID, DependencyID: depID})
+	}
+
+	t.Run("LoopOfThree", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		assertAccepted(t, 1, 2)
+		assertAccepted(t, 2, 3)
+		assertRefused(t, 3, 1)
+	})
+	t.Run("LoopOfTwo", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		assertAccepted(t, 1, 2)
+		assertRefused(t, 2, 1)
+	})
+	t.Run("SelfDependency", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		assertRefused(t, 1, 1)
+	})
+	t.Run("SharedDependency", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		assertAccepted(t, 1, 3)
+		assertAccepted(t, 2, 3)
+	})
+	t.Run("Shortcut", func(t *testing.T) { // 1 already reaches 3 through 2, but 3 does not reach 1
+		require.NoError(t, unittest.PrepareTestDatabase())
+		assertAccepted(t, 1, 2)
+		assertAccepted(t, 2, 3)
+		assertAccepted(t, 1, 3)
+	})
+	t.Run("BesideOldLoop", func(t *testing.T) { // a loop added before this check existed, which 1 does not join
+		require.NoError(t, unittest.PrepareTestDatabase())
+		require.NoError(t, db.Insert(t.Context(), &issues_model.IssueDependency{UserID: 1, IssueID: 2, DependencyID: 3}))
+		require.NoError(t, db.Insert(t.Context(), &issues_model.IssueDependency{UserID: 1, IssueID: 3, DependencyID: 2}))
+		assertAccepted(t, 1, 2)
+	})
+}
 
 func TestCreateIssueDependency(t *testing.T) {
 	// Prepare

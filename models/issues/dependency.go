@@ -6,9 +6,11 @@ package issues
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 )
@@ -66,7 +68,7 @@ func IsErrCircularDependency(err error) bool {
 }
 
 func (err ErrCircularDependency) Error() string {
-	return fmt.Sprintf("circular dependencies exists (two issues blocking each other) [issue id: %d, dependency id: %d]", err.IssueID, err.DependencyID)
+	return fmt.Sprintf("circular dependencies exists (issues blocking each other in a loop) [issue id: %d, dependency id: %d]", err.IssueID, err.DependencyID)
 }
 
 // ErrDependenciesLeft represents an error where the issue you're trying to close still has dependencies left.
@@ -132,7 +134,7 @@ func CreateIssueDependency(ctx context.Context, user *user_model.User, issue, de
 			return ErrDependencyExists{issue.ID, dep.ID}
 		}
 		// And if it would be circular
-		circular, err := issueDepExists(ctx, dep.ID, issue.ID)
+		circular, err := dependencyLoopExists(ctx, issue.ID, dep.ID)
 		if err != nil {
 			return err
 		}
@@ -185,6 +187,29 @@ func RemoveIssueDependency(ctx context.Context, user *user_model.User, issue, de
 // Check if the dependency already exists
 func issueDepExists(ctx context.Context, issueID, depID int64) (bool, error) {
 	return db.GetEngine(ctx).Where("(issue_id = ? AND dependency_id = ?)", issueID, depID).Exist(&IssueDependency{})
+}
+
+// dependencyLoopExists checks if depID already depends on issueID, directly or through other issues,
+// so making issueID depend on depID would close a loop; issueID == depID is a loop of one.
+func dependencyLoopExists(ctx context.Context, issueID, depID int64) (bool, error) {
+	seen := container.SetOf(depID) // loops made before this check existed must not walk forever
+	next := []int64{depID}
+	for len(next) > 0 {
+		if slices.Contains(next, issueID) {
+			return true, nil
+		}
+		var depIDs []int64
+		if err := db.GetEngine(ctx).Table("issue_dependency").In("issue_id", next).Cols("dependency_id").Find(&depIDs); err != nil {
+			return false, err
+		}
+		next = next[:0]
+		for _, id := range depIDs {
+			if seen.Add(id) {
+				next = append(next, id)
+			}
+		}
+	}
+	return false, nil
 }
 
 // IssueNoDependenciesLeft checks if issue can be closed
