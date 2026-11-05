@@ -11,6 +11,7 @@ import (
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateIssueDependency(t *testing.T) {
@@ -69,4 +70,48 @@ func TestCreateIssueDependency(t *testing.T) {
 	issue2Reopened, err := issues_model.GetIssueByID(t.Context(), 2)
 	assert.NoError(t, err)
 	assert.False(t, issue2Reopened.IsClosed)
+}
+
+func TestMergeBlockedByDependencies(t *testing.T) {
+	// pull request 2 (issue 3, repo1) gets one dependency, depID, closed first when closeDep is set
+	setup := func(t *testing.T, depID int64, closeDep bool) *issues_model.PullRequest {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+		require.NoError(t, pr.LoadIssue(t.Context()))
+		dep := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: depID})
+		if closeDep {
+			_, err := issues_model.CloseIssue(t.Context(), dep, doer, issues_model.CloseReasonOptions{})
+			require.NoError(t, err)
+		}
+		require.NoError(t, issues_model.CreateIssueDependency(t.Context(), doer, pr.Issue, dep))
+		return pr
+	}
+	assertBlocked := func(t *testing.T, pr *issues_model.PullRequest, expected bool) {
+		blocked, err := issues_model.MergeBlockedByDependencies(t.Context(), pr)
+		require.NoError(t, err)
+		assert.Equal(t, expected, blocked)
+	}
+
+	t.Run("OpenIssue", func(t *testing.T) {
+		assertBlocked(t, setup(t, 1, false), true)
+	})
+	t.Run("ClosedIssue", func(t *testing.T) {
+		assertBlocked(t, setup(t, 1, true), false)
+	})
+	t.Run("OpenPull", func(t *testing.T) {
+		assertBlocked(t, setup(t, 11, false), true) // pull request 5, not merged
+	})
+	t.Run("MergedPull", func(t *testing.T) {
+		assertBlocked(t, setup(t, 2, true), false) // pull request 1 is merged; closed as a real merge would, the fixture leaves it open
+	})
+	t.Run("PullClosedWithoutMerging", func(t *testing.T) {
+		pr := setup(t, 11, true)
+		assertBlocked(t, pr, true)
+
+		// closing pr itself still treats the closed pull request as done
+		noDeps, err := issues_model.IssueNoDependenciesLeft(t.Context(), pr.Issue)
+		require.NoError(t, err)
+		assert.True(t, noDeps)
+	})
 }

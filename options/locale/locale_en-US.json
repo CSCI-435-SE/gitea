@@ -1932,6 +1932,7 @@
   "repo.pulls.no_merge_helper": "Enable merge options in the repository settings or merge the pull request manually.",
   "repo.pulls.no_merge_wip": "This pull request cannot be merged because it is marked as being a work in progress.",
   "repo.pulls.no_merge_not_ready": "This pull request is not ready to be merged. Check review status and status checks.",
+  "repo.pulls.no_merge_dependencies": "This pull request can't be merged until the pull requests it depends on are merged and the issues it depends on are closed.",
   "repo.pulls.no_merge_access": "You are not authorized to merge this pull request.",
   "repo.pulls.merge_pull_request": "Create merge commit",
   "repo.pulls.rebase_merge_pull_request": "Rebase, then fast-forward",

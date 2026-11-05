@@ -1,7 +1,7 @@
 ---
 source: docs/testing.md
-source-hash: de7f6cc0bc06f9c5
-verified-at: 2629e98ef9
+source-hash: 03681985281f6ee1
+verified-at: 5b8719fee2
 ---
 
 <!-- Derived from docs/testing.md. Do not edit by hand: fix the reference doc and regenerate
@@ -181,6 +181,10 @@ Run the suite on Linux, macOS, WSL2 or the provided `.devcontainer`.
 
 **You cannot tell what a failing database test actually did.** Set `GITEA_TEST_LOG_SQL=1` and it
 prints every SQL statement it ran. This is the fastest debugging tool here.
+
+**A dependency you added in a test blocks nothing.** The fixture repositories never switch
+dependencies on, so they count as off. Turn them on first with `repo_model.UpdateRepoUnitConfig`,
+as `tests/integration/pull_merge_dependency_test.go` does.
 
 ## Where to go next
 

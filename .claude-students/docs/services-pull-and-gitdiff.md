@@ -1,6 +1,6 @@
 ---
 scope: services/pull, services/gitdiff, services/automerge, services/automergequeue, services/agit
-verified-at: c0092050a4
+verified-at: 6c8e682391
 ---
 
 # services/pull and services/gitdiff — pull requests, review, diffs
@@ -50,6 +50,13 @@ viewer.
   (`models-repo-and-git.md`), never by string comparison.
 - `Merge` is not the permission check. `IsUserAllowedToMerge` and `CheckPullBranchProtections` sit
   beside it in `merge.go` but are separate calls the caller must make itself.
+- **Merging and closing judge dependencies differently.** `CheckPullMergeable`
+  (`services/pull/check.go`), which the web, API and automerge paths all call, returns
+  `ErrDependenciesLeft` while `MergeBlockedByDependencies` (`models/issues/dependency.go`) finds an
+  open issue or an unmerged pull request, and skips that check when `IsDependenciesEnabled` is off.
+  Closing (`SetIssueAsClosed`, `models/issues/issue_update.go`) skips dependencies the same way and
+  otherwise uses `IssueNoDependenciesLeft`, where a closed pull request counts as done. Changing one
+  rule does not change the other.
 - **Review comments are anchored to a commit, not to a line of the current head.** `CreateCodeComment`
   takes `latestCommitID` and a `treePath`; when the branch moves, `InvalidateCodeComments` marks
   the ones that no longer apply. A comment feature that stores only a line number will drift.

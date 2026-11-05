@@ -1,7 +1,7 @@
 ---
 source: docs/routers-api-v1.md
-source-hash: f9453e268dc5eda8
-verified-at: c0092050a4
+source-hash: 5a45d6bbbf9ca069
+verified-at: 60c9a295e3
 ---
 
 <!-- Derived from docs/routers-api-v1.md. Do not edit by hand: fix the reference doc and regenerate
@@ -106,7 +106,8 @@ return with `ctx.JSON`. The swagger comment sits directly above the handler body
 3. Write the handler in the right subpackage, with the complete swagger block above it.
 4. Register the route in `api.go`, inside the group whose guards you need, adding `reqToken()`,
    `tokenRequiresScopes(...)` and `bind(api.XxxOption{})` as appropriate.
-5. Run `make generate-swagger` and **commit** the regenerated `templates/swagger/v1_json.tmpl`.
+5. Run `make generate-swagger` and **commit** both files it regenerates: `templates/swagger/v1_json.tmpl`
+   and `templates/swagger/v1_openapi3_json.tmpl`, the same API described in two formats.
 
 **Choose your guards.** They are grouped by what they check:
 
@@ -123,7 +124,9 @@ return with `ctx.JSON`. The swagger comment sits directly above the handler body
 
 **CI fails on `make swagger-check` and you did not touch the spec.** You edited a swagger comment.
 The committed specification no longer matches the comments. Run `make generate-swagger` and commit
-`templates/swagger/v1_json.tmpl` along with your change. This catches almost everyone once.
+both regenerated specs along with your change. This catches almost everyone once. The same check
+run on your own machine also fails until you have staged them (`git add`), because it compares the
+files with what is staged, not with what is committed.
 
 **Your new field does not appear in the API docs.** You defined the struct but never registered it
 under `routers/api/v1/swagger/`.

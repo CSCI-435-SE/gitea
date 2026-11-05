@@ -11,8 +11,10 @@ import (
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	"gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/graceful"
@@ -145,4 +147,50 @@ func TestMarkPullRequestAsMergeable(t *testing.T) {
 	case <-time.After(1 * time.Second):
 		assert.FailNow(t, "Timeout: nothing was added to automergequeue")
 	}
+}
+
+func TestCheckPullMergeableDependencies(t *testing.T) {
+	// user2 owns repo1 and could merge pull request 2, which gets one dependency, depID, closed first when closeDep is set
+	check := func(t *testing.T, depID int64, closeDep, dependenciesEnabled bool) error {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		ctx := t.Context()
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+		require.NoError(t, pr.LoadIssue(ctx))
+		require.NoError(t, pr.LoadBaseRepo(ctx))
+
+		dep := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: depID})
+		if closeDep {
+			_, err := issues_model.CloseIssue(ctx, dep, doer, issues_model.CloseReasonOptions{})
+			require.NoError(t, err)
+		}
+		require.NoError(t, issues_model.CreateIssueDependency(ctx, doer, pr.Issue, dep))
+
+		issuesUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypeIssues)
+		require.NoError(t, err)
+		issuesUnit.IssuesConfig().EnableDependencies = dependenciesEnabled // fixture repos leave it unset, which reads as off
+		require.NoError(t, repo_model.UpdateRepoUnitConfig(ctx, issuesUnit))
+
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}) // reload, so the setting comes from the database
+		require.NoError(t, pr.LoadBaseRepo(ctx))
+		perm, err := access_model.GetDoerRepoPermission(ctx, pr.BaseRepo, doer)
+		require.NoError(t, err)
+		return CheckPullMergeable(ctx, doer, &perm, pr, MergeCheckTypeGeneral, repo_model.MergeStyleMerge, false)
+	}
+
+	t.Run("OpenIssue", func(t *testing.T) {
+		assert.ErrorIs(t, check(t, 1, false, true), ErrDependenciesLeft)
+	})
+	t.Run("ClosedIssue", func(t *testing.T) {
+		assert.NoError(t, check(t, 1, true, true))
+	})
+	t.Run("PullClosedWithoutMerging", func(t *testing.T) {
+		assert.ErrorIs(t, check(t, 11, true, true), ErrDependenciesLeft) // pull request 5
+	})
+	t.Run("MergedPull", func(t *testing.T) {
+		assert.NoError(t, check(t, 2, true, true)) // pull request 1 is merged; closed as a real merge would, the fixture leaves it open
+	})
+	t.Run("DependenciesTurnedOff", func(t *testing.T) {
+		assert.NoError(t, check(t, 11, true, false))
+	})
 }
