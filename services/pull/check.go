@@ -45,7 +45,7 @@ var (
 	ErrIsWorkInProgress          = errors.New("work in progress PRs cannot be merged")
 	ErrIsChecking                = errors.New("cannot merge while conflict checking is in progress")
 	ErrNotMergeableState         = errors.New("not in mergeable state")
-	ErrDependenciesLeft          = errors.New("is blocked by an open dependency")
+	ErrDependenciesLeft          = errors.New("is blocked by an open issue or an unmerged pull request")
 	ErrHeadCommitsNotAllVerified = errors.New("the branch requires signed commits but not all head commits are verified")
 )
 
@@ -220,10 +220,15 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 			return err
 		}
 
-		if noDeps, err := issues_model.IssueNoDependenciesLeft(ctx, pr.Issue); err != nil {
+		if err := pr.LoadBaseRepo(ctx); err != nil {
 			return err
-		} else if !noDeps {
-			return ErrDependenciesLeft
+		}
+		if pr.BaseRepo.IsDependenciesEnabled(ctx) { // closing skips dependencies too when they are turned off
+			if blocked, err := issues_model.MergeBlockedByDependencies(ctx, pr); err != nil {
+				return err
+			} else if blocked {
+				return ErrDependenciesLeft
+			}
 		}
 
 		return nil
