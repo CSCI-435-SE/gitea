@@ -43,7 +43,7 @@ func setDependenciesEnabled(t *testing.T, repoID int64, enabled bool) {
 }
 
 // preparePullBlockedByClosedPull makes pull request 2 (#3 in user2/repo1) depend on pull request 5 (#5),
-// closes #5 without merging it, and waits until nothing but the dependency can stop #3 from merging
+// closes #5 without merging it, and waits until #3 is mergeable
 func preparePullBlockedByClosedPull(t *testing.T) (owner *user_model.User, pr *issues_model.PullRequest) {
 	owner = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
@@ -54,7 +54,7 @@ func preparePullBlockedByClosedPull(t *testing.T) (owner *user_model.User, pr *i
 	require.NoError(t, issues_model.CreateIssueDependency(t.Context(), owner, pr.Issue, dep))
 	require.NoError(t, issue_service.CloseIssue(t.Context(), dep, owner, ""))
 
-	// the server rechecks every pull request on start; until that ends a merge is refused as "not ready"
+	// while #3 is being rechecked a merge is refused as "not ready", not for the dependency
 	require.Eventually(t, func() bool {
 		return unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID}).Status == issues_model.PullRequestStatusMergeable
 	}, 5*time.Second, 50*time.Millisecond)

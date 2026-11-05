@@ -178,11 +178,17 @@ func TestCheckPullMergeableDependencies(t *testing.T) {
 		return CheckPullMergeable(ctx, doer, &perm, pr, MergeCheckTypeGeneral, repo_model.MergeStyleMerge, false)
 	}
 
+	t.Run("OpenIssue", func(t *testing.T) {
+		assert.ErrorIs(t, check(t, 1, false, true), ErrDependenciesLeft)
+	})
+	t.Run("ClosedIssue", func(t *testing.T) {
+		assert.NoError(t, check(t, 1, true, true))
+	})
 	t.Run("PullClosedWithoutMerging", func(t *testing.T) {
 		assert.ErrorIs(t, check(t, 11, true, true), ErrDependenciesLeft) // pull request 5
 	})
 	t.Run("MergedPull", func(t *testing.T) {
-		assert.NoError(t, check(t, 2, true, true)) // pull request 1 is merged; a merge also closes its issue
+		assert.NoError(t, check(t, 2, true, true)) // pull request 1 is merged; closed as a real merge would, the fixture leaves it open
 	})
 	t.Run("DependenciesTurnedOff", func(t *testing.T) {
 		assert.NoError(t, check(t, 11, true, false))

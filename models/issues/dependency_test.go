@@ -103,7 +103,7 @@ func TestMergeBlockedByDependencies(t *testing.T) {
 		assertBlocked(t, setup(t, 11, false), true) // pull request 5, not merged
 	})
 	t.Run("MergedPull", func(t *testing.T) {
-		assertBlocked(t, setup(t, 2, true), false) // pull request 1 is merged; a merge also closes its issue
+		assertBlocked(t, setup(t, 2, true), false) // pull request 1 is merged; closed as a real merge would, the fixture leaves it open
 	})
 	t.Run("PullClosedWithoutMerging", func(t *testing.T) {
 		pr := setup(t, 11, true)
