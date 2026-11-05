@@ -2,6 +2,8 @@ name: db-tests
 
 on:
   pull_request:
+  push: # on main the database jobs are skipped; test-unit and sonarqube run so SonarQube has a main branch to compare pull requests with
+    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -15,7 +17,7 @@ jobs:
     uses: ./.github/workflows/files-changed.yml
 
   test-pgsql-shard-1:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: github.event_name == 'pull_request' && needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -51,7 +53,7 @@ jobs:
           run-migration: "true"
 
   test-pgsql-shard-2:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: github.event_name == 'pull_request' && needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -86,7 +88,7 @@ jobs:
           total-shards: 2
 
   test-sqlite:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: github.event_name == 'pull_request' && (needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true')
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
@@ -110,7 +112,7 @@ jobs:
           GOEXPERIMENT:
 
   test-unit:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: github.event_name == 'push' || needs.files-changed.outputs.backend == 'true' # main always gets Go coverage
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -162,9 +164,16 @@ jobs:
       - name: unit-tests
         run: make test-backend
         env:
-          GOTEST_FLAGS: -race -timeout=20m
+          GOTEST_FLAGS: -race -timeout=20m -coverprofile=coverage.out
           TAGS: bindata
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
+      - name: coverage-paths
+        run: sed -i 's|^gitea\.dev/||' coverage.out # SonarQube expects paths relative to the repository, not module paths
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: go-coverage
+          path: coverage.out
+          retention-days: 1
       - name: unit-tests-gogit
         run: make test-backend
         env:
@@ -176,7 +185,7 @@ jobs:
       - run: make test-check
 
   test-mysql:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: github.event_name == 'pull_request' && needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -224,7 +233,7 @@ jobs:
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: github.event_name == 'pull_request' && needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -255,3 +264,26 @@ jobs:
         timeout-minutes: 50
         env:
           TAGS: bindata
+
+  sonarqube:
+    # runs when test-unit was skipped too, so every pull request gets a scan (without Go coverage then)
+    if: ${{ !cancelled() && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }} # forks get no SONAR_TOKEN
+    needs: test-unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 0 # SonarQube tells new code from old by the git history
+      - uses: ./.github/actions/node-setup
+      - run: make deps-frontend
+      - name: frontend-coverage
+        run: pnpm exec vitest run --coverage.enabled --coverage.provider=v8 --coverage.reporter=lcovonly --coverage.include='web_src/js/**' --coverage.include='tools/eslint-rules/**' # where vitest.config.ts finds tests
+      - if: ${{ !cancelled() && needs.test-unit.result != 'skipped' }} # a failed step here or later in test-unit must not drop the Go coverage
+        continue-on-error: true # no artifact when test-unit's first test run failed; then the scan has no Go coverage
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: go-coverage
+      - if: ${{ !cancelled() }} # scan even when the frontend tests failed, without their coverage
+        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
