@@ -1,6 +1,6 @@
 ---
 scope: routers/api/v1
-verified-at: c0092050a4
+verified-at: 60c9a295e3
 ---
 
 # routers/api/v1 — the REST API, its guards and its swagger spec
@@ -60,7 +60,9 @@ before `ctx.JSON`. The swagger block sits immediately above the handler body and
 3. The handler in the right subpackage, with the complete swagger comment block.
 4. The route in `api.go`, inside the group whose guards you need, adding `reqToken()`,
    `tokenRequiresScopes(...)` and `bind(api.XxxOption{})` as appropriate.
-5. `make generate-swagger`, and commit the regenerated `templates/swagger/v1_json.tmpl`.
+5. `make generate-swagger`, and commit both regenerated specs: `templates/swagger/v1_json.tmpl`
+   (Swagger 2.0) and `templates/swagger/v1_openapi3_json.tmpl`, the OpenAPI 3.0 version that
+   `build/generate-openapi.go` derives from it.
 
 **Pick guards.** Authentication: `reqToken`, `reqBasicOrRevProxyAuth`, `tokenRequiresScopes`.
 Repo access: `repoAssignment()`, `reqRepoReader(unit)`, `reqRepoWriter(units...)`,
@@ -71,8 +73,10 @@ gates: `mustEnableIssues`, `mustAllowPulls`, `mustEnableWiki`, `mustNotBeArchive
 
 ## Gotchas
 
-- `make swagger-check` fails CI when the committed spec does not match the comments, so a swagger
-  block edit always means regenerating and committing `templates/swagger/v1_json.tmpl`.
+- `make swagger-check` and `make openapi3-check` (both in `checks-backend`, `Makefile`) fail CI when
+  a committed spec does not match the comments, so a swagger block edit always means regenerating
+  and committing both specs. Both diff against git's index, so run locally they fail until the
+  regenerated files are staged.
 - The `swagger:parameters parameterBodies` annotation in `options.go` matches no real route on
   purpose — it exists only to force go-swagger to emit the definitions. Add to the struct; do not
   "fix" the annotation.
