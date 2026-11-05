@@ -1096,7 +1096,7 @@ func MergePullRequest(ctx *context.Context) {
 		case errors.Is(err, pull_service.ErrHeadCommitsNotAllVerified):
 			ctx.JSONError(ctx.Tr("repo.pulls.require_signed_head_commits_unverified"))
 		case errors.Is(err, pull_service.ErrDependenciesLeft):
-			ctx.JSONError(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+			ctx.JSONError(ctx.Tr("repo.pulls.no_merge_dependencies"))
 		default:
 			ctx.ServerError("WebCheck", err)
 		}
