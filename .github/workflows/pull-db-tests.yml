@@ -2,6 +2,8 @@ name: db-tests
 
 on:
   pull_request:
+  push: # on main only test-unit and sonarqube run, so SonarQube has a main branch to compare pull requests with
+    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -15,7 +17,7 @@ jobs:
     uses: ./.github/workflows/files-changed.yml
 
   test-pgsql-shard-1:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: github.event_name == 'pull_request' && needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -51,7 +53,7 @@ jobs:
           run-migration: "true"
 
   test-pgsql-shard-2:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: github.event_name == 'pull_request' && needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -86,7 +88,7 @@ jobs:
           total-shards: 2
 
   test-sqlite:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: github.event_name == 'pull_request' && (needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true')
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
@@ -110,7 +112,7 @@ jobs:
           GOEXPERIMENT:
 
   test-unit:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: github.event_name == 'push' || needs.files-changed.outputs.backend == 'true' # main always gets Go coverage
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -183,7 +185,7 @@ jobs:
       - run: make test-check
 
   test-mysql:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: github.event_name == 'pull_request' && needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -231,7 +233,7 @@ jobs:
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: github.event_name == 'pull_request' && needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
@@ -265,7 +267,7 @@ jobs:
 
   sonarqube:
     # runs when test-unit was skipped too, so every pull request gets a scan (without Go coverage then)
-    if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }} # forks get no SONAR_TOKEN
+    if: ${{ !cancelled() && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }} # forks get no SONAR_TOKEN
     needs: test-unit
     runs-on: ubuntu-latest
     steps:
