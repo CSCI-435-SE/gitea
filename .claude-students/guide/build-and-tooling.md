@@ -1,7 +1,7 @@
 ---
 source: docs/build-and-tooling.md
-source-hash: ab3dc36e3e463d2d
-verified-at: be5c384c8b
+source-hash: 909aa299a2ab60a8
+verified-at: d8e499cbec
 ---
 
 <!-- Derived from docs/build-and-tooling.md. Do not edit by hand: fix the reference doc and
@@ -55,6 +55,7 @@ find out locally in seconds rather than from a failed build twenty minutes later
 | `pyproject.toml`, `uv.lock` | The Python tools that lint templates and workflow files. |
 | `tools/lint-shell.sh` | Shell script checking. |
 | `tools/lint-go-all.go` | The copyright-header check and the Go lint passes. |
+| `sonar-project.properties` | Tells SonarQube which project this is, which files are tests, and where the coverage reports are. |
 
 ## The rules, and why
 
@@ -88,6 +89,12 @@ while you still can.
 comments, and CI fails when the committed version does not match. Never hand-edit a generated file;
 regenerate it.
 
+**SonarQube gets its coverage from CI.** Its automatic analysis only reads the code, so it can't
+know which lines the tests run. Instead, the `sonarqube` job in `.github/workflows/pull-db-tests.yml`
+scans every pull request from this repository and every push to `main`, after the tests have
+written their coverage reports: `coverage.out` for Go, from the `test-unit` job, and a Vitest
+report for TypeScript. After a merge to `main`, only those two jobs run.
+
 **Commit messages and PR titles use Conventional Commits**, with an `Assisted-by:` trailer, and
 never `Co-Authored-By` or `Signed-off-by`.
 
@@ -120,6 +127,10 @@ of them, which is why it is worth the setup.
 
 **CI fails on the swagger check and you never touched the specification.** You edited a swagger
 comment. Run `make generate-swagger` and commit the regenerated file with your change.
+
+**The `sonarqube` job fails before it scans anything.** Either the `SONAR_TOKEN` secret is missing
+(a repository admin adds it), or SonarQube's Automatic Analysis was switched back on, which makes
+every scan from CI fail.
 
 **Lint complains about your imports and you cannot see the problem.** Import order. Run `make fmt`.
 
