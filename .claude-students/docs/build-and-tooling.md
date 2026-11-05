@@ -1,6 +1,6 @@
 ---
 scope: Makefile, package.json, pyproject.toml, vite.config.ts, .golangci.yml, eslint.config.ts, stylelint.config.ts, sonar-project.properties, .github/workflows/pull-db-tests.yml
-verified-at: d8e499cbec
+verified-at: 331301d735
 ---
 
 # build and tooling — targets, linters, generated files
@@ -51,11 +51,11 @@ are the ones a course task actually needs.
   (`routers-api-v1.md`). Never hand-edit a generated file.
 - **SonarQube Cloud runs from CI, not its automatic analysis**, which cannot show coverage. The
   `sonarqube` job in `.github/workflows/pull-db-tests.yml` scans every pull request from this
-  repository and every push to `main`, where only `test-unit` and `sonarqube` run. Go coverage is
-  `test-unit`'s `coverage.out`, with paths rewritten from `gitea.dev/...` to repository-relative ones,
-  which SonarQube needs; TypeScript coverage comes from a Vitest run in the job. It fails without the
-  `SONAR_TOKEN` repository secret (set by a repository admin), or while the project's Automatic
-  Analysis is switched on.
+  repository and every push to `main`, where only `files-changed`, `test-unit` and `sonarqube` run.
+  Go coverage is `test-unit`'s `coverage.out`, with paths rewritten from `gitea.dev/...` to
+  repository-relative ones, which SonarQube needs; TypeScript coverage comes from a Vitest run in the
+  job. It fails without the `SONAR_TOKEN` repository secret (set by a repository admin), or while the
+  project's Automatic Analysis is switched on.
 - `make lint-md` only checks root-level `*.md`. `make lint-shell` shellchecks every tracked `.sh`,
   which includes `.claude-students/check.sh`.
 - Conventional Commits for commit messages and PR titles; add an

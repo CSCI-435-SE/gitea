@@ -1,7 +1,7 @@
 ---
 source: docs/build-and-tooling.md
-source-hash: 909aa299a2ab60a8
-verified-at: d8e499cbec
+source-hash: 7f414c44562f7f9a
+verified-at: 331301d735
 ---
 
 <!-- Derived from docs/build-and-tooling.md. Do not edit by hand: fix the reference doc and
@@ -91,9 +91,10 @@ regenerate it.
 
 **SonarQube gets its coverage from CI.** Its automatic analysis only reads the code, so it can't
 know which lines the tests run. Instead, the `sonarqube` job in `.github/workflows/pull-db-tests.yml`
-scans every pull request from this repository and every push to `main`, after the tests have
-written their coverage reports: `coverage.out` for Go, from the `test-unit` job, and a Vitest
-report for TypeScript. After a merge to `main`, only those two jobs run.
+scans every pull request from this repository and every push to `main`, using the coverage reports
+the tests write: `coverage.out` for Go, from the `test-unit` job, and a Vitest report for
+TypeScript. After a merge to `main`, the database test jobs are skipped; only `files-changed`,
+`test-unit` and `sonarqube` run.
 
 **Commit messages and PR titles use Conventional Commits**, with an `Assisted-by:` trailer, and
 never `Co-Authored-By` or `Signed-off-by`.

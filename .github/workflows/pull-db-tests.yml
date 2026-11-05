@@ -2,7 +2,7 @@ name: db-tests
 
 on:
   pull_request:
-  push: # on main only test-unit and sonarqube run, so SonarQube has a main branch to compare pull requests with
+  push: # on main the database jobs are skipped; test-unit and sonarqube run so SonarQube has a main branch to compare pull requests with
     branches: [main]
 
 concurrency:
