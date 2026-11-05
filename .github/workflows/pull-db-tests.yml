@@ -277,8 +277,9 @@ jobs:
       - uses: ./.github/actions/node-setup
       - run: make deps-frontend
       - name: frontend-coverage
-        run: pnpm exec vitest run --coverage.enabled --coverage.provider=v8 --coverage.reporter=lcovonly --coverage.include='web_src/js/**'
-      - if: ${{ !cancelled() && needs.test-unit.result == 'success' }} # a failed frontend-coverage step must not drop the Go coverage
+        run: pnpm exec vitest run --coverage.enabled --coverage.provider=v8 --coverage.reporter=lcovonly --coverage.include='web_src/js/**' --coverage.include='tools/eslint-rules/**' # where vitest.config.ts finds tests
+      - if: ${{ !cancelled() && needs.test-unit.result != 'skipped' }} # a failed step here or later in test-unit must not drop the Go coverage
+        continue-on-error: true # no artifact when test-unit's first test run failed; then the scan has no Go coverage
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: go-coverage
