@@ -11,6 +11,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ErrDependencyExists represents a "DependencyAlreadyExists" kind of error.
@@ -198,4 +200,20 @@ func IssueNoDependenciesLeft(ctx context.Context, issue *Issue) (bool, error) {
 		Exist(&Issue{})
 
 	return !exists, err
+}
+
+// MergeBlockedByDependencies checks if pr depends on an open issue or on a pull request that is not merged.
+// Closing ignores whether a pull request was merged (IssueNoDependenciesLeft); merging must not.
+func MergeBlockedByDependencies(ctx context.Context, pr *PullRequest) (bool, error) {
+	return db.GetEngine(ctx).
+		Table("issue_dependency").
+		Select("issue.*").
+		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
+		Join("LEFT", "pull_request", "pull_request.issue_id = issue.id").
+		Where("issue_dependency.issue_id = ?", pr.IssueID).
+		And(builder.Or(
+			builder.Eq{"issue.is_closed": false},
+			builder.Eq{"pull_request.has_merged": false}, // NULL for an issue, so only a pull request matches
+		)).
+		Exist(&Issue{})
 }
