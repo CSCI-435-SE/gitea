@@ -203,8 +203,12 @@ func dependencyLoopExists(ctx context.Context, issueID, depID int64) (bool, erro
 			return true, nil
 		}
 		var depIDs []int64
-		if err := db.GetEngine(ctx).Table("issue_dependency").In("issue_id", next).Cols("dependency_id").Find(&depIDs); err != nil {
-			return false, err
+		for batch := range slices.Chunk(next, db.DefaultMaxInSize) { // a long IN list can pass the database's parameter limit
+			var batchDepIDs []int64
+			if err := db.GetEngine(ctx).Table("issue_dependency").In("issue_id", batch).Cols("dependency_id").Find(&batchDepIDs); err != nil {
+				return false, err
+			}
+			depIDs = append(depIDs, batchDepIDs...)
 		}
 		next = next[:0]
 		for _, id := range depIDs {

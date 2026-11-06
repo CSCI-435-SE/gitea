@@ -65,6 +65,19 @@ func TestCreateIssueDependencyLoop(t *testing.T) {
 		require.NoError(t, db.Insert(t.Context(), &issues_model.IssueDependency{UserID: 1, IssueID: 3, DependencyID: 2}))
 		assertAccepted(t, 1, 2)
 	})
+	t.Run("LoopPastFirstBatch", func(t *testing.T) { // one step of the chain holds more issues than one query takes
+		require.NoError(t, unittest.PrepareTestDatabase())
+		// #2 depends on made-up issue IDs (the check reads only issue_dependency); only those past the first batch lead back to #1
+		var rows []any
+		for id := int64(1001); id <= 1000+db.DefaultMaxInSize+10; id++ {
+			rows = append(rows, &issues_model.IssueDependency{UserID: 1, IssueID: 2, DependencyID: id})
+			if id > 1000+db.DefaultMaxInSize {
+				rows = append(rows, &issues_model.IssueDependency{UserID: 1, IssueID: id, DependencyID: 1})
+			}
+		}
+		require.NoError(t, db.Insert(t.Context(), rows...))
+		assertRefused(t, 1, 2)
+	})
 }
 
 func TestCreateIssueDependency(t *testing.T) {
