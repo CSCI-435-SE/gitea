@@ -1,7 +1,7 @@
 ---
 source: docs/models-issues.md
-source-hash: cd2b7feeb46282b7
-verified-at: 94dfae067e
+source-hash: fa8b65309e13bcda
+verified-at: cb01299f55
 ---
 
 <!-- Derived from docs/models-issues.md. Do not edit by hand: fix the reference doc and regenerate
@@ -59,6 +59,7 @@ nobody loaded and getting an empty value rather than an error.**
 | `models/issues/issue_list.go` | `IssueList` — a slice of issues that can load everything for all of them at once. |
 | `models/issues/pull.go` | The pull-request-only row. |
 | `models/issues/comment.go` | Comments, and the enum of comment kinds. |
+| `models/issues/dependency.go` | Which issue waits on which. Adding a dependency is refused if it already exists, or if it would close a loop of any length; an issue waiting on itself counts as the shortest loop. To find a loop it follows the chain step by step and skips issues it has already seen, so a loop saved before this check existed cannot keep it going forever. Both refusals are marked so the API answers 409 and 422 on its own. |
 | `models/issues/issue_close_reason.go` | Why an issue or pull request was closed: the `CloseReason` values and their names, which ones each kind may use, which ones the list's bulk Close offers, which one the close button starts on, and the check that refuses a bad one, plus the lookup of the issue a duplicate points at (the API uses it too). Saved in three columns on `Issue`. |
 | `models/issues/issue_label.go` | Labels on issues — and the clearest small example of the loader pattern. |
 | `models/issues/issue_index.go` | Recalculating per-repository numbering. |
@@ -66,8 +67,8 @@ nobody loaded and getting an empty value rather than an error.**
 | `models/issues/milestone_history.go` | A milestone's past — what joined, left, closed and reopened when — read back from comments. |
 
 The rest divide by area: `review.go` and `review_list.go`, `label.go`, `milestone.go`,
-`assignees.go`, `stopwatch.go` and `tracked_time.go`, and the relationship files `dependency.go`,
-`issue_xref.go`, `issue_watch.go`, `issue_pin.go`, `issue_lock.go`, `reaction.go`.
+`assignees.go`, `stopwatch.go` and `tracked_time.go`, and the relationship files `issue_xref.go`,
+`issue_watch.go`, `issue_pin.go`, `issue_lock.go`, `reaction.go`.
 
 ## The rules, and why
 
@@ -137,8 +138,7 @@ the list**. That type exists precisely to load everything for every issue in a h
 Looping and calling the single-issue loader is the N+1 it was built to prevent: a slow page.
 
 **Add a column to `Issue`.** Add the field with its tag, write a migration, and if the value
-duplicates something stored elsewhere, extend the consistency check in `models/main_test.go` and the
-fixtures.
+duplicates something stored elsewhere, extend the consistency check in `models/main_test.go` and the fixtures.
 
 **Get the pull request for an issue.** `issue.LoadPullRequest(ctx)`, then read `issue.PullRequest`.
 Going the other way, use the pull request's own loader and then `pr.Issue`.
