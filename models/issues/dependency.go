@@ -71,6 +71,10 @@ func (err ErrCircularDependency) Error() string {
 	return fmt.Sprintf("circular dependencies exists (issues blocking each other in a loop) [issue id: %d, dependency id: %d]", err.IssueID, err.DependencyID)
 }
 
+func (err ErrCircularDependency) Unwrap() error {
+	return util.ErrUnprocessableContent
+}
+
 // ErrDependenciesLeft represents an error where the issue you're trying to close still has dependencies left.
 type ErrDependenciesLeft struct {
 	IssueID int64
