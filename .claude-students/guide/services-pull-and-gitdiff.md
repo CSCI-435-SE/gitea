@@ -1,7 +1,7 @@
 ---
 source: docs/services-pull-and-gitdiff.md
-source-hash: ae015f9434a604dc
-verified-at: 6c8e682391
+source-hash: cc8e1450ef5d8e32
+verified-at: 94cb0f500b
 ---
 
 <!-- Derived from docs/services-pull-and-gitdiff.md. Do not edit by hand: fix the reference doc and
@@ -98,7 +98,10 @@ this pull request still depend on an open issue, or on a pull request that was n
 Closing asks a looser question, through `IssueNoDependenciesLeft`: is everything it depends on
 closed? So a dependency that was closed without merging blocks a merge but not a close. When a
 repository turns dependencies off in its settings, the merge check skips them, as closing already
-does. The two rules live apart, so changing one leaves the other as it was.
+does. The two rules live apart, so changing one leaves the other as it was. The merge box on the
+pull request page names the blocking dependencies through `GetMergeBlockingDependencies`, which
+uses the merge check's own condition, `mergeBlockingDependencyCond`. What the page lists and what
+the check refuses therefore always match.
 
 **Review comments are anchored to a commit, not a line number.** `CreateCodeComment` records which
 commit and which file path. When the branch moves, `InvalidateCodeComments` marks the ones that no

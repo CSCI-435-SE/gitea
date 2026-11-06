@@ -1,7 +1,7 @@
 ---
 source: docs/testing.md
-source-hash: 03681985281f6ee1
-verified-at: 5b8719fee2
+source-hash: 15069c6ebc131b6b
+verified-at: 94cb0f500b
 ---
 
 <!-- Derived from docs/testing.md. Do not edit by hand: fix the reference doc and regenerate
@@ -181,6 +181,11 @@ Run the suite on Linux, macOS, WSL2 or the provided `.devcontainer`.
 
 **You cannot tell what a failing database test actually did.** Set `GITEA_TEST_LOG_SQL=1` and it
 prints every SQL statement it ran. This is the fastest debugging tool here.
+
+**Your handler test reads `repo.pulls.merged` instead of "Merged", or `<span>octicon-x(16/)</span>`
+for an icon.** The mock context speaks no language, and unit tests load no icons. For real English,
+call `translation.InitLocales` and set the English locale on both `ctx.Locale` and
+`ctx.TemplateContext["Locale"]`, as `routers/web/repo/issue_view_test.go` does.
 
 **A dependency you added in a test blocks nothing.** The fixture repositories never switch
 dependencies on, so they count as off. Turn them on first with `repo_model.UpdateRepoUnitConfig`,

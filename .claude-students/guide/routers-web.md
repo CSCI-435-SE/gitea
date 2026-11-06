@@ -1,7 +1,7 @@
 ---
 source: docs/routers-web.md
-source-hash: 6fda398e8fd84713
-verified-at: 32ac0cbb78
+source-hash: e876fe4e38d987cc
+verified-at: 94cb0f500b
 ---
 
 <!-- Derived from docs/routers-web.md. Do not edit by hand: fix the reference doc and regenerate
@@ -161,6 +161,19 @@ already matches your type, a later one never runs. The same chain is the place t
 from people who may not see it: a close comment's duplicate target is cleared there when the
 viewer can't read that kind of item (`ctx.Repo.Permission.CanReadIssuesOrPulls`), so the
 template simply has nothing to show.
+
+**Your change to a pull request's merge box does nothing, or vanishes when the box refreshes.** The
+merge box is built in Go, not in its template: `prepareMergeBox` in
+`routers/web/repo/issue_view.go` fills `pullMergeBoxData` (`routers/web/repo/pull.go`), and the
+template only prints it. The box also reloads on its own through `ViewPullMergeBox`, which runs the
+same function, so anything it needs must come from there, not from what the sidebar put in
+`ctx.Data`. Messages about what blocks a merge sit in two groups, and while `infoCommitBlockers`
+has any, `infoProtectionBlockers` is hidden. The buttons themselves are `MergeFormProps`, drawn by
+`web_src/js/components/PullRequestMergeForm.vue`. If nobody may override your blocker, take the
+merge styles away in `prepareMergeBoxFormProps` (`routers/web/repo/pull_merge_form.go`), as
+dependencies do (`routers/web/repo/pull_merge_box.go`). Adding it to `hasOverridableBlockers`
+instead would keep the buttons for anyone allowed to bypass branch protection, and offer
+"(When checks succeed)" to everyone else.
 
 **A form post fails, but the page just reloads as if it worked.** The handler logged the error and
 redirected anyway. `NewComment` in `routers/web/repo/issue_comment.go` only tells the person about
