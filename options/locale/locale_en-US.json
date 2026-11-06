@@ -1793,7 +1793,7 @@
   "repo.issues.dependency.add_error_dep_issue_not_exist": "Dependent issue does not exist.",
   "repo.issues.dependency.add_error_dep_not_exist": "Dependency does not exist.",
   "repo.issues.dependency.add_error_dep_exists": "Dependency already exists.",
-  "repo.issues.dependency.add_error_cannot_create_circular": "You cannot create a dependency with two issues that block each other.",
+  "repo.issues.dependency.add_error_cannot_create_circular": "You cannot add this dependency, because the issues would block each other in a loop.",
   "repo.issues.dependency.add_error_dep_not_same_repo": "Both issues must be in the same repository.",
   "repo.issues.review.self.approval": "You cannot approve your own pull request.",
   "repo.issues.review.self.rejection": "You cannot request changes on your own pull request.",
