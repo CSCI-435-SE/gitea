@@ -115,3 +115,38 @@ func TestMergeBlockedByDependencies(t *testing.T) {
 		assert.True(t, noDeps)
 	})
 }
+
+func TestGetMergeBlockingDependencies(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}) // issue 3, repo 1
+	require.NoError(t, pr.LoadIssue(t.Context()))
+
+	// one dependency of each kind in the issue's table, closed first where needed
+	for _, dep := range []struct {
+		issueID int64
+		close   bool
+	}{
+		{1, false},  // open issue
+		{5, false},  // closed issue, closed in the fixtures
+		{2, true},   // merged pull request 1; closed as a real merge would, the fixture leaves it open
+		{11, true},  // pull request 5, closed without merging
+		{12, false}, // open pull request 6, in repo 3
+	} {
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: dep.issueID})
+		if dep.close {
+			_, err := issues_model.CloseIssue(t.Context(), issue, doer, issues_model.CloseReasonOptions{})
+			require.NoError(t, err)
+		}
+		require.NoError(t, issues_model.CreateIssueDependency(t.Context(), doer, pr.Issue, issue))
+	}
+
+	deps, err := issues_model.GetMergeBlockingDependencies(t.Context(), pr)
+	require.NoError(t, err)
+	repoByIssue := map[int64]int64{}
+	for _, dep := range deps {
+		require.NotNil(t, dep.Issue.Repo, "issue %d has no repository loaded", dep.Issue.ID)
+		repoByIssue[dep.Issue.ID] = dep.Issue.Repo.ID // the merge box links each dependency to its own repository
+	}
+	assert.Equal(t, map[int64]int64{1: 1, 11: 1, 12: 3}, repoByIssue)
+}
