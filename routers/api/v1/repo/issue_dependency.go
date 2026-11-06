@@ -173,6 +173,10 @@ func CreateIssueDependency(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Issue"
 	//   "404":
 	//     description: the issue does not exist
+	//   "409":
+	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
@@ -398,6 +402,10 @@ func CreateIssueBlocking(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Issue"
 	//   "404":
 	//     description: the issue does not exist
+	//   "409":
+	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	dependency := getParamsIssue(ctx)
 	if ctx.Written() {
@@ -551,7 +559,7 @@ func createIssueDependency(ctx *context.APIContext, target, dependency *issues_m
 
 	err := issues_model.CreateIssueDependency(ctx, ctx.Doer, target, dependency)
 	if err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err) // 409 if it exists, 422 for a loop
 		return
 	}
 }

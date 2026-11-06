@@ -1,6 +1,6 @@
 ---
 scope: services/context, modules/reqctx
-verified-at: c0092050a4
+verified-at: cb01299f55
 ---
 
 # services/context — the request context every handler receives
@@ -62,6 +62,12 @@ carries the matching guard — `optSignIn`/`reqSignIn` for the doer (`routers-we
 **Return an error correctly.** A missing row is `ctx.NotFound(err)`. An unexpected failure is
 `ctx.ServerError("what failed", err)`. When the same error could be either, pass the model's
 `IsErrXxxNotExist` to `ctx.NotFoundOrServerError`.
+
+**Return an API error from a model error.** `ctx.APIErrorAuto(err)` (`services/context/api.go`) picks
+the status from the `modules/util` sentinel the error unwraps to: `ErrInvalidArgument` 400,
+`ErrPermissionDenied` 403, `ErrNotExist` 404, `ErrAlreadyExist` 409, `ErrContentTooLarge` 413,
+`ErrUnprocessableContent` 422, anything else 500. Give the model error that `Unwrap` (`models-issues.md`) instead of checking each
+error in the handler, as `routers/api/v1/repo/issue_dependency.go` does.
 
 **Paginate a list page.** Build a `context.NewPagination(total, pageSize, page, numPages)`, put it
 in `ctx.Data["Page"]` (as `routers/web/explore/repo.go` does), and include
