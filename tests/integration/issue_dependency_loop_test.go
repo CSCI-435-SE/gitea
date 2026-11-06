@@ -57,7 +57,8 @@ func TestAPIAddIssueDependencyLoop(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	enableRepoDependencies(t, 1)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	// #1 on #2 and #2 on #3 for the loop of three, #4 on #5 alone for the loop of two
+	// #1 on #2 and #2 on #3 for the loop of three, #4 on #5 alone for the loop of two;
+	// in the fixtures #1 and #4 are issues (#4 closed), #2, #3 and #5 pull requests
 	for _, dep := range [][2]int64{{1, 2}, {2, 3}, {4, 5}} {
 		require.NoError(t, issues_model.CreateIssueDependency(t.Context(), owner, repo1Issue(t, dep[0]), repo1Issue(t, dep[1])))
 	}
@@ -80,7 +81,7 @@ func TestAPIAddIssueDependencyLoop(t *testing.T) {
 		{"LoopOfTwo", "dependencies", 5, 4, http.StatusUnprocessableEntity},
 		{"LoopOfTwoBlocks", "blocks", 4, 5, http.StatusUnprocessableEntity},
 		{"SelfDependency", "dependencies", 1, 1, http.StatusUnprocessableEntity},
-		{"SelfDependencyBlocks", "blocks", 1, 1, http.StatusUnprocessableEntity},
+		{"SelfDependencyBlocks", "blocks", 2, 2, http.StatusUnprocessableEntity}, // a pull request, AC3's other half
 		{"Duplicate", "dependencies", 1, 2, http.StatusConflict},
 		{"DuplicateBlocks", "blocks", 2, 1, http.StatusConflict},
 	} {
@@ -93,5 +94,9 @@ func TestAPIAddIssueDependencyLoop(t *testing.T) {
 	t.Run("NoLoop", func(t *testing.T) { // #2 and #4 both depend on #3
 		add(t, "dependencies", 4, 3, http.StatusCreated)
 		unittest.AssertExistsAndLoadBean(t, &issues_model.IssueDependency{IssueID: repo1Issue(t, 4).ID, DependencyID: repo1Issue(t, 3).ID})
+	})
+	t.Run("NoLoopBlocks", func(t *testing.T) { // #5 joins them, through the other endpoint
+		add(t, "blocks", 3, 5, http.StatusCreated)
+		unittest.AssertExistsAndLoadBean(t, &issues_model.IssueDependency{IssueID: repo1Issue(t, 5).ID, DependencyID: repo1Issue(t, 3).ID})
 	})
 }
