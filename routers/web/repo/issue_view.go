@@ -940,6 +940,11 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		return
 	}
 
+	prInfo.prepareMergeBoxDependencies(ctx)
+	if ctx.Written() {
+		return
+	}
+
 	prInfo.prepareMergeBoxCommitSigning(ctx)
 	if ctx.Written() {
 		return
