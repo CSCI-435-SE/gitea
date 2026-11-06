@@ -152,6 +152,14 @@ func TestPrepareMergeBoxFormWithDependencies(t *testing.T) {
 		assert.Nil(t, o.styles)
 		assert.NotContains(t, o.messages, "This pull request cannot be merged because all repository merge options are disabled.")
 	})
+	t.Run("AC2 no merge form while blocked for a viewer held back by checks", func(t *testing.T) {
+		// "Manually merged" is allowed, but alone it would open as "Manually merged (When checks succeed)"
+		o := mergeBox(t, true, true, 1)
+		assert.Nil(t, o.styles)
+	})
+	t.Run("AC3 Manually merged as before without dependencies, while waiting for checks", func(t *testing.T) {
+		assert.Contains(t, mergeBox(t, true, true).styles, "manually-merged")
+	})
 	t.Run("control: waiting for checks offers (When checks succeed)", func(t *testing.T) {
 		assert.Contains(t, mergeBox(t, false, true).styles, "merge+auto")
 	})

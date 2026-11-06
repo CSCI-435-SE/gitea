@@ -162,6 +162,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	//  - Make some conflicts between the base branch and the pull request branch
 	//  Then the Manually Merged form will be shown in the merge form
 	canUseManualMerge := !pull.IsWorkInProgress(ctx) && !pull.IsChecking() && prConfig.AllowManualMerge
+	// as the only style left, it would open in "(When checks succeed)" mode for a viewer who cannot merge now
+	canUseManualMerge = canUseManualMerge && (!prInfo.MergeBoxData.isBlockedByDependencies || prInfo.MergeBoxData.canMergeNow)
 	if canUseManualMerge {
 		mergeStyles = append(mergeStyles, map[string]any{
 			"name":                  "manually-merged",
