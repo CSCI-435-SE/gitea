@@ -166,6 +166,7 @@ func TestPrepareMergeBoxFormWithDependencies(t *testing.T) {
 	t.Run("AC3 resolved dependencies look as with none", func(t *testing.T) {
 		none := mergeBox(t, false, false)
 		// the styles user2/repo1 allows: four in its fixture, plus fast-forward-only, which is on by default
+		// (models/repo/repo_unit.go → DefaultPullRequestsConfig)
 		assert.Equal(t, []string{"merge", "rebase", "rebase-merge", "squash", "fast-forward-only"}, none.styles)
 		assert.Contains(t, none.messages, "This pull request can be merged automatically.")
 		assert.Equal(t, none, mergeBox(t, false, false, 5)) // issue 5 is closed

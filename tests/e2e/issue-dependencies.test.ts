@@ -28,7 +28,7 @@ async function addDependency(request: APIRequestContext, repo: string, index: nu
   expect(response.ok()).toBeTruthy();
 }
 
-test('#144 AC1 AC2 the merge box names the blocking dependency and offers only Manually merged', async ({page, request}) => {
+test('#144 AC1 AC2 AC3 the merge box names the blocking dependency and offers only Manually merged until it is closed', async ({page, request}) => {
   const repo = `e2e-merge-deps-${randomString(8)}`;
   await createRepoWithDependencies(request, repo, {allow_manual_merge: true});
   const pull = await createPull(request, repo, 'blocked', 'Blocked pull');
@@ -44,6 +44,13 @@ test('#144 AC1 AC2 the merge box names the blocking dependency and offers only M
   await expect(mergeBox.getByRole('button', {name: 'Manually merged'})).toBeVisible();
   await mergeBox.locator('.merge-button .dropdown').click();
   await expect(mergeBox.locator('.merge-button .menu .item')).toHaveText(['Manually merged']); // no other style, no "(When checks succeed)"
+
+  // once the dependency is closed, the merge button is back and the message is gone
+  const closeIssue = await request.patch(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issue}`, {headers: apiHeaders(), data: {state: 'closed'}});
+  expect(closeIssue.ok()).toBeTruthy();
+  await page.reload();
+  await expect(mergeBox.getByRole('button', {name: 'Create merge commit'})).toBeVisible();
+  await expect(mergeBox.getByText('This pull request is blocked by its dependencies:')).toHaveCount(0);
 });
 
 test('#144 AC5 the sidebar shows each dependency as Open, Closed or Merged', async ({page, request}) => {

@@ -94,4 +94,15 @@ func TestIssueViewSidebarDependencyStates(t *testing.T) {
 		// user40 may write to user2/repo1, so it manages dependencies, but cannot read user2/repo2
 		assert.Contains(t, sidebarList(t, 40, 3, "Depends on"), "#2 issue7 user2/repo2 · Open")
 	})
+	t.Run("AC6 dependencies turned off", func(t *testing.T) {
+		// the same dependencies as above, which the AC5 subtests show while dependencies are on
+		issuesUnit.IssuesConfig().EnableDependencies = false
+		require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), issuesUnit))
+		defer func() { // a defer, as t.Context() is already canceled when t.Cleanup runs
+			issuesUnit.IssuesConfig().EnableDependencies = true
+			require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), issuesUnit))
+		}()
+		assert.Empty(t, sidebarList(t, 2, 3, "Depends on"))
+		assert.Empty(t, sidebarList(t, 2, 1, "Blocks"))
+	})
 }
