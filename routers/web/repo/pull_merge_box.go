@@ -100,6 +100,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxDependencies(ctx *context.Cont
 	if len(deps) == 0 {
 		return
 	}
+	prInfo.MergeBoxData.isBlockedByDependencies = true
 	canRead, notPermitted := checkBlockedByIssues(ctx, deps)
 	if ctx.Written() {
 		return
@@ -198,7 +199,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 		)
 	}
 
-	if data.canMergeNow {
+	if data.canMergeNow && !data.isBlockedByDependencies {
 		if data.hasOverridableBlockers {
 			prompt := ctx.Locale.Tr("repo.pulls.required_status_check_bypass_allowlist")
 			if data.canBypassProtectionAsAdmin {
