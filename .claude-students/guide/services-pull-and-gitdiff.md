@@ -1,7 +1,7 @@
 ---
 source: docs/services-pull-and-gitdiff.md
-source-hash: cc8e1450ef5d8e32
-verified-at: 94cb0f500b
+source-hash: f3f45dadaf8ca13f
+verified-at: 7123244011
 ---
 
 <!-- Derived from docs/services-pull-and-gitdiff.md. Do not edit by hand: fix the reference doc and

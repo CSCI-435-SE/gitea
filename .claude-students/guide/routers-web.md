@@ -1,7 +1,7 @@
 ---
 source: docs/routers-web.md
-source-hash: e876fe4e38d987cc
-verified-at: 94cb0f500b
+source-hash: 6afdad59b9ad9563
+verified-at: 7123244011
 ---
 
 <!-- Derived from docs/routers-web.md. Do not edit by hand: fix the reference doc and regenerate
@@ -169,11 +169,14 @@ template only prints it. The box also reloads on its own through `ViewPullMergeB
 same function, so anything it needs must come from there, not from what the sidebar put in
 `ctx.Data`. Messages about what blocks a merge sit in two groups, and while `infoCommitBlockers`
 has any, `infoProtectionBlockers` is hidden. The buttons themselves are `MergeFormProps`, drawn by
-`web_src/js/components/PullRequestMergeForm.vue`. If nobody may override your blocker, take the
-merge styles away in `prepareMergeBoxFormProps` (`routers/web/repo/pull_merge_form.go`), as
-dependencies do (`routers/web/repo/pull_merge_box.go`). Adding it to `hasOverridableBlockers`
-instead would keep the buttons for anyone allowed to bypass branch protection, and offer
-"(When checks succeed)" to everyone else.
+`web_src/js/components/PullRequestMergeForm.vue`. If nobody may override your blocker, give it its
+own flag and have `prepareMergeBoxFormProps` (`routers/web/repo/pull_merge_form.go`) take the merge
+styles away when it is set, the way `isBlockedByDependencies` works (it is set in
+`routers/web/repo/pull_merge_box.go`). Adding it to `hasOverridableBlockers` instead would keep the
+buttons for anyone allowed to bypass branch protection, and offer "(When checks succeed)" to
+everyone else. One more catch: if "Manually merged" is the only style left, the form starts it in
+"(When checks succeed)" mode for someone who cannot merge right now (`canMergeNow` is false), so the
+button says something it does not do. Offer it in that case only when `canMergeNow` holds.
 
 **A form post fails, but the page just reloads as if it worked.** The handler logged the error and
 redirected anyway. `NewComment` in `routers/web/repo/issue_comment.go` only tells the person about
