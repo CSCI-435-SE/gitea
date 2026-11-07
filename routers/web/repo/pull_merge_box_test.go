@@ -236,6 +236,9 @@ func TestPrepareMergeBoxFormWithDependencies(t *testing.T) {
 		// (models/repo/repo_unit.go → DefaultPullRequestsConfig)
 		assert.Equal(t, []string{"merge", "rebase", "rebase-merge", "squash", "fast-forward-only"}, none.styles)
 		assert.Contains(t, none.messages, "This pull request can be merged automatically.")
-		assert.Equal(t, none, mergeBox(t, situation{}, 5)) // issue 5 is closed
+		resolved := mergeBox(t, situation{}, 5)                // issue 5 is closed
+		assert.JSONEq(t, none.stylesJSON, resolved.stylesJSON) // with GOEXPERIMENT=jsonv2, map keys come out in any order
+		none.stylesJSON, resolved.stylesJSON = "", ""
+		assert.Equal(t, none, resolved)
 	})
 }
