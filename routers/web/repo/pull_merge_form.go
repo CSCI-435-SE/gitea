@@ -110,7 +110,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	// dependencies leave only "Manually merged", which the merge check does not hold back
 	canUseMergeStyles := pull.IsStatusMergeable() && !prInfo.MergeBoxData.isBlockedByDependencies
 
-	var mergeStyles []any
+	mergeStyles := []any{} // a list even when empty, as the form reads it as one
 	if canUseMergeStyles {
 		mergeStyles = []any{
 			map[string]any{
@@ -174,7 +174,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		})
 	}
 
-	if len(mergeStyles) > 0 {
+	// a scheduled merge keeps its notice and cancel button in the form, even with no merge style to offer
+	if len(mergeStyles) > 0 || hasPendingPullRequestMerge {
 		mergeFormProps["mergeStyles"] = mergeStyles
 		prInfo.MergeBoxData.MergeFormProps = mergeFormProps
 	} else if canUseMergeStyles {

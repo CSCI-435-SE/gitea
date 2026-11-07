@@ -8,10 +8,12 @@ import (
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/translation"
 	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
@@ -124,14 +126,17 @@ func TestPrepareMergeBoxWithDependencies(t *testing.T) {
 
 func TestPrepareMergeBoxFormWithDependencies(t *testing.T) {
 	type offer struct {
-		styles   []string // the merge styles offered, "+auto" where "(When checks succeed)" is offered with it; nil when there is no merge form
-		messages []string
+		styles     []string // the merge styles offered, "+auto" where "(When checks succeed)" is offered with it; nil when there is no merge form
+		messages   []string
+		scheduled  bool   // the form shows a scheduled merge's notice and cancel button
+		stylesJSON string // the style list as the page hands it to the form
 	}
 	// user2 owns user2/repo1 and may merge pull request 2, whose branch merges cleanly unless conflicted is set
 	type situation struct {
 		manualMerge   bool // user2/repo1 allows "Manually merged"
 		checksPending bool // status checks user2 cannot bypass hold the merge back, which is when "(When checks succeed)" is offered
 		conflicted    bool // the branch has conflicts
+		scheduled     bool // user2 has scheduled the merge for when checks succeed
 	}
 	mergeBox := func(t *testing.T, s situation, depIDs ...int64) offer {
 		ctx, prInfo := mockPullWithDependencies(t, 2, true, depIDs...)
@@ -140,6 +145,9 @@ func TestPrepareMergeBoxFormWithDependencies(t *testing.T) {
 		ctx.Repo.Repository.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().AllowManualMerge = s.manualMerge
 		if s.conflicted {
 			prInfo.issue.PullRequest.Status = issues_model.PullRequestStatusConflict
+		}
+		if s.scheduled {
+			require.NoError(t, pull_model.ScheduleAutoMerge(ctx, ctx.Doer, prInfo.issue.PullRequest.ID, repo_model.MergeStyleMerge, "", false))
 		}
 		data := prInfo.MergeBoxData
 		data.hasPermToMerge = true
@@ -155,6 +163,10 @@ func TestPrepareMergeBoxFormWithDependencies(t *testing.T) {
 		var o offer
 		if data.MergeFormProps != nil {
 			o.styles = []string{} // a form whose styles are all disallowed is still a form, not "no merge form"
+			o.scheduled, _ = data.MergeFormProps["hasPendingPullRequestMerge"].(bool)
+			stylesJSON, err := json.Marshal(data.MergeFormProps["mergeStyles"])
+			require.NoError(t, err)
+			o.stylesJSON = string(stylesJSON)
 			for _, s := range data.MergeFormProps["mergeStyles"].([]any) {
 				style := s.(map[string]any)
 				if !style["allowed"].(bool) {
@@ -202,6 +214,18 @@ func TestPrepareMergeBoxFormWithDependencies(t *testing.T) {
 	t.Run("AC3 a conflicted pull request offers only Manually merged, as before", func(t *testing.T) {
 		// Gitea's own note in prepareMergeBoxFormProps: "Manually Merged" marks a non-mergeable (e.g. conflicted) pull request as merged
 		assert.Equal(t, []string{"manually-merged"}, mergeBox(t, situation{manualMerge: true, conflicted: true}).styles)
+	})
+	t.Run("Decision 3 a scheduled merge keeps its notice and cancel button while blocked", func(t *testing.T) {
+		// no merge style is offered, so without the schedule there would be no form at all (the AC2 subtest above)
+		o := mergeBox(t, situation{scheduled: true}, 1)
+		assert.Equal(t, []string{}, o.styles) // a form, with no merge style in it
+		assert.Equal(t, "[]", o.stylesJSON)   // a list the form can read, not null
+		assert.True(t, o.scheduled)
+	})
+	t.Run("Decision 3 a conflicted pull request with a scheduled merge keeps its cancel button too", func(t *testing.T) {
+		o := mergeBox(t, situation{conflicted: true, scheduled: true})
+		assert.Equal(t, []string{}, o.styles)
+		assert.True(t, o.scheduled)
 	})
 	t.Run("control: waiting for checks offers (When checks succeed)", func(t *testing.T) {
 		assert.Contains(t, mergeBox(t, situation{checksPending: true}).styles, "merge+auto")
