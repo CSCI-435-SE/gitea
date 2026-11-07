@@ -95,6 +95,31 @@ func TestPrepareMergeBoxDependencies(t *testing.T) {
 	t.Run("AC6 dependencies turned off", func(t *testing.T) {
 		assert.Empty(t, blockers(t, 2, false, 1, 7))
 	})
+	t.Run("AC4 a dependency the viewer cannot read, and no other", func(t *testing.T) {
+		assert.Equal(t, []string{
+			"This pull request is blocked by its dependencies:",
+			"You do not have permission to read 1 dependency",
+		}, blockers(t, 4, true, 7))
+	})
+}
+
+func TestPrepareMergeBoxWithDependencies(t *testing.T) {
+	// the merge box built as the page and its reload build it, so the dependency step must be wired in
+	ctx, prInfo := mockPullWithDependencies(t, 2, true, 1)
+	contexttest.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+	prInfo.prepareViewInfo(ctx, prInfo.issue)
+	require.False(t, ctx.Written())
+	prInfo.prepareMergeBox(ctx, prInfo.issue)
+	require.False(t, ctx.Written())
+
+	var messages []string
+	for _, section := range prInfo.MergeBoxData.InfoSections {
+		for _, item := range section.InfoItems {
+			messages = append(messages, string(item.InfoHTML))
+		}
+	}
+	assert.Contains(t, messages, "This pull request is blocked by its dependencies:")
 }
 
 func TestPrepareMergeBoxFormWithDependencies(t *testing.T) {
@@ -102,17 +127,24 @@ func TestPrepareMergeBoxFormWithDependencies(t *testing.T) {
 		styles   []string // the merge styles offered, "+auto" where "(When checks succeed)" is offered with it; nil when there is no merge form
 		messages []string
 	}
-	// user2 owns user2/repo1 and may merge pull request 2, whose branch merges cleanly. checksPending holds the merge back
-	// for status checks user2 cannot bypass, which is when "(When checks succeed)" is offered.
-	mergeBox := func(t *testing.T, allowManualMerge, checksPending bool, depIDs ...int64) offer {
+	// user2 owns user2/repo1 and may merge pull request 2, whose branch merges cleanly unless conflicted is set
+	type situation struct {
+		manualMerge   bool // user2/repo1 allows "Manually merged"
+		checksPending bool // status checks user2 cannot bypass hold the merge back, which is when "(When checks succeed)" is offered
+		conflicted    bool // the branch has conflicts
+	}
+	mergeBox := func(t *testing.T, s situation, depIDs ...int64) offer {
 		ctx, prInfo := mockPullWithDependencies(t, 2, true, depIDs...)
 		contexttest.LoadGitRepo(t, ctx)
 		defer ctx.Repo.GitRepo.Close()
-		ctx.Repo.Repository.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().AllowManualMerge = allowManualMerge
+		ctx.Repo.Repository.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().AllowManualMerge = s.manualMerge
+		if s.conflicted {
+			prInfo.issue.PullRequest.Status = issues_model.PullRequestStatusConflict
+		}
 		data := prInfo.MergeBoxData
 		data.hasPermToMerge = true
-		data.hasOverridableBlockers = checksPending
-		data.canMergeNow = !checksPending
+		data.hasOverridableBlockers = s.checksPending
+		data.canMergeNow = !s.checksPending
 
 		// in the order prepareMergeBox runs them
 		prInfo.prepareMergeBoxDependencies(ctx)
@@ -122,6 +154,7 @@ func TestPrepareMergeBoxFormWithDependencies(t *testing.T) {
 
 		var o offer
 		if data.MergeFormProps != nil {
+			o.styles = []string{} // a form whose styles are all disallowed is still a form, not "no merge form"
 			for _, s := range data.MergeFormProps["mergeStyles"].([]any) {
 				style := s.(map[string]any)
 				if !style["allowed"].(bool) {
@@ -143,32 +176,42 @@ func TestPrepareMergeBoxFormWithDependencies(t *testing.T) {
 	}
 
 	t.Run("AC2 only Manually merged while blocked", func(t *testing.T) {
-		o := mergeBox(t, true, false, 1)
+		o := mergeBox(t, situation{manualMerge: true}, 1)
 		assert.Equal(t, []string{"manually-merged"}, o.styles)
 		assert.NotContains(t, o.messages, "This pull request can be merged automatically.")
 	})
+	t.Run("AC2 no merge form while blocked where the repository does not allow Manually merged", func(t *testing.T) {
+		assert.Nil(t, mergeBox(t, situation{}, 1).styles)
+	})
 	t.Run("AC2 no merge form while blocked and waiting for checks", func(t *testing.T) {
-		o := mergeBox(t, false, true, 1)
+		o := mergeBox(t, situation{checksPending: true}, 1)
 		assert.Nil(t, o.styles)
 		assert.NotContains(t, o.messages, "This pull request cannot be merged because all repository merge options are disabled.")
 	})
 	t.Run("AC2 no merge form while blocked for a viewer held back by checks", func(t *testing.T) {
 		// "Manually merged" is allowed, but alone it would open as "Manually merged (When checks succeed)"
-		o := mergeBox(t, true, true, 1)
+		o := mergeBox(t, situation{manualMerge: true, checksPending: true}, 1)
 		assert.Nil(t, o.styles)
 	})
 	t.Run("AC3 Manually merged as before without dependencies, while waiting for checks", func(t *testing.T) {
-		assert.Contains(t, mergeBox(t, true, true).styles, "manually-merged")
+		assert.Contains(t, mergeBox(t, situation{manualMerge: true, checksPending: true}).styles, "manually-merged")
+	})
+	t.Run("AC3 no merge prompt as before without dependencies, while waiting for checks", func(t *testing.T) {
+		assert.Empty(t, mergeBox(t, situation{checksPending: true}).messages) // the can-merge lines are only for a viewer who can merge now
+	})
+	t.Run("AC3 a conflicted pull request offers only Manually merged, as before", func(t *testing.T) {
+		// Gitea's own note in prepareMergeBoxFormProps: "Manually Merged" marks a non-mergeable (e.g. conflicted) pull request as merged
+		assert.Equal(t, []string{"manually-merged"}, mergeBox(t, situation{manualMerge: true, conflicted: true}).styles)
 	})
 	t.Run("control: waiting for checks offers (When checks succeed)", func(t *testing.T) {
-		assert.Contains(t, mergeBox(t, false, true).styles, "merge+auto")
+		assert.Contains(t, mergeBox(t, situation{checksPending: true}).styles, "merge+auto")
 	})
 	t.Run("AC3 resolved dependencies look as with none", func(t *testing.T) {
-		none := mergeBox(t, false, false)
+		none := mergeBox(t, situation{})
 		// the styles user2/repo1 allows: four in its fixture, plus fast-forward-only, which is on by default
 		// (models/repo/repo_unit.go → DefaultPullRequestsConfig)
 		assert.Equal(t, []string{"merge", "rebase", "rebase-merge", "squash", "fast-forward-only"}, none.styles)
 		assert.Contains(t, none.messages, "This pull request can be merged automatically.")
-		assert.Equal(t, none, mergeBox(t, false, false, 5)) // issue 5 is closed
+		assert.Equal(t, none, mergeBox(t, situation{}, 5)) // issue 5 is closed
 	})
 }
