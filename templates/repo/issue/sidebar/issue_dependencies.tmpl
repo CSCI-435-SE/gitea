@@ -23,10 +23,10 @@
 					<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} flex-left-right">
 						<div class="item-left tw-flex tw-justify-center tw-flex-col tw-flex-1 gt-ellipsis">
 							<a class="muted issue-dependency-title gt-ellipsis" href="{{.Issue.Link}}">
-								#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
+								{{template "shared/issueicon" .Issue}} #{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
 							</a>
 							<div class="tw-text-xs gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">
-								{{.Repository.OwnerName}}/{{.Repository.Name}}
+								{{.Repository.OwnerName}}/{{.Repository.Name}} · {{template "repo/issue/sidebar/issue_dependency_state" .Issue}}
 							</div>
 						</div>
 						<div class="item-right tw-flex tw-items-center tw-m-1">
@@ -57,10 +57,10 @@
 					<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} flex-left-right">
 						<div class="item-left tw-flex tw-justify-center tw-flex-col tw-flex-1 gt-ellipsis">
 							<a class="muted issue-dependency-title gt-ellipsis" href="{{.Issue.Link}}">
-								#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
+								{{template "shared/issueicon" .Issue}} #{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
 							</a>
 							<div class="tw-text-xs gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">
-								{{.Repository.OwnerName}}/{{.Repository.Name}}
+								{{.Repository.OwnerName}}/{{.Repository.Name}} · {{template "repo/issue/sidebar/issue_dependency_state" .Issue}}
 							</div>
 						</div>
 						<div class="item-right tw-flex tw-items-center tw-m-1">
@@ -81,11 +81,11 @@
 								<div class="gt-ellipsis">
 									<span data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.no_permission.can_remove"}}">{{svg "octicon-lock" 16}}</span>
 									<span class="gt-ellipsis issue-dependency-title" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
-										#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
+										{{template "shared/issueicon" .Issue}} #{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
 									</span>
 								</div>
 								<div class="tw-text-xs gt-ellipsis" data-tooltip-content="{{.Repository.OwnerName}}/{{.Repository.Name}}">
-									{{.Repository.OwnerName}}/{{.Repository.Name}}
+									{{.Repository.OwnerName}}/{{.Repository.Name}} · {{template "repo/issue/sidebar/issue_dependency_state" .Issue}}
 								</div>
 							</div>
 							<div class="item-right tw-flex tw-items-center tw-m-1">

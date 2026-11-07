@@ -1,0 +1,8 @@
+{{/* A dependency's state in the sidebar: Merged for a merged pull request, otherwise Open or Closed. Needs its PullRequest loaded. */}}
+{{- if and .IsPull .PullRequest .PullRequest.HasMerged -}}
+	{{- ctx.Locale.Tr "repo.pulls.merged" -}}
+{{- else if .IsClosed -}}
+	{{- ctx.Locale.Tr "repo.issues.closed_title" -}}
+{{- else -}}
+	{{- ctx.Locale.Tr "repo.issues.open_title" -}}
+{{- end -}}
