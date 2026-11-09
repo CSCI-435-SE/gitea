@@ -46,3 +46,26 @@ func TestFetchRedirectDelegate(t *testing.T) {
 		})
 	}
 }
+
+func TestShowcaseRedirect(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "https://gitea/")()
+
+	cases := []struct {
+		name     string
+		next     string
+		expected string
+	}{
+		{name: "empty", expected: "/"},
+		{name: "current site", next: "https://gitea/xxx", expected: "https://gitea/xxx"},
+		{name: "external site", next: "https://other/xxx", expected: "/"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			resp := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/?next="+url.QueryEscape(c.next), nil)
+			ShowcaseRedirect(resp, req)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			assert.Equal(t, c.expected, resp.Header().Get("Location"))
+		})
+	}
+}
