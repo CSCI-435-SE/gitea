@@ -35,7 +35,7 @@ text{font-family:"Recursive",ui-sans-serif,system-ui,sans-serif}
 <text x="40" y="129.48000000000002" class="title" style="fill:#1F5FAF">SonarQube Cloud</text>
 <text x="40" y="191.48000000000002" class="title">+ <tspan style="fill:#7B3FA6">Gitar</tspan></text>
 <text x="40" y="232.0" xml:space="preserve"><tspan class="sub">Rule checks and AI review on every PR</tspan></text>
-<a href="https://youtu.be/REPLACE_ME" target="_blank"><rect x="40" y="261.20000000000005" width="520" height="78" rx="4" fill="#172433"/><path d="M66 285.20000000000005 L66 315.20000000000005 L92 300.20000000000005 Z" fill="#FFFFFF"/><text x="110" y="298.20000000000005" class="btn">Watch our tutorial video</text><text x="110" y="321.20000000000005" class="btns">youtu.be/REPLACE_ME</text></a>
+<a href="https://youtu.be/E_GnFsQX44c" target="_blank"><rect x="40" y="261.20000000000005" width="520" height="78" rx="4" fill="#172433"/><path d="M66 285.20000000000005 L66 315.20000000000005 L92 300.20000000000005 Z" fill="#FFFFFF"/><text x="110" y="298.20000000000005" class="btn">Watch our tutorial video</text><text x="110" y="321.20000000000005" class="btns">youtu.be/E_GnFsQX44c</text></a>
 <text x="40" y="397.6" xml:space="preserve"><tspan class="h2">Every check we had passed this PR</tspan></text>
 <text x="40" y="435.9" xml:space="preserve"><tspan class="body">PR #152 has four planted problems. </tspan><tspan class="code">go vet</tspan><tspan class="body">, </tspan><tspan class="code">ESLint</tspan></text>
 <text x="40" y="464.9" xml:space="preserve"><tspan class="body">and our unit tests passed it. These two didn't:</tspan></text>

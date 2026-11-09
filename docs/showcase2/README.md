@@ -2,7 +2,7 @@
 
 **GiCoffee · Gitea · CSCI 435 New-Tech Showcase 2**
 
-- **Tutorial video:** [watch on YouTube](https://youtu.be/REPLACE_ME)
+- **Tutorial video:** [watch on YouTube](https://youtu.be/E_GnFsQX44c)
 - **SonarQube Cloud:** <https://sonarcloud.io> · Docs: <https://docs.sonarsource.com/sonarqube-cloud/>
 - **Gitar:** <https://gitar.ai>
 - **Version:** both are hosted services with no version number. Our CI runs `SonarSource/sonarqube-scan-action` v8.3.0.
