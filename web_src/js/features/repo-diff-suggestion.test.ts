@@ -1,4 +1,5 @@
-import {buildSuggestionInsert, suggestionFence, suggestionInsertPos, suggestionInsertRange} from './repo-diff-suggestion.ts';
+import {buildSuggestionInsert, initSuggestChangeButton, suggestionFence, suggestionInsertPos, suggestionInsertRange} from './repo-diff-suggestion.ts';
+import type {ComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 
 // expected values come from #155's acceptance criteria and CommonMark's fence rule
 test('suggestionFence', () => {
@@ -61,4 +62,37 @@ test('suggestionInsertRange', () => {
   const text = `intro\n${block}`;
   expect(suggestionInsertRange(text, 2, 6 + '```suggestion\nx'.length)).toEqual([text.length, text.length]);
   expect(suggestionInsertRange(`${block}tail`, 16, block.length + 2)).toEqual([block.length, block.length]);
+});
+
+test('initSuggestChangeButton', () => {
+  document.body.innerHTML = `
+    <div class="combo-markdown-editor">
+      <div class="markdown-toolbar-group tw-hidden"><button class="markdown-button-suggest-change">s</button></div>
+      <textarea></textarea>
+    </div>
+    <code class="code-inner"><span>\treturn</span> err\n</code>`;
+  const container = document.querySelector<HTMLElement>('.combo-markdown-editor')!;
+  const textarea = container.querySelector('textarea')!;
+  const button = container.querySelector<HTMLButtonElement>('.markdown-button-suggest-change')!;
+  initSuggestChangeButton({container, textarea} as ComboMarkdownEditor, document.querySelector<HTMLElement>('.code-inner')!);
+
+  // the hidden group is shown
+  expect(button.parentElement!.classList.contains('tw-hidden')).toBe(false);
+  // AC1, AC3: the line's text without markup or its newline, cursor at the end of the line
+  button.click();
+  const block = '```suggestion\n\treturn err\n```\n';
+  expect(textarea.value).toEqual(block);
+  const cursor = '```suggestion\n\treturn err'.length;
+  expect([textarea.selectionStart, textarea.selectionEnd]).toEqual([cursor, cursor]);
+  // AC12: a second click adds a second block after the first
+  button.click();
+  expect(textarea.value).toEqual(`${block}${block}`);
+  expect(textarea.selectionStart).toEqual(block.length + cursor);
+});
+
+test('initSuggestChangeButton without a button', () => {
+  document.body.innerHTML = '<div class="combo-markdown-editor"><textarea></textarea></div><code class="code-inner">x</code>';
+  const container = document.querySelector<HTMLElement>('.combo-markdown-editor')!;
+  const editor = {container, textarea: container.querySelector('textarea')!} as ComboMarkdownEditor;
+  expect(() => initSuggestChangeButton(editor, document.querySelector<HTMLElement>('.code-inner')!)).not.toThrow();
 });
