@@ -23,7 +23,14 @@ export function showDesktopAlert(newCount: number) {
   const body = trN(newCount, textEl.getAttribute('data-desktop-alert-1')!, textEl.getAttribute('data-desktop-alert-n')!);
   const icon = document.querySelector<HTMLLinkElement>('link[rel~="icon"]')?.href;
   // the shared tag makes the browser replace an earlier alert instead of stacking one per update or tab
-  const alert = new Notification(textEl.getAttribute('data-desktop-alert-title')!, {body, icon, tag: `gitea-notifications:${appSubUrl}`});
+  let alert: Notification;
+  try {
+    alert = new Notification(textEl.getAttribute('data-desktop-alert-title')!, {body, icon, tag: `gitea-notifications:${appSubUrl}`});
+  } catch (error) {
+    // e.g. Android Chrome only allows ServiceWorkerRegistration.showNotification; a throw here would stop the count poller
+    console.error(error);
+    return;
+  }
   alert.addEventListener('click', () => {
     window.focus();
     window.location.assign(`${appSubUrl}/notifications`);

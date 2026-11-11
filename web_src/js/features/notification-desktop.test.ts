@@ -113,6 +113,23 @@ describe('desktop notifications', {concurrent: false}, () => {
     expect(FakeNotification.shown[0].close).toHaveBeenCalled();
   });
 
+  test('a browser that refuses to construct the alert does not make showDesktopAlert throw', () => {
+    FakeNotification.permission = 'granted';
+    const {button} = setupPage();
+    button.click();
+    // Android Chrome exposes Notification but its constructor throws "Illegal constructor"
+    class ThrowingNotification extends FakeNotification {
+      constructor(title: string, options: NotificationOptions) {
+        super(title, options);
+        throw new TypeError('Illegal constructor');
+      }
+    }
+    vi.stubGlobal('Notification', ThrowingNotification);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() => showDesktopAlert(1)).not.toThrow();
+    expect(consoleError).toHaveBeenCalled();
+  });
+
   test('AC9 disabling stops further alerts', async () => {
     FakeNotification.permission = 'granted';
     const {button, visible} = setupPage();
