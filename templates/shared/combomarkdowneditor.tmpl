@@ -10,6 +10,7 @@
 * TextareaAriaLabel: aria-label attribute for the textarea
 * DropzoneParentContainer: container for file upload (leave it empty if no upload)
 * DisableAutosize: whether to disable automatic height resizing
+* SuggestChange: render the hidden "Suggest change" button, shown by JS for new-side code comments
 */}}
 {{$ariaLabel := or .TextareaAriaLabel .TextareaPlaceholder}}
 {{$editorContext := .MarkdownEditorContext}}
@@ -39,6 +40,11 @@
 				<md-header class="markdown-toolbar-button" level="2" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.heading.tooltip"}}">{{svg "octicon-heading"}}</md-header>
 				<md-header class="markdown-toolbar-button" level="3" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.heading.tooltip"}}">{{svg "octicon-heading"}}</md-header>
 			</div>
+			{{if .SuggestChange}}{{/* hide the group, not the button, so no empty group draws a divider */}}
+			<div class="markdown-toolbar-group tw-hidden">
+				<button class="markdown-toolbar-button markdown-button-suggest-change" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.comment.suggest_change"}}">{{svg "octicon-file-diff"}}</button>
+			</div>
+			{{end}}
 			<div class="markdown-toolbar-group">
 				<md-bold class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.bold.tooltip"}}">{{svg "octicon-bold"}}</md-bold>
 				<md-italic class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.italic.tooltip"}}">{{svg "octicon-italic"}}</md-italic>
