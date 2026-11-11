@@ -1,6 +1,6 @@
 ---
 scope: docs/testing.md, models/unittest, models/fixtures, services/contexttest, tests
-verified-at: 5b8719fee2
+verified-at: 94cb0f500b
 ---
 
 # testing — the five tiers and their harnesses
@@ -86,6 +86,12 @@ under `models/migrations/fixtures/`; helpers in `models/migrations/migrationtest
 - Fixture repos leave `EnableDependencies` out of their issues config (`models/fixtures/repo_unit.yml`),
   so dependencies read as off and block nothing. A test that needs them turns them on with
   `repo_model.UpdateRepoUnitConfig` (`tests/integration/pull_merge_dependency_test.go`).
+- `contexttest.MockContext` sets `translation.MockLocale`, whose `Tr` returns the key and its
+  arguments, and unit tests load no icons, so `svg.RenderHTML` prints `<span>name(size/class)</span>`
+  (`modules/svg/svg.go`).
+  To check English text, call `translation.InitLocales` and set both `ctx.Locale` and
+  `ctx.TemplateContext["Locale"]`: templates keep the locale the context was created with
+  (`services/context/context.go` → `NewTemplateContextForWeb`; `routers/web/repo/issue_view_test.go`).
 - `GITEA_TEST_E2E_TIMEOUT_FACTOR` multiplies e2e timeouts (default 4 on CI, 1 locally); a test that
   only passes with a raised factor is a flaky test, not a slow machine.
 - A handful of Go unit tests fail on native Windows for platform reasons (symlinks, temp-file

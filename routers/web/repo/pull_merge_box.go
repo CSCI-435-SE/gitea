@@ -6,6 +6,7 @@ package repo
 import (
 	"html/template"
 
+	issues_model "gitea.dev/models/issues"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/svg"
 	"gitea.dev/modules/util"
@@ -86,6 +87,40 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxIconColor() {
 	}
 }
 
+// prepareMergeBoxDependencies lists the dependencies that block merging, the same ones the merge check refuses.
+func (prInfo *pullRequestViewInfo) prepareMergeBoxDependencies(ctx *context.Context) {
+	if !ctx.Repo.Repository.IsDependenciesEnabled(ctx) {
+		return
+	}
+	deps, err := issues_model.GetMergeBlockingDependencies(ctx, prInfo.issue.PullRequest)
+	if err != nil {
+		ctx.ServerError("GetMergeBlockingDependencies", err)
+		return
+	}
+	if len(deps) == 0 {
+		return
+	}
+	prInfo.MergeBoxData.isBlockedByDependencies = true
+	canRead, notPermitted := checkBlockedByIssues(ctx, deps)
+	if ctx.Written() {
+		return
+	}
+
+	items := make([]template.HTML, 0, len(canRead)+1)
+	for _, dep := range canRead {
+		// as the timeline shows a dependency: the repository only when it is another one
+		if dep.Issue.RepoID == prInfo.issue.RepoID {
+			items = append(items, htmlutil.HTMLFormat(`<a href="%s">#%d %s</a>`, dep.Issue.Link(), dep.Issue.Index, dep.Issue.Title))
+		} else {
+			items = append(items, htmlutil.HTMLFormat(`<a href="%s">%s#%d - %s</a>`, dep.Issue.Link(), dep.Issue.Repo.FullName(), dep.Issue.Index, dep.Issue.Title))
+		}
+	}
+	if len(notPermitted) > 0 {
+		items = append(items, ctx.Locale.TrN(len(notPermitted), "repo.issues.dependency.no_permission_1", "repo.issues.dependency.no_permission_n", len(notPermitted)))
+	}
+	prInfo.MergeBoxData.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.blocked_by_dependencies"), items)
+}
+
 func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
 	data := prInfo.MergeBoxData
@@ -164,7 +199,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 		)
 	}
 
-	if data.canMergeNow {
+	if data.canMergeNow && !data.isBlockedByDependencies {
 		if data.hasOverridableBlockers {
 			prompt := ctx.Locale.Tr("repo.pulls.required_status_check_bypass_allowlist")
 			if data.canBypassProtectionAsAdmin {

@@ -474,18 +474,32 @@ func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model
 		ctx.ServerError("BlockedByDependencies", err)
 		return
 	}
-	ctx.Data["BlockedByDependencies"], ctx.Data["BlockedByDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blockedBy)
-	if ctx.Written() {
-		return
-	}
-
 	blocking, err := issue.BlockingDependencies(ctx)
 	if err != nil {
 		ctx.ServerError("BlockingDependencies", err)
 		return
 	}
+	if err := loadDependencyPullRequests(ctx, blockedBy, blocking); err != nil {
+		ctx.ServerError("LoadPullRequests", err)
+		return
+	}
 
+	ctx.Data["BlockedByDependencies"], ctx.Data["BlockedByDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blockedBy)
+	if ctx.Written() {
+		return
+	}
 	ctx.Data["BlockingDependencies"], ctx.Data["BlockingDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blocking)
+}
+
+// loadDependencyPullRequests loads the pull request of each dependency that is one, so the sidebar can tell merged from closed
+func loadDependencyPullRequests(ctx *context.Context, depLists ...[]*issues_model.DependencyInfo) error {
+	var issues issues_model.IssueList
+	for _, deps := range depLists {
+		for _, dep := range deps {
+			issues = append(issues, &dep.Issue)
+		}
+	}
+	return issues.LoadPullRequests(ctx)
 }
 
 func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Context) {
@@ -936,6 +950,11 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	data.ShowPullCommands = pull.HeadRepo != nil && !pull.HasMerged && !issue.IsClosed
 
 	prInfo.prepareMergeBoxProtectionChecks(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	prInfo.prepareMergeBoxDependencies(ctx)
 	if ctx.Written() {
 		return
 	}

@@ -1916,6 +1916,7 @@
   "repo.pulls.blocked_by_outdated_branch": "This pull request is blocked because it's outdated.",
   "repo.pulls.blocked_by_changed_protected_files_1": "This pull request is blocked because it changes a protected file:",
   "repo.pulls.blocked_by_changed_protected_files_n": "This pull request is blocked because it changes protected files:",
+  "repo.pulls.blocked_by_dependencies": "This pull request is blocked by its dependencies:",
   "repo.pulls.can_auto_merge_desc": "This pull request can be merged automatically.",
   "repo.pulls.cannot_auto_merge_desc": "This pull request cannot be merged automatically due to conflicts.",
   "repo.pulls.cannot_auto_merge_helper": "Merge manually to resolve the conflicts.",

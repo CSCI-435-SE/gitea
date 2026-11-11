@@ -107,8 +107,11 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	// if this pr can be merged now, then hide the auto merge
 	generalHideAutoMerge := prInfo.MergeBoxData.canMergeNow && allOverridableChecksOk
 
-	var mergeStyles []any
-	if pull.IsStatusMergeable() {
+	// dependencies leave only "Manually merged", which the merge check does not hold back
+	canUseMergeStyles := pull.IsStatusMergeable() && !prInfo.MergeBoxData.isBlockedByDependencies
+
+	mergeStyles := []any{} // a list even when empty, as the form reads it as one
+	if canUseMergeStyles {
 		mergeStyles = []any{
 			map[string]any{
 				"name":                  "merge",
@@ -159,6 +162,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	//  - Make some conflicts between the base branch and the pull request branch
 	//  Then the Manually Merged form will be shown in the merge form
 	canUseManualMerge := !pull.IsWorkInProgress(ctx) && !pull.IsChecking() && prConfig.AllowManualMerge
+	// as the only style left, it would open in "(When checks succeed)" mode for a viewer who cannot merge now
+	canUseManualMerge = canUseManualMerge && (!prInfo.MergeBoxData.isBlockedByDependencies || prInfo.MergeBoxData.canMergeNow)
 	if canUseManualMerge {
 		mergeStyles = append(mergeStyles, map[string]any{
 			"name":                  "manually-merged",
@@ -169,10 +174,11 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		})
 	}
 
-	if len(mergeStyles) > 0 {
+	// a scheduled merge keeps its notice and cancel button in the form, even with no merge style to offer
+	if len(mergeStyles) > 0 || hasPendingPullRequestMerge {
 		mergeFormProps["mergeStyles"] = mergeStyles
 		prInfo.MergeBoxData.MergeFormProps = mergeFormProps
-	} else if pull.IsStatusMergeable() {
+	} else if canUseMergeStyles {
 		// no merge style was set in repo setting
 		prInfo.MergeBoxData.infoCommitBlockers.AddInfoItem(
 			svg.RenderHTML("octicon-x", 16, "tw-text-red"),

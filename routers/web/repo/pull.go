@@ -305,6 +305,7 @@ type pullMergeBoxData struct {
 	isBlockedByOfficialReviewRequests bool
 	isBlockedByOutdatedBranch         bool
 	isBlockedByChangedProtectedFiles  bool
+	isBlockedByDependencies           bool // not overridable: the merge check refuses it even for admins
 	requireSigned, willSign           bool
 	signingKeyMergeDisplay            string
 

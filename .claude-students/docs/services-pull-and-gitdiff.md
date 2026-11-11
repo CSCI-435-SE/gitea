@@ -1,6 +1,6 @@
 ---
 scope: services/pull, services/gitdiff, services/automerge, services/automergequeue, services/agit
-verified-at: 6c8e682391
+verified-at: 7123244011
 ---
 
 # services/pull and services/gitdiff — pull requests, review, diffs
@@ -54,6 +54,9 @@ viewer.
   (`services/pull/check.go`), which the web, API and automerge paths all call, returns
   `ErrDependenciesLeft` while `MergeBlockedByDependencies` (`models/issues/dependency.go`) finds an
   open issue or an unmerged pull request, and skips that check when `IsDependenciesEnabled` is off.
+  `GetMergeBlockingDependencies` (`models/issues/dependency.go`) lists the same ones for the merge
+  box (`routers/web/repo/pull_merge_box.go`): both use `mergeBlockingDependencyCond`, so the page and
+  the check cannot disagree.
   Closing (`SetIssueAsClosed`, `models/issues/issue_update.go`) skips dependencies the same way and
   otherwise uses `IssueNoDependenciesLeft`, where a closed pull request counts as done. Changing one
   rule does not change the other.

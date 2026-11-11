@@ -1,6 +1,6 @@
 ---
 scope: routers/web, routers/common, modules/web
-verified-at: 32ac0cbb78
+verified-at: 7123244011
 ---
 
 # routers/web — the HTML route table and page handlers
@@ -90,6 +90,18 @@ the extension.
   branch; a type matched by an earlier branch never reaches a later one. That chain is also where
   linked data the viewer may not see is dropped: a close comment's duplicate target is cleared
   unless `ctx.Repo.Permission.CanReadIssuesOrPulls` allows its kind, so templates never show it.
+- A pull request's merge box is assembled in Go, not in its template. `prepareMergeBox`
+  (`routers/web/repo/issue_view.go`) fills `pullMergeBoxData` (`routers/web/repo/pull.go`), and
+  `ViewPullMergeBox` reruns it to reload the box alone, so the box cannot use data the sidebar put in
+  `ctx.Data`. Blocker messages go in `infoCommitBlockers`, which when present hide
+  `infoProtectionBlockers`; the merge buttons are `MergeFormProps`, drawn by
+  `web_src/js/components/PullRequestMergeForm.vue`. A blocker nobody may override gets its own flag,
+  which `prepareMergeBoxFormProps` (`routers/web/repo/pull_merge_form.go`) reads to drop the merge
+  styles, as with `isBlockedByDependencies` (set in `routers/web/repo/pull_merge_box.go`); joining
+  `hasOverridableBlockers` would keep the buttons for anyone allowed to bypass branch protection and
+  offer "(When checks succeed)" to the rest. If "Manually merged" is the only style left, the form
+  opens it in "(When checks succeed)" mode for a viewer without `canMergeNow` (`onMounted`), so offer
+  it then only when `canMergeNow` holds.
 - A handler branch that only logs an error still redirects as if it worked. `NewComment`
   (`routers/web/repo/issue_comment.go`) shows a flash only for the close refusals it maps, so every
   refusal a person can cause needs its own `ctx.Flash.Error(ctx.Tr(...))`.

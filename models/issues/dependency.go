@@ -242,11 +242,33 @@ func MergeBlockedByDependencies(ctx context.Context, pr *PullRequest) (bool, err
 		Table("issue_dependency").
 		Select("issue.*").
 		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
-		Join("LEFT", "pull_request", "pull_request.issue_id = issue.id").
 		Where("issue_dependency.issue_id = ?", pr.IssueID).
-		And(builder.Or(
-			builder.Eq{"issue.is_closed": false},
-			builder.Eq{"pull_request.has_merged": false}, // NULL for an issue, so only a pull request matches
-		)).
+		And(mergeBlockingDependencyCond()).
 		Exist(&Issue{})
+}
+
+// GetMergeBlockingDependencies returns the dependencies that block merging pr, each with its repository loaded.
+func GetMergeBlockingDependencies(ctx context.Context, pr *PullRequest) (issueDeps []*DependencyInfo, err error) {
+	err = db.GetEngine(ctx).
+		Table("issue").
+		Join("INNER", "repository", "repository.id = issue.repo_id").
+		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
+		Where("issue_dependency.issue_id = ?", pr.IssueID).
+		And(mergeBlockingDependencyCond()).
+		Find(&issueDeps)
+
+	for _, depInfo := range issueDeps {
+		depInfo.Issue.Repo = &depInfo.Repository
+	}
+
+	return issueDeps, err
+}
+
+// mergeBlockingDependencyCond matches an open issue or pull request, or a pull request closed without merging.
+// Shared so the merge check and the merge box list the same dependencies.
+func mergeBlockingDependencyCond() builder.Cond {
+	return builder.Or(
+		builder.Eq{"issue.is_closed": false},
+		builder.In("issue.id", builder.Select("issue_id").From("pull_request").Where(builder.Eq{"has_merged": false})),
+	)
 }

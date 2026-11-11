@@ -26,6 +26,8 @@ const mergeStyleDetail = shallowRef({
 });
 
 const mergeStyleAllowedCount = shallowRef(0);
+// with no style to offer, the form only shows a scheduled merge's notice and cancel button
+const hasAllowedMergeStyle = mergeForm.mergeStyles.some((e: any) => e.allowed);
 
 const showMergeStyleMenu = shallowRef(false);
 const showActionForm = shallowRef(false);
@@ -149,7 +151,7 @@ function clearMergeMessage() {
 
     <div v-if="!showActionForm" class="tw-flex">
       <!-- the merge button -->
-      <div class="ui buttons merge-button" :class="mergeSelectStyleClass" @click="toggleActionForm(true)">
+      <div v-if="hasAllowedMergeStyle" class="ui buttons merge-button" :class="mergeSelectStyleClass" @click="toggleActionForm(true)">
         <button class="ui button">
           <svg-icon name="octicon-git-merge"/>
           <span class="button-text">
