@@ -76,6 +76,14 @@ test('suggest change button in the code comment form', async ({page, request}) =
   await form.getByRole('button', {name: 'Suggest change'}).click();
   await expect(form.locator('textarea[name="content"]')).toHaveValue('```suggestion\n\n```\n');
 
+  // selected text is replaced by the block, which starts on a line of its own; the text before is kept (AC2)
+  const splitTextarea = form.locator('textarea[name="content"]');
+  await splitTextarea.fill('nit: rename this');
+  await splitTextarea.press('End');
+  for (const key of Array.from('rename this', () => 'Shift+ArrowLeft')) await splitTextarea.press(key);
+  await form.getByRole('button', {name: 'Suggest change'}).click();
+  await expect(splitTextarea).toHaveValue('nit: \n```suggestion\n\n```\n');
+
   // signed out: no code comment form to hold the button (AC8)
   await page.context().clearCookies();
   await page.goto(filesUrl);

@@ -44,6 +44,16 @@ export function suggestionInsertPos(value: string, pos: number): number {
   }
 }
 
+/** the range a block replaces for a selection from `start` to `end`: the selection itself (AC2), or, when
+ *  either end is inside a fenced block, an empty range after that block, so no block is cut into */
+export function suggestionInsertRange(value: string, start: number, end: number): [number, number] {
+  const afterEnd = suggestionInsertPos(value, end);
+  if (afterEnd !== end) return [afterEnd, afterEnd];
+  const afterStart = suggestionInsertPos(value, start);
+  if (afterStart !== start) return [afterStart, afterStart];
+  return [start, end];
+}
+
 /** show the "Suggest change" button of a new code comment's editor, inserting a block with the text of `codeLine` */
 export function initSuggestChangeButton(editor: ComboMarkdownEditor, codeLine: HTMLElement) {
   const button = editor.container.querySelector<HTMLElement>('.markdown-button-suggest-change');
@@ -52,9 +62,8 @@ export function initSuggestChangeButton(editor: ComboMarkdownEditor, codeLine: H
   button.addEventListener('click', (e) => {
     e.preventDefault();
     const textarea = editor.textarea;
-    const insertPos = suggestionInsertPos(textarea.value, textarea.selectionStart);
-    if (insertPos !== textarea.selectionStart) textarea.setSelectionRange(insertPos, insertPos); // inside a block: insert after it
-    const start = textarea.selectionStart;
+    const [start, end] = suggestionInsertRange(textarea.value, textarea.selectionStart, textarea.selectionEnd);
+    textarea.setSelectionRange(start, end);
     // textContent drops the highlighting spans and keeps leading whitespace; the diff cell also holds the line's own newline
     const line = codeLine.textContent.replace(/[\r\n]+$/, '');
     const {text, cursor} = buildSuggestionInsert(textarea.value.slice(0, start), line);

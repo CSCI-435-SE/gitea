@@ -1,4 +1,4 @@
-import {buildSuggestionInsert, suggestionFence, suggestionInsertPos} from './repo-diff-suggestion.ts';
+import {buildSuggestionInsert, suggestionFence, suggestionInsertPos, suggestionInsertRange} from './repo-diff-suggestion.ts';
 
 // expected values come from #155's acceptance criteria and CommonMark's fence rule
 test('suggestionFence', () => {
@@ -48,4 +48,17 @@ test('suggestionInsertPos', () => {
   expect(suggestionInsertPos('```go\na\n```suggestion\nb', 7)).toEqual('```go\na\n```suggestion\nb'.length);
   // CommonMark: a backtick fence whose info string holds a backtick is not a fence
   expect(suggestionInsertPos('``` a`b\ntext', 10)).toEqual(10);
+});
+
+test('suggestionInsertRange', () => {
+  const block = '```suggestion\nx := 1\n```\n';
+  // AC2: a selection outside any block is replaced; a collapsed cursor stays put
+  expect(suggestionInsertRange('nit: rename this', 5, 16)).toEqual([5, 16]);
+  expect(suggestionInsertRange('nit', 3, 3)).toEqual([3, 3]);
+  // a selection covering a whole block replaces it whole, leaving no broken fence
+  expect(suggestionInsertRange(`a\n${block}b`, 0, block.length + 3)).toEqual([0, block.length + 3]);
+  // AC12: a selection ending inside a block, or starting in one, replaces nothing and inserts after that block
+  const text = `intro\n${block}`;
+  expect(suggestionInsertRange(text, 2, 6 + '```suggestion\nx'.length)).toEqual([text.length, text.length]);
+  expect(suggestionInsertRange(`${block}tail`, 16, block.length + 2)).toEqual([block.length, block.length]);
 });
