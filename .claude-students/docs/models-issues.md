@@ -1,6 +1,6 @@
 ---
 scope: models/issues, models/pull
-verified-at: 94dfae067e
+verified-at: 8767e31183
 ---
 
 # models/issues — issues, pull requests, comments, reviews
@@ -31,6 +31,7 @@ One package for the whole issue domain, because pull requests *are* issues in th
 | `models/issues/issue_list.go` | `IssueList` and its batching `LoadAttributes` |
 | `models/issues/pull.go` | `PullRequest`, `PullRequestType`, `PullRequestStatus` |
 | `models/issues/comment.go` | `Comment` and the `CommentType` enum |
+| `models/issues/dependency.go` | `CreateIssueDependency` refuses a duplicate (`ErrDependencyExists`, unwraps to `util.ErrAlreadyExist`) and a dependency that would close a loop of any length (`ErrCircularDependency`, unwraps to `util.ErrUnprocessableContent`; an issue on itself is a loop of one); `dependencyLoopExists` follows the chain step by step, querying each step in batches of `db.DefaultMaxInSize` (`models/db/list.go`), and skips issues it has seen, so it still ends when it meets a loop saved before the check existed |
 | `models/issues/issue_close_reason.go` | `CloseReason` and its names (`String`, `AsCloseReason`), `AllowedCloseReasons`, `BulkCloseReasons` (the list's bulk Close), `DefaultCloseReason`, `CloseReasonOptions.Validate` and its three errors, `CloseReasonOptions.DuplicateIssueID` (the duplicate lookup, shared with the API); stored in `Issue.CloseReason`, `CloseReasonText`, `CloseDuplicateIssueID` |
 | `models/issues/issue_label.go` | `LoadLabels` — the idempotency pattern in miniature |
 | `models/issues/issue_index.go` | `RecalculateIssueIndexForRepo` |

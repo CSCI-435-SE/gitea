@@ -1,7 +1,7 @@
 ---
 source: docs/services-context.md
-source-hash: fb1e6f4c44a5e8f4
-verified-at: c0092050a4
+source-hash: 7849b8dbe9b4b4bf
+verified-at: cb01299f55
 ---
 
 <!-- Derived from docs/services-context.md. Do not edit by hand: fix the reference doc and
@@ -110,6 +110,12 @@ handler panic.
   `IsErrXxxNotExist` so it can decide
 
 Getting this right is what makes a missing issue show a 404 rather than a 500.
+
+**Fail correctly in the API.** `ctx.APIErrorAuto(err)` reads what kind of error it was handed and
+answers with the matching status: invalid input 400, not allowed 403, not found 404, already exists
+409, too large 413, a request that cannot be carried out 422, and anything else 500. The kind comes from the
+model error's `Unwrap` (see `models-issues.md`), so a handler needs one call instead of an `if`
+per error — the dependency endpoints in `routers/api/v1/repo/issue_dependency.go` work this way.
 
 **Paginate a list.** Build `context.NewPagination(total, pageSize, page, numPages)`, put it in
 `ctx.Data["Page"]` — `routers/web/explore/repo.go` does exactly this — and include
