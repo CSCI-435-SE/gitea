@@ -59,6 +59,10 @@ export class UserEventsSharedWorker {
     });
   }
 
+  postMessage(message: {type: string, [key: string]: any}) {
+    this.sharedWorker.port.postMessage(message);
+  }
+
   startPort() {
     this.sharedWorker.port.start();
   }

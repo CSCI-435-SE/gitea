@@ -1,6 +1,8 @@
 import {GET} from '../modules/fetch.ts';
 import {toggleElem, createElementFromHTML} from '../utils/dom.ts';
 import {UserEventsSharedWorker} from '../modules/worker.ts';
+import {syncNotificationFaviconDot} from '../modules/favicon-status.ts';
+import {showDesktopAlert} from './notification-desktop.ts';
 
 const {appSubUrl, notificationSettings} = window.config;
 let notificationSequenceNumber = 0;
@@ -12,6 +14,7 @@ async function receiveUpdateCount(event: MessageEvent<{type: string, data: strin
       count.classList.toggle('tw-hidden', data.Count === 0);
       count.textContent = String(data.Count);
     }
+    syncNotificationFaviconDot(data.Count > 0);
     await updateNotificationTable();
   } catch (error) {
     console.error(error, event);
@@ -20,6 +23,7 @@ async function receiveUpdateCount(event: MessageEvent<{type: string, data: strin
 
 export function initNotificationCount() {
   if (!document.querySelector('.notification_count')) return;
+  syncNotificationFaviconDot(getCurrentCount() > 0);
 
   let usingPeriodicPoller = false;
   const startPeriodicPoller = (timeout: number, lastCount?: number) => {
@@ -39,9 +43,16 @@ export function initNotificationCount() {
         if (!usingPeriodicPoller) startPeriodicPoller(notificationSettings.MinTimeout);
       } else if (event.data.type === 'notification-count') {
         receiveUpdateCount(event); // no await
+      } else if (event.data.type === 'notification-alert') {
+        showDesktopAlert(event.data.count); // the worker picks one tab, so tabs don't each alert
       }
     });
     worker.startPort();
+    const postTabState = () => {
+      worker.postMessage({type: 'notification-tab-state', visible: document.visibilityState === 'visible', count: getCurrentCount()});
+    };
+    postTabState();
+    document.addEventListener('visibilitychange', postTabState);
     return;
   }
 
@@ -64,6 +75,8 @@ async function updateNotificationCountWithCallback(callback: (timeout: number, n
 
   if (lastCount !== newCount) {
     needsUpdate = true;
+    // without the shared worker, tabs can't agree on who alerts; the notification tag merges their alerts into one
+    if (newCount > lastCount && document.visibilityState === 'hidden') showDesktopAlert(newCount - lastCount);
     timeout = notificationSettings.MinTimeout;
   } else if (timeout < notificationSettings.MaxTimeout) {
     timeout += notificationSettings.TimeoutStep;
@@ -114,6 +127,7 @@ async function updateNotificationCount(): Promise<number> {
     const data = await response.json();
 
     toggleElem('.notification_count', data.new !== 0);
+    syncNotificationFaviconDot(data.new !== 0);
 
     for (const el of document.querySelectorAll('.notification_count')) {
       el.textContent = String(data.new);

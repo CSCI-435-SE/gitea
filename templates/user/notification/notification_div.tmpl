@@ -65,6 +65,14 @@
 				<a class="ui mini basic button{{if $.GroupByRepo}} active{{end}}" href="{{QueryBuild $queryLink "group" (Iif $.GroupByRepo "" "repo")}}"{{if $.GroupByRepo}} aria-current="true"{{end}} data-test-id="notification-group-repo">
 					{{svg "octicon-rows" 14}} {{ctx.Locale.Tr "notification.group_by_repo"}}
 				</a>
+				<div class="flex-text-inline tw-hidden" data-global-init="initNotificationDesktopToggle">{{/* desktop alerts are a per-browser setting, so JS renders the state */}}
+					<button type="button" class="ui mini basic button notification-desktop-toggle" data-test-id="notification-desktop-toggle">
+						{{svg "octicon-bell" 14}}
+						<span class="notification-desktop-enable">{{ctx.Locale.Tr "notification.desktop_enable"}}</span>
+						<span class="notification-desktop-disable tw-hidden">{{ctx.Locale.Tr "notification.desktop_disable"}}</span>
+					</button>
+					<span class="notification-desktop-blocked tw-text-text-light-2 tw-hidden" role="status">{{ctx.Locale.Tr "notification.desktop_blocked"}}</span>
+				</div>
 				{{if $.IsFiltered}}
 					<a class="ui mini basic button" href="{{QueryBuild $notificationsLink "type" $.PageType "group" $groupParam "sort" $.SortType}}">{{ctx.Locale.Tr "notification.clear_filters"}}</a>
 				{{end}}
