@@ -2711,6 +2711,7 @@
   "repo.diff.suggestion.title": "Suggested change",
   "repo.diff.comment.start_review": "Start review",
   "repo.diff.comment.reply": "Reply",
+  "repo.diff.comment.suggest_change": "Suggest change",
   "repo.diff.review": "Review",
   "repo.diff.review.header": "Submit review",
   "repo.diff.review.placeholder": "Review comment",
