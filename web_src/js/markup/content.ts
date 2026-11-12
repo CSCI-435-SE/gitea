@@ -1,6 +1,7 @@
 import {initMarkupCodeMermaid} from './mermaid.ts';
 import {initMarkupCodeMath} from './math.ts';
 import {initMarkupCodeCopy} from './codecopy.ts';
+import {initMarkupCodeSuggestion} from './suggestion.ts';
 import {initMarkupTasklist} from './tasklist.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initExternalRenderIframe} from './render-iframe.ts';
@@ -19,6 +20,7 @@ export function initMarkupContent(): void {
       toggleElemClass(el.querySelectorAll('.is-loading'), 'is-loading', false);
       return;
     }
+    initMarkupCodeSuggestion(el); // before code-copy, so replaced blocks never get a copy button
     initMarkupCodeCopy(el);
     initMarkupTasklist(el);
     initMarkupCodeMermaid(el);
