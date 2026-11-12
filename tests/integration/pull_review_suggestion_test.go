@@ -84,6 +84,7 @@ func TestPullReviewSuggestionAttribute(t *testing.T) {
 
 		t.Run("old side gets no attribute", func(t *testing.T) {
 			doc := postComment(t, "diff", "previous", "1", nil)
+			require.Equal(t, 1, doc.Find(".render-content.markup code.language-suggestion").Length()) // the comment did render
 			assert.Equal(t, 0, doc.Find("[data-suggestion-original]").Length())
 		})
 	})
