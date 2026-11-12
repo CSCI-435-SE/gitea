@@ -57,7 +57,8 @@
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">
-			<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
+			{{$suggestionOriginal := .SuggestionOriginalLine}}
+			<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}data-can-edit="true"{{end}} {{if $suggestionOriginal.Has}}data-suggestion-original="{{$suggestionOriginal.Value}}" data-suggestion-label="{{ctx.Locale.Tr "repo.diff.suggestion.title"}}"{{end}}>
 			{{if .RenderedContent}}
 				{{.RenderedContent}}
 			{{else}}
