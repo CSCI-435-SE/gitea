@@ -2,8 +2,7 @@ import {env} from 'node:process';
 import {expect, test} from '@playwright/test';
 import {apiCreateRepo, apiCreateFile, assertFlushWithParent, assertNoJsError, login, randomString} from './utils.ts';
 
-test('3d model file', async ({page, request, browserName}) => {
-  test.skip(browserName === 'firefox', 'unclear firefox-only CI-only failure'); // eslint-disable-line playwright/no-skipped-test
+test('3d model file', async ({page, request}) => {
   const repoName = `e2e-3d-render-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
   await apiCreateRepo(request, {name: repoName});
