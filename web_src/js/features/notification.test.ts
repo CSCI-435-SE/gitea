@@ -1,6 +1,7 @@
 import {initNotificationCount} from './notification.ts';
 import {GET} from '../modules/fetch.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
+import {syncNotificationFaviconDot} from '../modules/favicon-status.ts';
 
 vi.mock('../modules/fetch.ts', () => ({
   GET: vi.fn(),
@@ -52,6 +53,7 @@ describe('notification count poller', {concurrent: false}, () => {
     vi.unstubAllGlobals();
     Object.assign(window.config.notificationSettings, {MinTimeout: 0, TimeoutStep: 0, MaxTimeout: 0});
     document.body.replaceChildren();
+    syncNotificationFaviconDot(false); // test files share modules (isolate: false), so don't leave the dot for favicon-status.test.ts
   });
 
   test('AC5 a hidden tab alerts with the number of new notifications since its last poll', async () => {

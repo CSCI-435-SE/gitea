@@ -1,5 +1,11 @@
 import {buildNotificationFaviconSvg, buildStatusFaviconSvg, resetActionFavicon, syncActionRunFavicon, syncNotificationFaviconDot} from './favicon-status.ts';
 
+// test files share modules (isolate: false in vitest.config.ts), so start without a badge left by an earlier file
+beforeEach(() => {
+  resetActionFavicon();
+  syncNotificationFaviconDot(false);
+});
+
 test('buildStatusFaviconSvg uses action status icons', () => {
   const success = buildStatusFaviconSvg('success');
   expect(success).toContain('viewBox="0 0 640 640"');
