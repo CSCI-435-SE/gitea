@@ -1,6 +1,6 @@
 # Mid-Sprint Check-in: @arjunsb26
 
-**Code PR:** [#N — test(api): prove suggestions posted through the reviews API render as suggestions](https://github.com/CSCI-435-SE/gitea/pull/N) (open, ready for review)
+**Code PR:** [#164 — test(api): prove suggestions posted through the reviews API render as suggestions](https://github.com/CSCI-435-SE/gitea/pull/164) (open, ready for review)
 
 ## Question 1: What have you implemented so far, and what remains?
 
