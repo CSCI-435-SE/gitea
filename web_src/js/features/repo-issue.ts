@@ -10,6 +10,7 @@ import {
   toggleElem,
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
+import {initSuggestChangeButton} from './repo-diff-suggestion.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {triggerEditorContentChanged} from './comp/EditorMarkdown.ts';
 import {toAbsoluteUrl} from '../utils.ts';
@@ -284,6 +285,8 @@ export function initRepoPullRequestReview() {
       `);
       tr.after(ntr);
     }
+    // taken before the awaits below; a split row's new-side cell, as an expanded split row's right-side [+] sits in the old-side cell
+    const codeLine = tr.querySelector<HTMLElement>('.lines-code-new .code-inner') ?? el.closest('td')!.querySelector<HTMLElement>('.code-inner')!;
     const td = ntr.querySelector(`.add-comment-${side}`)!;
     const commentCloud = td.querySelector('.comment-code-cloud');
     if (!commentCloud && !ntr.querySelector('button[name="pending_review"]')) {
@@ -293,6 +296,8 @@ export function initRepoPullRequestReview() {
       td.querySelector<HTMLInputElement>("input[name='side']")!.value = (side === 'left' ? 'previous' : 'proposed');
       td.querySelector<HTMLInputElement>("input[name='path']")!.value = String(path);
       const editor = await initComboMarkdownEditor(td.querySelector<HTMLElement>('.combo-markdown-editor')!);
+      // suggestions replace new-side lines only, old-side ones have nothing to apply to
+      if (side === 'right') initSuggestChangeButton(editor, codeLine);
       editor.focus();
     }
   });
