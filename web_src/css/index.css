@@ -54,7 +54,6 @@
 
 @import "./markup/content.css";
 @import "./markup/codeblock.css";
-@import "./markup/suggestion.css";
 @import "./markup/codepreview.css";
 @import "./markup/jupyter.css";
 

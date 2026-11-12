@@ -93,8 +93,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 								</div>
 							</div>
 							<div class="text comment-content">
-								{{$suggestionOriginal := .SuggestionOriginalLine}}
-								<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}} {{if $suggestionOriginal.Has}}data-suggestion-original="{{$suggestionOriginal.Value}}" data-suggestion-label="{{ctx.Locale.Tr "repo.diff.suggestion.title"}}"{{end}}>
+								<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 								{{if .RenderedContent}}
 									{{.RenderedContent}}
 								{{else}}
