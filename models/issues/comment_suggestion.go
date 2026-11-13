@@ -4,8 +4,10 @@
 package issues
 
 import (
+	"context"
 	"strings"
 
+	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
 )
 
@@ -22,4 +24,10 @@ func (c *Comment) SuggestionOriginalLine() optional.Option[string] {
 		return optional.None[string]() // "-" is the other side; "@", "d", "\\" mean no code line
 	}
 	return optional.Some(last[1:])
+}
+
+// SuggestionBlocks returns the text of each ```suggestion block in the comment, found the way the
+// rendered page finds them (#154 AC9). An empty block is "", one blank line is "\n".
+func (c *Comment) SuggestionBlocks(ctx context.Context) []string {
+	return markdown.FencedCodeBlocks(ctx, []byte(c.Content), "suggestion")
 }
