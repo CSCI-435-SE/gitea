@@ -111,3 +111,58 @@ test('suggest change on a line revealed by expand', async ({page, request}) => {
   await form.getByRole('button', {name: 'Suggest change'}).click();
   await expect(form.locator('textarea[name="content"]')).toHaveValue('```suggestion\n  keep 2\n```\n'); // AC1, expanded line
 });
+
+// #158: lines 2-4 change, so new-side 2-4 sit in one hunk after old-side 2-4
+test('suggest a change across several lines', async ({page, request}) => {
+  const repo = `e2e-suggest-range-${randomString(8)}`;
+  await apiCreateRepo(request, {name: repo});
+  await apiCreateFile(request, owner, repo, 'main.go', 'a\nb\nc\nd\ne\n');
+  expect((await request.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents`, {
+    headers: apiHeaders(),
+    data: {new_branch: 'feat', files: [{operation: 'upload', path: 'main.go', content: base64('a\n\tB\nC\nD\ne\n')}]},
+  })).ok()).toBe(true);
+  const index = await apiCreatePR(request, owner, repo, 'feat', 'main', 'range');
+  await login(page);
+  await page.goto(`/${owner}/${repo}/pulls/${index}/files?style=unified`);
+  const lineNum = (side: 'old' | 'new', line: number) => page.locator(`td.lines-num-${side}[data-line-num="${line}"]`).first();
+
+  const message = 'A comment can only cover lines on one side of a single hunk.';
+
+  // AC14: from the keyboard, Enter on line 2 and Shift+Enter on line 3 select both
+  await lineNum('new', 2).focus();
+  await page.keyboard.press('Enter');
+  await lineNum('new', 3).focus();
+  await page.keyboard.press('Shift+Enter');
+  await expect(page.locator('tr.range-selected')).toHaveCount(2);
+
+  // AC2: an upward selection, 4 then shift-click 2, gives lines 2-4 (AC1)
+  await lineNum('new', 4).click();
+  await lineNum('new', 2).click({modifiers: ['Shift']});
+  const form = await openCommentForm(page, 'right', 4);
+  await expect(form.locator('.code-comment-range')).toHaveText('Lines 2–4');
+
+  // AC4: the block holds every line of the range, indentation kept
+  const textarea = form.locator('textarea[name="content"]');
+  await form.getByRole('button', {name: 'Suggest change'}).click();
+  await expect(textarea).toHaveValue('```suggestion\n\tB\nC\nD\n```\n');
+
+  // AC15: a range the server refuses shows its message and keeps the form
+  const startLine = form.locator('input[name="start_line"]');
+  await startLine.evaluate((el: HTMLInputElement) => { el.value = '9' });
+  await form.getByRole('button', {name: 'Add single comment'}).click();
+  await expect(page.getByText(message)).toBeVisible();
+  await startLine.evaluate((el: HTMLInputElement) => { el.value = '2' });
+
+  // AC1, AC5: the posted thread is headed with the range and shows 3 removed lines and 2 added
+  await textarea.fill('```suggestion\nX\nY\n```');
+  await form.getByRole('button', {name: 'Add single comment'}).click();
+  const thread = page.locator('.conversation-holder');
+  await expect(thread.locator('.code-comment-range')).toHaveText('Lines 2–4');
+  await expect(thread.locator('.markup-suggestion-line.removed code')).toHaveText(['\tB', 'C', 'D']);
+  await expect(thread.locator('.markup-suggestion-line.added code')).toHaveText(['X', 'Y']);
+
+  // AC11: old side to new side is refused with a message
+  await lineNum('old', 2).click();
+  await lineNum('new', 4).click({modifiers: ['Shift']});
+  await expect(page.getByText(message).last()).toBeVisible();
+});
