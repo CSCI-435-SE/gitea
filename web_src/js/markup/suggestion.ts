@@ -80,7 +80,7 @@ function addApplyButton(elMarkup: HTMLElement, diff: HTMLElement): void {
   message.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.isComposing) {
       e.preventDefault();
-      submit();
+      void submit(); // submit shows its own errors, so nothing is left to await
     }
   });
 }
