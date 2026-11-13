@@ -22,6 +22,7 @@ import (
 	"gitea.dev/services/forms"
 	issue_service "gitea.dev/services/issue"
 	pull_service "gitea.dev/services/pull"
+	files_service "gitea.dev/services/repository/files"
 	user_service "gitea.dev/services/user"
 )
 
@@ -115,6 +116,76 @@ func CreateCodeComment(ctx *context.Context) {
 	renderConversation(ctx, comment, form.Origin)
 }
 
+// prepareSuggestionApply tells the comment templates whether the viewer may apply suggestions on this pull
+// request (#156), and which head commit the page shows (AC4). Comment-specific checks happen in the template.
+func prepareSuggestionApply(ctx *context.Context, issue *issues_model.Issue) {
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		log.Error("LoadPullRequest: %v", err)
+		return
+	}
+	headCommitID, err := files_service.CanApplySuggestions(ctx, ctx.Doer, issue.PullRequest)
+	if err != nil {
+		if !errors.Is(err, files_service.ErrSuggestionPermission) && !errors.Is(err, files_service.ErrSuggestionPullClosed) {
+			log.Error("CanApplySuggestions: %v", err) // the page still renders, just without Apply buttons
+		}
+		return
+	}
+	ctx.Data["SuggestionApplyHeadCommitID"] = headCommitID
+	ctx.Data["SuggestionApplyLink"] = fmt.Sprintf("%s/pulls/%d/files/reviews/comments", ctx.Repo.RepoLink, issue.Index)
+}
+
+// ApplySuggestion commits a review comment's suggestion to the pull request's head branch (#156)
+func ApplySuggestion(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.ApplySuggestionForm)
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+	if !issue.IsPull {
+		ctx.NotFound(nil)
+		return
+	}
+	if ctx.HasError() {
+		ctx.JSONError(ctx.GetErrMsg())
+		return
+	}
+	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
+	if issues_model.IsErrCommentNotExist(err) {
+		ctx.NotFound(err)
+		return
+	} else if err != nil {
+		ctx.ServerError("GetCommentByID", err)
+		return
+	}
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		ctx.ServerError("LoadPullRequest", err)
+		return
+	}
+
+	err = files_service.ApplySuggestion(ctx, ctx.Doer, issue.PullRequest, comment, form.HeadCommitID, form.Message)
+	var errProtected files_service.ErrSuggestionProtectedBranch
+	switch {
+	case err == nil:
+		ctx.JSONOK() // the page reloads to show the new commit
+	case errors.Is(err, files_service.ErrSuggestionNotApplicable):
+		ctx.NotFound(err)
+	case errors.Is(err, files_service.ErrSuggestionPermission):
+		ctx.HTTPError(http.StatusForbidden) // AC2
+	case errors.Is(err, files_service.ErrSuggestionPullClosed):
+		ctx.JSONError(ctx.Tr("repo.diff.suggestion.pull_closed")) // AC5
+	case errors.Is(err, files_service.ErrSuggestionHeadMoved):
+		ctx.JSONError(ctx.Tr("repo.diff.suggestion.head_moved")) // AC4
+	case errors.Is(err, files_service.ErrSuggestionOutdated):
+		ctx.JSONError(ctx.Tr("repo.diff.suggestion.outdated")) // AC3
+	case errors.Is(err, files_service.ErrSuggestionNoChange):
+		ctx.JSONError(ctx.Tr("repo.diff.suggestion.no_change")) // AC10
+	case errors.As(err, &errProtected):
+		ctx.JSONError(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", errProtected.Branch)) // AC6, the web editor's message
+	default:
+		editorHandleFileOperationError(ctx, issue.PullRequest.HeadBranch, err) // e.g. a pre-receive hook rejecting the push
+	}
+}
+
 // UpdateResolveConversation add or remove an Conversation resolved mark
 func UpdateResolveConversation(ctx *context.Context) {
 	origin := ctx.FormString("origin")
@@ -205,6 +276,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
+	prepareSuggestionApply(ctx, comment.Issue) // a newly posted suggestion gets its button without a reload
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}

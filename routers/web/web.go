@@ -1659,6 +1659,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Group("/reviews", func() {
 					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
 					m.Post("/comments", web.Bind(forms.CodeCommentForm{}), repo.SetShowOutdatedComments, repo.CreateCodeComment)
+					m.Post("/comments/{id}/apply", reqSignIn, web.Bind(forms.ApplySuggestionForm{}), repo.ApplySuggestion)
 					m.Post("/submit", web.Bind(forms.SubmitReviewForm{}), repo.SubmitReview)
 				}, context.RepoMustNotBeArchived())
 			})

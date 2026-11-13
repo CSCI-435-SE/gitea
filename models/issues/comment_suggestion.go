@@ -5,6 +5,7 @@ package issues
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"gitea.dev/modules/markup/markdown"
@@ -30,4 +31,10 @@ func (c *Comment) SuggestionOriginalLine() optional.Option[string] {
 // rendered page finds them (#154 AC9). An empty block is "", one blank line is "\n".
 func (c *Comment) SuggestionBlocks(ctx context.Context) []string {
 	return markdown.FencedCodeBlocks(ctx, []byte(c.Content), "suggestion")
+}
+
+// SuggestionCommitMessage is the default message for committing the comment's suggestion (#156 AC1).
+// The poster must be loaded.
+func (c *Comment) SuggestionCommitMessage() string {
+	return fmt.Sprintf("Apply suggestion from @%s on %s", c.Poster.Name, c.TreePath)
 }
