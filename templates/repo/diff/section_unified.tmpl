@@ -20,7 +20,7 @@
 				{{end}}
 			{{else}}
 				<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$file.NameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
-				<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$file.NameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
+				<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"{{if and $.root.SignedUserID $.root.PageIsPullFiles $line.RightIdx}} tabindex="0"{{end}}><span rel="{{if $line.RightIdx}}diff-{{$file.NameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
 			{{end}}
 			{{$inlineDiff := $section.GetComputedInlineDiffFor $line ctx.Locale -}}
 			<td class="lines-escape">

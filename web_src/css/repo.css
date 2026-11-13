@@ -1739,6 +1739,11 @@ tbody.commit-list {
   border-color: var(--color-diff-added-row-border);
 }
 
+/* a multi-line comment range picked with click / shift-click on line numbers */
+.code-diff tr.range-selected td.lines-num-new {
+  background: var(--color-highlight-bg);
+}
+
 .code-diff-split .del-code .lines-type-marker-new,
 .code-diff-split .del-code .lines-code-new,
 .code-diff-split .del-code .lines-escape-new,

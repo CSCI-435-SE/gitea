@@ -27,7 +27,9 @@ export function initMarkupCodeSuggestion(elMarkup: HTMLElement): void {
     const header = document.createElement('div');
     header.className = 'markup-suggestion-header';
     header.textContent = label;
-    diff.append(header, makeLine('removed', original));
+    diff.append(header);
+    // a multi-line comment's original holds one line per "\n"; split on "\n" only so a CRLF line keeps its "\r"
+    for (const line of original.split('\n')) diff.append(makeLine('removed', line));
     if (raw !== '') {
       for (const line of raw.replace(/\r?\n$/, '').split(/\r?\n/)) diff.append(makeLine('added', line));
     }
