@@ -606,6 +606,18 @@ func (f *CodeCommentForm) Validate(req *http.Request, errs binding.Errors) bindi
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// ApplySuggestionForm commits a review comment's suggestion (#156)
+type ApplySuggestionForm struct {
+	HeadCommitID string `form:"head_commit_id" binding:"Required"`
+	Message      string `form:"message"`
+}
+
+// Validate validates the fields
+func (f *ApplySuggestionForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // SubmitReviewForm for submitting a finished code review
 type SubmitReviewForm struct {
 	Content  string

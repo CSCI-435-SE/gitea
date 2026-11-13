@@ -391,6 +391,7 @@ func ViewIssue(ctx *context.Context) {
 
 	// Get more information if it's a pull request.
 	if issue.IsPull {
+		prepareSuggestionApply(ctx, issue)
 		if issue.PullRequest.HasMerged {
 			ctx.Data["DisableStatusChange"] = issue.PullRequest.HasMerged
 		} else {
