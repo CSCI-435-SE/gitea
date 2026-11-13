@@ -8,6 +8,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"slices"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -55,6 +57,9 @@ func (err ErrDismissRequestOnClosedPR) Unwrap() error {
 // ErrSubmitReviewOnClosedPR represents an error when a user tries to submit an approve or reject review associated to a closed or merged PR.
 var ErrSubmitReviewOnClosedPR = errors.New("can't submit review for a closed or merged PR")
 
+// ErrCodeCommentRangeInvalid is returned when a multi-line code comment's range isn't on the new side of one diff hunk.
+var ErrCodeCommentRangeInvalid = errors.New("code comment range must be on one side of a single hunk")
+
 // LineBlame returns the latest commit at the given line
 func lineBlame(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, branch, file string, line uint) (*git.Commit, error) {
 	sha, err := gitrepo.LineBlame(ctx, repo, branch, file, line)
@@ -88,6 +93,27 @@ func checkInvalidation(ctx context.Context, c *issues_model.Comment, repo *repo_
 	return nil
 }
 
+// checkRangeInvalidation invalidates a multi-line comment when any line of its range changed text in content, its file at the branch head.
+// One CommitSHA can't hold a blame per line, so ranges compare text instead.
+func checkRangeInvalidation(ctx context.Context, c *issues_model.Comment, content string) error {
+	original, ok := c.RangeOriginalLines()
+	if ok && rangeChanged(original, content, c.RangeStartLine()) { // !ok: no snippet to compare with
+		c.Invalidated = true
+		return issues_model.UpdateCommentInvalidate(ctx, c)
+	}
+	return nil
+}
+
+// rangeChanged reports whether content no longer has the original lines starting at line start.
+func rangeChanged(original []string, content string, start int64) bool {
+	lines := strings.Split(strings.TrimSuffix(content, "\n"), "\n")
+	if content == "" {
+		lines = nil
+	}
+	end := int(start) - 1 + len(original)
+	return end > len(lines) || !slices.Equal(lines[start-1:end], original)
+}
+
 // InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
 func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestList, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, branch string) error {
 	if len(prs) == 0 {
@@ -104,8 +130,28 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 	if err != nil {
 		return fmt.Errorf("find code comments: %v", err)
 	}
+	var head *git.Commit
+	headFiles := map[string]string{} // each file is read once per push, however many range comments it has
 	for _, comment := range codeComments {
-		if err := checkInvalidation(ctx, comment, repo, gitRepo, branch); err != nil {
+		if comment.RangeStartLine() == 0 {
+			if err := checkInvalidation(ctx, comment, repo, gitRepo, branch); err != nil {
+				return err
+			}
+			continue
+		}
+		content, ok := headFiles[comment.TreePath]
+		if !ok {
+			if head == nil {
+				if head, err = gitRepo.GetBranchCommit(branch); err != nil {
+					return err
+				}
+			}
+			if content, err = head.GetFileContent(comment.TreePath, 0); err != nil && !git.IsErrNotExist(err) {
+				return err
+			}
+			headFiles[comment.TreePath] = content
+		}
+		if err := checkRangeInvalidation(ctx, comment, content); err != nil {
 			return err
 		}
 	}
@@ -113,7 +159,7 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 }
 
 // CreateCodeComment creates a comment on the code line
-func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line int64, content, treePath string, pendingReview bool, replyReviewID int64, latestCommitID string, attachments []string) (*issues_model.Comment, error) {
+func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line, startLine int64, content, treePath string, pendingReview bool, replyReviewID int64, latestCommitID string, attachments []string) (*issues_model.Comment, error) {
 	var (
 		existsReview bool
 		err          error
@@ -145,6 +191,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			content,
 			treePath,
 			line,
+			startLine,
 			replyReviewID,
 			attachments,
 		)
@@ -186,6 +233,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		content,
 		treePath,
 		line,
+		startLine,
 		review.ID,
 		attachments,
 	)
@@ -206,7 +254,10 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 }
 
 // createCodeComment creates a plain code comment at the specified line / path
-func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, treePath string, line, reviewID int64, attachments []string) (*issues_model.Comment, error) {
+func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, treePath string, line, startLine, reviewID int64, attachments []string) (*issues_model.Comment, error) {
+	if startLine != 0 && (line <= 0 || startLine < 0 || startLine >= line) {
+		return nil, ErrCodeCommentRangeInvalid // ranges are new-side only and end after they start
+	}
 	var commitID, patch string
 	if err := issue.LoadPullRequest(ctx); err != nil {
 		return nil, fmt.Errorf("LoadPullRequest: %w", err)
@@ -239,6 +290,11 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 				commitID = first[0].CommitSHA
 				invalidated = first[0].Invalidated
 				patch = first[0].Patch
+				if startLine == 0 {
+					startLine = first[0].RangeStartLine() // a reply joins its thread's range
+				} else if startLine != first[0].RangeStartLine() {
+					return nil, ErrCodeCommentRangeInvalid
+				}
 			} else if err != nil && !issues_model.IsErrCommentNotExist(err) {
 				return nil, fmt.Errorf("Find first comment for %d line %d path %s. Error: %w", reviewID, line, treePath, err)
 			} else {
@@ -274,12 +330,21 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			commitID = headCommitID
 		}
 
+		window := setting.UI.CodeCommentLines
+		if startLine > 0 {
+			window = math.MaxInt32 // shortcut: stores the whole hunk up to the range end, not just the range plus context; trim it if long hunks bloat the conversation snippet
+		}
 		patch, err = git.GetFileDiffCutAroundLine(
 			gitRepo, pr.MergeBase, headCommitID, treePath,
-			int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
+			int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, window,
 		)
 		if err != nil {
 			return nil, err
+		}
+		if startLine > 0 {
+			if _, ok := issues_model.PatchLastNewLines(patch, int(line-startLine+1)); !ok {
+				return nil, ErrCodeCommentRangeInvalid // range leaves the hunk, or isn't in a hunk at all
+			}
 		}
 
 		// If patch is still empty (unchanged line), generate code context
@@ -298,6 +363,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		Issue:       issue,
 		Content:     content,
 		LineNum:     line,
+		StartLine:   startLine,
 		TreePath:    treePath,
 		CommitSHA:   commitID,
 		ReviewID:    reviewID,

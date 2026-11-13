@@ -2712,6 +2712,8 @@
   "repo.diff.comment.start_review": "Start review",
   "repo.diff.comment.reply": "Reply",
   "repo.diff.comment.suggest_change": "Suggest change",
+  "repo.diff.comment.lines": "Lines %[1]d–%[2]d",
+  "repo.diff.comment.range_invalid": "A comment can only cover lines on one side of a single hunk.",
   "repo.diff.review": "Review",
   "repo.diff.review.header": "Submit review",
   "repo.diff.review.placeholder": "Review comment",

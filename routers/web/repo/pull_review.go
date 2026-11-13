@@ -56,6 +56,9 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	if startLine, line := ctx.FormInt64("start_line"), ctx.FormInt64("line"); startLine > 0 && startLine < line {
+		ctx.Data["RangeStartLine"], ctx.Data["RangeEndLine"] = startLine, line
+	}
 	upload.AddUploadContext(ctx, "comment")
 	ctx.HTML(http.StatusOK, tplNewComment)
 }
@@ -82,6 +85,11 @@ func CreateCodeComment(ctx *context.Context) {
 		signedLine *= -1
 	}
 
+	startLine := form.StartLine
+	if startLine == form.Line {
+		startLine = 0 // a one-line range is a normal single-line comment
+	}
+
 	var attachments []string
 	if setting.Attachment.Enabled {
 		attachments = form.Files
@@ -92,6 +100,7 @@ func CreateCodeComment(ctx *context.Context) {
 		ctx.Repo.GitRepo,
 		issue,
 		signedLine,
+		startLine,
 		form.Content,
 		form.TreePath,
 		!form.SingleReview,
@@ -99,7 +108,10 @@ func CreateCodeComment(ctx *context.Context) {
 		form.LatestCommitID,
 		attachments,
 	)
-	if err != nil {
+	if errors.Is(err, pull_service.ErrCodeCommentRangeInvalid) {
+		ctx.JSONError(ctx.Tr("repo.diff.comment.range_invalid"))
+		return
+	} else if err != nil {
 		ctx.ServerError("CreateCodeComment", err)
 		return
 	}

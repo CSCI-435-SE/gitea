@@ -253,6 +253,8 @@ type CommentMetaData struct {
 	CloseReason           CloseReason `json:"close_reason,omitempty"` // snapshot at this close; never updated, unlike the issue's own reason
 	CloseReasonText       string      `json:"close_reason_text,omitempty"`
 	CloseDuplicateIssueID int64       `json:"close_duplicate_issue_id,omitempty"`
+
+	StartLine int64 `json:"start_line,omitempty"` // first line of a multi-line code comment; Line is the last
 }
 
 // Comment represents a comment in commit and issue page.
@@ -765,6 +767,14 @@ func (c *Comment) UnsignedLine() uint64 {
 	return uint64(c.Line)
 }
 
+// RangeStartLine returns the first line of a multi-line code comment, or 0 for a single-line one
+func (c *Comment) RangeStartLine() int64 {
+	if c.CommentMetaData == nil {
+		return 0
+	}
+	return c.CommentMetaData.StartLine
+}
+
 // CodeCommentLink returns the url to a comment in code
 func (c *Comment) CodeCommentLink(ctx context.Context) string {
 	err := c.LoadIssue(ctx)
@@ -869,6 +879,9 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 				CloseReasonText:       opts.CloseReasonText,
 				CloseDuplicateIssueID: opts.CloseDuplicateIssueID,
 			}
+		}
+		if opts.Type == CommentTypeCode && opts.StartLine > 0 {
+			commentMetaData = &CommentMetaData{StartLine: opts.StartLine}
 		}
 
 		comment := &Comment{
@@ -1055,6 +1068,7 @@ type CreateCommentOptions struct {
 	CommitSHA          string
 	Patch              string
 	LineNum            int64
+	StartLine          int64 // > 0 makes a code comment cover StartLine..LineNum
 	TreePath           string
 	ReviewID           int64
 	Content            string
