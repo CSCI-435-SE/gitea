@@ -84,6 +84,23 @@ func TestApplySuggestion(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
 	})
 
+	t.Run("a pull request that does not exist is not found", func(t *testing.T) {
+		ctx, _ := apply(t, 2, 999, fix, branch2Head)
+		assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
+	})
+
+	t.Run("a form that failed binding is refused", func(t *testing.T) {
+		ctx, resp := contexttest.MockContext(t, "user2/repo1/pulls/3/files/reviews/comments/apply")
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadRepo(t, ctx, repo.ID)
+		ctx.SetPathParam("index", "3")
+		ctx.SetPathParam("id", strconv.FormatInt(fix, 10))
+		web.SetForm(ctx, &forms.ApplySuggestionForm{})
+		ctx.Data["HasError"] = true // what binding sets when the required head_commit_id is missing
+		ApplySuggestion(ctx)
+		refused(t, resp, ctx, "invalid form data") // GetErrMsg's message when binding gave none
+	})
+
 	t.Run("a comment that does not exist is not found", func(t *testing.T) {
 		ctx, _ := apply(t, 2, 3, 999999, branch2Head)
 		assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())

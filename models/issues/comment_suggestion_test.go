@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 
 	"github.com/stretchr/testify/assert"
@@ -69,4 +70,14 @@ func TestCommentSuggestionBlocks(t *testing.T) {
 			assert.Equal(t, c.expected, comment.SuggestionBlocks(t.Context()))
 		})
 	}
+}
+
+func TestCommentSuggestionCommitMessage(t *testing.T) {
+	ana := &user_model.User{Name: "ana"}
+	// #156's user scenario
+	comment := &issues_model.Comment{Poster: ana, TreePath: "main.go"}
+	assert.Equal(t, "Apply suggestion from @ana on main.go", comment.SuggestionCommitMessage())
+	// the file is named by its full path, as decided while implementing #156
+	comment = &issues_model.Comment{Poster: ana, TreePath: "cmd/web/main.go"}
+	assert.Equal(t, "Apply suggestion from @ana on cmd/web/main.go", comment.SuggestionCommitMessage())
 }
