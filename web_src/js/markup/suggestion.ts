@@ -77,10 +77,10 @@ function addApplyButton(elMarkup: HTMLElement, diff: HTMLElement): void {
     commitButton.disabled = false;
   };
   commitButton.addEventListener('click', submit);
-  message.addEventListener('keydown', (e: KeyboardEvent) => {
+  message.addEventListener('keydown', async (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.isComposing) {
       e.preventDefault();
-      void submit(); // submit shows its own errors, so nothing is left to await
+      await submit();
     }
   });
 }
