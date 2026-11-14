@@ -29,6 +29,14 @@ test('AC7 no alert when the count stays the same or goes down', () => {
   expect(tracker.onCount(1)).toBeNull();
 });
 
+test('AC5 after notifications are read elsewhere while hidden, the next alert counts only the new one', () => {
+  const tracker = new NotificationAlertTracker<string>();
+  tracker.setTabState('a', {visible: true, count: 5});
+  tracker.setTabState('a', {visible: false, count: 5});
+  expect(tracker.onCount(2)).toBeNull(); // 3 read on another device
+  expect(tracker.onCount(3)).toEqual({tab: 'a', newCount: 1});
+});
+
 test('the alert counts notifications that arrived since Gitea was last in view', () => {
   const tracker = new NotificationAlertTracker<string>();
   tracker.setTabState('a', {visible: true, count: 1});
