@@ -51,6 +51,25 @@ test('suggestionInsertPos', () => {
   expect(suggestionInsertPos('``` a`b\ntext', 10)).toEqual(10);
 });
 
+// expected values from CommonMark 0.31.2 section 4.5 (fenced code blocks) and #155's AC12
+test('suggestionInsertPos fence edge cases', () => {
+  // a fence needs at least 3 characters, so a 2-tilde line opens nothing
+  expect(suggestionInsertPos('~~\ntext', 5)).toEqual(5);
+  // a fence may be indented by at most 3 spaces, so a run after other text is not one
+  expect(suggestionInsertPos('x ```\ntext', 8)).toEqual(8);
+  // only backtick fences forbid backticks in the info string; a tilde fence may hold them
+  const tilde = '~~~ a`b\ntext\n~~~\n';
+  expect(suggestionInsertPos(`${tilde}after`, 10)).toEqual(tilde.length);
+  // a closing fence must be at least as long as the opening one
+  const nested = '````\n```\nx\n````\n';
+  expect(suggestionInsertPos(`${nested}rest`, 9)).toEqual(nested.length);
+  // a closing fence may be followed by spaces
+  const trailing = '```\na\n```  \n';
+  expect(suggestionInsertPos(`${trailing}rest`, 4)).toEqual(trailing.length);
+  // AC12: an unclosed block opened on the last line, with no newline after it, still runs to the end
+  expect(suggestionInsertPos('a\n```', 3)).toEqual(5);
+});
+
 test('suggestionInsertRange', () => {
   const block = '```suggestion\nx := 1\n```\n';
   // AC2: a selection outside any block is replaced; a collapsed cursor stays put
@@ -88,6 +107,34 @@ test('initSuggestChangeButton', () => {
   button.click();
   expect(textarea.value).toEqual(`${block}${block}`);
   expect(textarea.selectionStart).toEqual(block.length + cursor);
+});
+
+test('initSuggestChangeButton in a form', () => {
+  document.body.innerHTML = `
+    <form>
+      <div class="combo-markdown-editor">
+        <div class="markdown-toolbar-group tw-hidden"><button class="markdown-button-suggest-change">s</button></div>
+        <textarea></textarea>
+      </div>
+    </form>
+    <code class="code-inner">x\r\n</code>`;
+  const container = document.querySelector<HTMLElement>('.combo-markdown-editor')!;
+  const textarea = container.querySelector('textarea')!;
+  const button = container.querySelector<HTMLButtonElement>('.markdown-button-suggest-change')!;
+  initSuggestChangeButton({container, textarea} as ComboMarkdownEditor, document.querySelector<HTMLElement>('.code-inner')!);
+
+  // HTML spec: a <button> with no type attribute submits its form, so the click must not
+  const click = new MouseEvent('click', {bubbles: true, cancelable: true});
+  button.dispatchEvent(click);
+  expect(click.defaultPrevented).toBe(true);
+  // AC1: a CRLF file's line ending is not part of the line's text
+  expect(textarea.value).toEqual('```suggestion\nx\n```\n');
+
+  // AC2: inserted mid-text, the block starts on a line of its own and the text after it is kept
+  textarea.value = 'ab\n';
+  textarea.setSelectionRange(1, 1);
+  button.click();
+  expect(textarea.value).toEqual('a\n```suggestion\nx\n```\nb\n');
 });
 
 test('initSuggestChangeButton without a button', () => {
