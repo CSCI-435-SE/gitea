@@ -10,7 +10,7 @@
 
 **Reports:** [before](reports/155-controlled-opposition-before.json) · [after](reports/155-controlled-opposition-after.json)
 
-**Mutation score:** before 81.10% → after 88.98% (covered code: 87.29% → 95.76%)
+**Mutation score:** before 81.10% → after 88.19% (covered code: 87.29% → 94.92%)
 
 ## Surviving mutants
 
@@ -32,16 +32,16 @@ The 9 uncovered mutants are all on the two `repo-issue.ts` lines, inside the cli
 | `web_src/js/features/repo-diff-suggestion.ts:38` | `fence[1].length >= open.len` → `true` | Test gap | A shorter fence would close a longer one. The existing test for this used ```` ```js ````, which the info string check already rejects, so no test depended on the length check. |
 | `web_src/js/features/repo-diff-suggestion.ts:38` | `fence[2].trim()` → `fence[2]` | Test gap | A closing fence followed by spaces would not close the block. CommonMark allows trailing spaces; no test had them. |
 | `web_src/js/features/repo-diff-suggestion.ts:63` | `e.preventDefault()` removed | Test gap | The button has no `type` attribute and sits inside the comment `<form>`, so by the HTML spec a click submits the form. The unit test's button was not inside a form. |
-| `web_src/js/features/repo-diff-suggestion.ts:68` | `/[\r\n]+$/` → `/[\r\n]+/` | Test gap, not worth a test | Only differs for a line holding a lone `\r` before its end, which Gitea's diff view rarely shows and no AC mentions. |
-| `web_src/js/features/repo-diff-suggestion.ts:68` | `/[\r\n]+$/` → `/[\r\n]$/` | Test gap | On a CRLF file the block would keep the `\r`. Gitea's diff code does not strip it, and AC1 asks for the line's text alone. The test only used an LF line. |
+| `web_src/js/features/repo-diff-suggestion.ts:68` | `/[\r\n]+$/` → `/[\r\n]+/` | Test gap, not worth a test | Only differs when the cell's text has a newline before its end. That happens only for a source line holding a lone `\r`, which the HTML parser turns into `\n`, and no AC covers such lines. |
+| `web_src/js/features/repo-diff-suggestion.ts:68` | `/[\r\n]+$/` → `/[\r\n]$/` | Equivalent in practice | Only differs when the cell's text ends in `\r\n`. The HTML parser turns CRLF and a lone CR into LF, for server-rendered pages and for `innerHTML` alike, so the browser never gives the script a `\r` there. Only a test DOM such as happy-dom's, which skips that step, can hold one. |
 | `web_src/js/features/repo-diff-suggestion.ts:69` | `textarea.value.slice(0, start)` → `textarea.value` | Test gap | Whether the block needs a newline in front would be decided by the end of the whole text, not the text before the cursor. AC2 says the block starts on a line of its own, but the click tests only inserted into an empty textarea or at its end. |
 
 ## New or strengthened test
 
-Both tests are in one commit. Together they kill 10 of the 11 test-gap survivors; the one left is `/[\r\n]+/` on line 68, which the table explains. The after report has 5 survivors: the 3 equivalent ones on line 35 and the two untested ones on lines 30 and 68.
+Both tests are in one commit. Together they kill 9 of the 10 test-gap survivors; the one left is `/[\r\n]+/` on line 68, which the table explains. The after report has 6 survivors: the 3 equivalent ones on line 35, the `/[\r\n]$/` one on line 68 that is equivalent in practice, and the two untested ones on lines 30 and 68.
 
 - Commit: [3d085eaf85](https://github.com/CSCI-435-SE/gitea/commit/3d085eaf85e06c41fd844cc9fc50639b6c0fbfc7) · Test: `web_src/js/features/repo-diff-suggestion.test.ts` › `suggestionInsertPos fence edge cases` · Kills: `repo-diff-suggestion.ts:29` (both), `:30` (`^` and `~`), `:33`, `:38` (both)
-- Commit: [3d085eaf85](https://github.com/CSCI-435-SE/gitea/commit/3d085eaf85e06c41fd844cc9fc50639b6c0fbfc7) · Test: `web_src/js/features/repo-diff-suggestion.test.ts` › `initSuggestChangeButton in a form` · Kills: `repo-diff-suggestion.ts:63`, `:68` (`/[\r\n]$/`), `:69`
+- Commit: [3d085eaf85](https://github.com/CSCI-435-SE/gitea/commit/3d085eaf85e06c41fd844cc9fc50639b6c0fbfc7) · Test: `web_src/js/features/repo-diff-suggestion.test.ts` › `initSuggestChangeButton in a form` · Kills: `repo-diff-suggestion.ts:63`, `:69`
 
 ## Questions
 
@@ -51,8 +51,8 @@ The tests covered the cases the ACs list but not the CommonMark rules that the f
 
 2. Did any surviving mutant point to an assertion whose expected value was not based on the requirements? Explain.
 
-No. Every survivor was a case that no test asserted on. The new tests take their expected values from AC1, AC2 and AC12, from section 4.5 of the CommonMark spec, and from the HTML spec's rule that a button without a `type` submits its form.
+No. Every survivor was a case that no test asserted on. The new tests take their expected values from AC2 and AC12, from section 4.5 of the CommonMark spec, and from the HTML spec's rule that a button without a `type` submits its form.
 
 3. If you used AI to configure the tool, analyze survivors, or write tests, what did it produce and what did you verify or correct? If AI was not used, write "N/A."
 
-Claude Code (claude-opus-5-5) wrote the personal config from ab-wm's pattern, chose to mutate only the two lines PR #162 changed in `repo-issue.ts`, ran both Stryker runs, sorted the 15 survivors into gaps and equivalents, and wrote both tests. Before the re-run it checked that the new tests passed on the unchanged source. For two of the verdicts it read the code to confirm them: the `<button>` in `templates/shared/combomarkdowneditor.tmpl` has no `type` (so line 63 matters), and nothing in `services/gitdiff` strips `\r` (so line 68 matters). I approved the test commit after reading the tests against the ACs.
+Claude Code (claude-opus-5-5) wrote the personal config from ab-wm's pattern, chose to mutate only the two lines PR #162 changed in `repo-issue.ts`, ran the Stryker runs, sorted the 15 survivors into gaps and equivalents, and wrote both tests. Before each re-run it checked that the new tests passed on the unchanged source. For the line 63 verdict it read the code: the `<button>` in `templates/shared/combomarkdowneditor.tmpl` has no `type`, so the click would submit the form. It first called the line 68 `/[\r\n]$/` mutant a test gap, since nothing in `services/gitdiff` strips `\r`, and wrote a CRLF case for it. Gitar's review of PR #180 pointed out that the HTML parser turns CRLF into LF before any script reads the cell, so that mutant is equivalent in practice. I reclassified it and removed the CRLF case from the test. I approved the test commit after reading the tests against the ACs.
