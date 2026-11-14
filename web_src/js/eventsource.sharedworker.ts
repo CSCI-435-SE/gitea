@@ -1,8 +1,11 @@
+import {NotificationAlertTracker} from './modules/notification-alert.ts';
+
 class Source {
   url: string;
   eventSource: EventSource | null;
   listening: Record<string, boolean>;
   clients: Array<MessagePort>;
+  alertTracker = new NotificationAlertTracker<MessagePort>();
 
   constructor(url: string) {
     this.url = url;
@@ -34,6 +37,7 @@ class Source {
       return this.clients.length;
     }
     this.clients.splice(portIdx, 1);
+    this.alertTracker.removeTab(port);
     return this.clients.length;
   }
 
@@ -52,7 +56,17 @@ class Source {
         type: eventType,
         data: event.data,
       });
+      if (eventType === 'notification-count') this.alertNotificationCount(event.data);
     });
+  }
+
+  alertNotificationCount(data: string) {
+    try {
+      const alert = this.alertTracker.onCount(JSON.parse(data).Count);
+      if (alert) alert.tab.postMessage({type: 'notification-alert', count: alert.newCount});
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   notifyClients(event: {type: string, data: any}) {
@@ -112,6 +126,8 @@ const sourcesByPort = new Map<MessagePort, Source | null>();
       } else if (event.data.type === 'listen') {
         const source = sourcesByPort.get(port)!;
         source.listen(event.data.eventType);
+      } else if (event.data.type === 'notification-tab-state') {
+        sourcesByPort.get(port)?.alertTracker.setTabState(port, event.data);
       } else if (event.data.type === 'close') {
         const source = sourcesByPort.get(port);
         if (!source) return;

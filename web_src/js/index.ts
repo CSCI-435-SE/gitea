@@ -15,6 +15,7 @@ import {initAdminConfigs} from './features/admin/config.ts';
 import {initMarkupAnchors} from './markup/anchors.ts';
 import {initNotificationCount} from './features/notification.ts';
 import {initNotificationBulk} from './features/notification-bulk.ts';
+import {initNotificationDesktop} from './features/notification-desktop.ts';
 import {initNotificationGroup} from './features/notification-group.ts';
 import {initRepoIssueContentHistory} from './features/repo-issue-content.ts';
 import {initStopwatch} from './features/stopwatch.ts';
@@ -119,6 +120,7 @@ const initPerformanceTracer = callInitFunctions([
 
   initNotificationCount,
   initNotificationBulk,
+  initNotificationDesktop,
   initNotificationGroup,
 
   initOrgTeam,

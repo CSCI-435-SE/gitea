@@ -19,7 +19,10 @@ const badgeScale = badgeDrawSize / badgeIconSize;
 const badgeCenter = badgeDrawSize / 2;
 const badgeRingRadius = badgeCenter + badgeDrawSize * 0.08;
 
-let currentStatus: ActionsStatus | null = null;
+// two badges compete for the icon: an Actions run's status wins over the unread notification dot
+let actionStatus: ActionsStatus | null = null;
+let notificationDot = false;
+let notificationDotDataUrl: string | null = null;
 const defaultFaviconHrefs = new Map<HTMLLinkElement, string>();
 const faviconDataUrlCache = new Map<ActionsStatus, string>();
 let colorProbe: HTMLElement | null = null;
@@ -70,21 +73,56 @@ function setFaviconHref(href: string) {
   }
 }
 
+export function buildNotificationFaviconSvg(): string {
+  // same color as the navbar's unread count bubble
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#4183c4';
+  const cx = badgeX + badgeCenter;
+  const cy = badgeY + badgeCenter;
+  const ring = html`<circle cx="${cx}" cy="${cy}" r="${badgeRingRadius}" fill="#ffffff"/>`;
+  const dot = html`<circle data-notification-dot="" cx="${cx}" cy="${cy}" r="${badgeCenter}" fill="${color}"/>`;
+  return html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${faviconViewBox}">${htmlRaw(giteaFaviconInner)}${htmlRaw(ring)}${htmlRaw(dot)}</svg>`;
+}
+
+function buildNotificationFaviconDataUrl(): string {
+  notificationDotDataUrl ??= `data:image/svg+xml,${encodeURIComponent(buildNotificationFaviconSvg())}`;
+  return notificationDotDataUrl;
+}
+
+function restoreDefaultFavicon() {
+  rememberDefaultFaviconHrefs();
+  for (const [link, href] of defaultFaviconHrefs) {
+    if (link.isConnected) link.href = href;
+  }
+}
+
+function renderFavicon() {
+  if (actionStatus) {
+    setFaviconHref(buildStatusFaviconDataUrl(actionStatus));
+  } else if (notificationDot) {
+    setFaviconHref(buildNotificationFaviconDataUrl());
+  } else {
+    restoreDefaultFavicon();
+  }
+}
+
 export function syncActionRunFavicon(status: ActionsStatus | ''): void {
   if (status === '') {
     resetActionFavicon();
     return;
   }
-  if (status === currentStatus) return;
-  setFaviconHref(buildStatusFaviconDataUrl(status));
-  currentStatus = status;
+  if (status === actionStatus) return;
+  actionStatus = status;
+  renderFavicon();
 }
 
 export function resetActionFavicon(): void {
-  if (currentStatus === null) return;
-  rememberDefaultFaviconHrefs();
-  for (const [link, href] of defaultFaviconHrefs) {
-    if (link.isConnected) link.href = href;
-  }
-  currentStatus = null;
+  if (actionStatus === null) return;
+  actionStatus = null;
+  renderFavicon();
+}
+
+export function syncNotificationFaviconDot(show: boolean): void {
+  if (show === notificationDot) return;
+  notificationDot = show;
+  renderFavicon();
 }
