@@ -20,3 +20,7 @@ test('contrastColor', () => {
   expect(contrastColor('#807070')).toBe('#fff');
   expect(contrastColor('#84b6eb')).toBe('#000');
 });
+
+test('#181 evidence: deliberately failing test, never merged', () => {
+  expect(contrastColor('#ffffff')).toBe('#fff'); // white needs #000, so this fails
+});
