@@ -15,7 +15,7 @@ on:
 
 concurrency:
   group: cache-seeder
-  cancel-in-progress: true
+  cancel-in-progress: false # #181: a cancelled run saves nothing, so a burst of merges would never refresh the cache; a newer push only replaces the waiting run
 
 permissions:
   contents: read

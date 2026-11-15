@@ -38,9 +38,7 @@ runs:
       with:
         path: ~/.cache/go-build
         key: gobuild-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
-        restore-keys: |
-          gobuild-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}-
-          gobuild-${{ runner.os }}-${{ runner.arch }}
+        restore-keys: gobuild-${{ runner.os }}-${{ runner.arch }} # newest entry, whatever its go.sum
     - if: ${{ inputs.lint-cache == 'true' && github.workflow == 'cache-seeder' }}
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
