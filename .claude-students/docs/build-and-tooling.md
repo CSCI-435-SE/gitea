@@ -54,7 +54,9 @@ are the ones a course task actually needs.
   repository and every push to `main`, but not tag pushes or manual runs.
   Go coverage is `test-unit`'s `coverage.out`, with paths rewritten from `gitea.dev/...` to
   repository-relative ones, which SonarQube needs; TypeScript coverage is the `lcov.info` from the
-  `test-frontend-coverage` job, which runs Vitest alongside the Go unit tests.
+  `test-frontend-coverage` job, which runs Vitest alongside the Go unit tests. It fails without the
+  `SONAR_TOKEN` repository secret (set by a repository admin), or while the project's Automatic
+  Analysis is switched on.
 - **`db-tests` and `e2e-tests` run every suite on each push to `main`, on `v*-csci435-*` tags,
   and on a manual run** (Actions, Run workflow, with a `ref` input). Only pull requests skip suites
   by `files-changed`. Merges to `main` share one concurrency group: a running suite is never
@@ -63,8 +65,7 @@ are the ones a course task actually needs.
 - **`.github/workflows/cache-seeder.yml` saves the Go build cache on every push to `main`**, keyed
   by `go.sum` and the commit SHA; pull request jobs restore the newest entry
   (`.github/actions/go-cache/action.yml`). The normal and `gogit` unit-test passes are separate
-  jobs, `test-unit` and `test-unit-gogit`. It fails without the `SONAR_TOKEN` repository secret (set by a repository admin), or while the
-  project's Automatic Analysis is switched on.
+  jobs, `test-unit` and `test-unit-gogit`.
 - `make lint-md` only checks root-level `*.md`. `make lint-shell` shellchecks every tracked `.sh`,
   which includes `.claude-students/check.sh`.
 - Conventional Commits for commit messages and PR titles; add an
