@@ -2,12 +2,20 @@ name: db-tests
 
 on:
   pull_request:
-  push: # on main the database jobs are skipped; test-unit and sonarqube run so SonarQube has a main branch to compare pull requests with
-    branches: [main]
+  push:
+    branches: [main] # #181: every suite runs on every merge, docs-only ones included
+    tags: ["v*-csci435-*"] # sprint tags
+  workflow_dispatch: # run the suites against any ref, e.g. an old sprint tag
+    inputs:
+      ref:
+        description: Branch, tag or commit SHA to test
+        required: true
+        type: string
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
+  # PRs keep their per-branch group; main shares one group so a newer merge only replaces the waiting run; each tag and manual run has its own (#181)
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.head_ref || github.event_name == 'push' && github.ref == 'refs/heads/main' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -17,7 +25,7 @@ jobs:
     uses: ./.github/workflows/files-changed.yml
 
   test-pgsql-shard-1:
-    if: github.event_name == 'pull_request' && needs.files-changed.outputs.backend == 'true'
+    if: github.event_name != 'pull_request' || needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -45,6 +53,8 @@ jobs:
           - "9000:9000"
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ inputs.ref }} # empty except on workflow_dispatch
       - uses: ./.github/actions/go-setup
       - uses: ./.github/actions/pgsql-shard
         with:
@@ -53,7 +63,7 @@ jobs:
           run-migration: "true"
 
   test-pgsql-shard-2:
-    if: github.event_name == 'pull_request' && needs.files-changed.outputs.backend == 'true'
+    if: github.event_name != 'pull_request' || needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -81,6 +91,8 @@ jobs:
           - "9000:9000"
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ inputs.ref }} # empty except on workflow_dispatch
       - uses: ./.github/actions/go-setup
       - uses: ./.github/actions/pgsql-shard
         with:
@@ -88,11 +100,14 @@ jobs:
           total-shards: 2
 
   test-sqlite:
-    if: github.event_name == 'pull_request' && (needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true')
+    if: github.event_name != 'pull_request' || needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ inputs.ref }} # empty except on workflow_dispatch
       - uses: ./.github/actions/go-setup
       - run: make deps-backend
       - run: make backend
@@ -112,9 +127,10 @@ jobs:
           GOEXPERIMENT:
 
   test-unit:
-    if: github.event_name == 'push' || needs.files-changed.outputs.backend == 'true' # main always gets Go coverage
+    if: github.event_name != 'pull_request' || needs.files-changed.outputs.backend == 'true' # main always gets Go coverage
     needs: files-changed
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     services:
       elasticsearch:
         image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
@@ -154,6 +170,8 @@ jobs:
           - 10000:10000
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ inputs.ref }} # empty except on workflow_dispatch
       - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
@@ -174,6 +192,61 @@ jobs:
           name: go-coverage
           path: coverage.out
           retention-days: 1
+      - run: make test-check
+
+  test-unit-gogit: # #181: split from test-unit so the two passes run at the same time
+    if: github.event_name != 'pull_request' || needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: false
+          xpack.ml.enabled: false
+          ingest.geoip.downloader.enabled: false
+          ES_JAVA_OPTS: "-Xms1g -Xmx1g"
+        ports:
+          - "9200:9200"
+      meilisearch:
+        image: getmeili/meilisearch:v1
+        env:
+          MEILI_ENV: development # disable auth
+        ports:
+          - "7700:7700"
+      redis:
+        image: redis:latest@sha256:c904002d182255b6db3cbe3a1e8ce6c187d15390c39500b59fc07181aabff7bf
+        options: >- # wait until redis has started
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        ports:
+          - 6379:6379
+      minio:
+        image: bitnamilegacy/minio:2025.7.23
+        env:
+          MINIO_ROOT_USER: 123456
+          MINIO_ROOT_PASSWORD: 12345678
+        ports:
+          - "9000:9000"
+      devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
+        ports:
+          - 10000:10000
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ inputs.ref }} # empty except on workflow_dispatch
+      - uses: ./.github/actions/go-setup
+      - name: Add hosts to /etc/hosts
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
+      - run: make deps-backend
+      - run: make generate-go
+        env:
+          TAGS: bindata
       - name: unit-tests-gogit
         run: make test-backend
         env:
@@ -184,10 +257,29 @@ jobs:
           GITEA_TEST_CI_SKIP_EXTERNAL: true
       - run: make test-check
 
+  test-frontend-coverage: # #181: no needs, so a failing Vitest test shows up minutes into the run instead of after test-unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ inputs.ref }} # empty except on workflow_dispatch
+      - uses: ./.github/actions/node-setup
+      - run: make deps-frontend
+      - name: frontend-coverage
+        run: pnpm exec vitest run --coverage.enabled --coverage.provider=v8 --coverage.reporter=lcovonly --coverage.include='web_src/js/**' --coverage.include='tools/eslint-rules/**' # where vitest.config.ts finds tests
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-coverage
+          path: coverage/lcov.info
+          retention-days: 1
+
   test-mysql:
-    if: github.event_name == 'pull_request' && needs.files-changed.outputs.backend == 'true'
+    if: github.event_name != 'pull_request' || needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     services:
       mysql:
         # the bitnami mysql image has more options than the official one, it's easier to customize
@@ -218,6 +310,8 @@ jobs:
           - "993:993"
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ inputs.ref }} # empty except on workflow_dispatch
       - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
@@ -233,9 +327,10 @@ jobs:
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
-    if: github.event_name == 'pull_request' && needs.files-changed.outputs.backend == 'true'
+    if: github.event_name != 'pull_request' || needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     services:
       mssql:
         image: mcr.microsoft.com/mssql/server:2019-latest
@@ -251,6 +346,8 @@ jobs:
           - 10000:10000
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ inputs.ref }} # empty except on workflow_dispatch
       - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'
@@ -267,22 +364,28 @@ jobs:
 
   sonarqube:
     # runs when test-unit was skipped too, so every pull request gets a scan (without Go coverage then)
-    if: ${{ !cancelled() && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }} # forks get no SONAR_TOKEN
-    needs: test-unit
+    # #181: only PRs and main, so a tag or manual run against an old ref never replaces main's analysis
+    if: ${{ !cancelled() && (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' && github.ref == 'refs/heads/main') }} # forks get no SONAR_TOKEN
+    needs: [test-unit, test-frontend-coverage]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0 # SonarQube tells new code from old by the git history
-      - uses: ./.github/actions/node-setup
+      - uses: ./.github/actions/node-setup # the TypeScript analysis reads node_modules for types
       - run: make deps-frontend
-      - name: frontend-coverage
-        run: pnpm exec vitest run --coverage.enabled --coverage.provider=v8 --coverage.reporter=lcovonly --coverage.include='web_src/js/**' --coverage.include='tools/eslint-rules/**' # where vitest.config.ts finds tests
       - if: ${{ !cancelled() && needs.test-unit.result != 'skipped' }} # a failed step here or later in test-unit must not drop the Go coverage
         continue-on-error: true # no artifact when test-unit's first test run failed; then the scan has no Go coverage
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: go-coverage
+      - if: ${{ !cancelled() }}
+        continue-on-error: true # no artifact when Vitest wrote no report; then the scan has no TypeScript coverage
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: frontend-coverage
+          path: coverage # sonar-project.properties reads coverage/lcov.info
       - if: ${{ !cancelled() }} # scan even when the frontend tests failed, without their coverage
         uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
         env:

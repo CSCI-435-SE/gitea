@@ -2,10 +2,20 @@ name: e2e-tests
 
 on:
   pull_request:
+  push:
+    branches: [main] # #181: every suite runs on every merge, docs-only ones included
+    tags: ["v*-csci435-*"] # sprint tags
+  workflow_dispatch: # run the suites against any ref, e.g. an old sprint tag
+    inputs:
+      ref:
+        description: Branch, tag or commit SHA to test
+        required: true
+        type: string
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
+  # PRs keep their per-branch group; main shares one group so a newer merge only replaces the waiting run; each tag and manual run has its own (#181)
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.head_ref || github.event_name == 'push' && github.ref == 'refs/heads/main' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -15,11 +25,14 @@ jobs:
     uses: ./.github/workflows/files-changed.yml
 
   test-e2e:
-    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true' || needs.files-changed.outputs.e2e == 'true'
+    if: github.event_name != 'pull_request' || needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true' || needs.files-changed.outputs.e2e == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ inputs.ref }} # empty except on workflow_dispatch
       - uses: ./.github/actions/go-setup
       - uses: ./.github/actions/node-setup
       - run: make deps-frontend
