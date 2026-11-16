@@ -112,6 +112,18 @@ func TestApplySuggestion(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
 	})
 
+	t.Run("a suggestion in someone else's pending review is not found", func(t *testing.T) {
+		pending := &issues_model.Review{Type: issues_model.ReviewTypePending, ReviewerID: 4, IssueID: 3}
+		require.NoError(t, db.Insert(t.Context(), pending))
+		draft := &issues_model.Comment{
+			Type: issues_model.CommentTypeCode, IssueID: 3, PosterID: 4, ReviewID: pending.ID, TreePath: "README.md", Line: 5,
+			Patch: "@@ -4,1 +4,2 @@\n \n+And change for branch2", Content: "```suggestion\nAnd a change for branch2\n```",
+		}
+		require.NoError(t, db.Insert(t.Context(), draft))
+		ctx, _ := apply(t, 2, 3, draft.ID, branch2Head)
+		assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
+	})
+
 	t.Run("AC4 the head moved", func(t *testing.T) {
 		ctx, resp := apply(t, 2, 3, fix, masterHead)
 		refused(t, resp, ctx, "repo.diff.suggestion.head_moved")

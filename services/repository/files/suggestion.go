@@ -91,6 +91,14 @@ func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_mode
 	if len(blocks) != 1 {
 		return ErrSuggestionNotApplicable
 	}
+	// a pending review's comments are visible only to its reviewer (FetchCodeComments, the API), so for anyone
+	// else the suggestion doesn't exist; applying it would publish a draft into the branch history
+	if err := comment.LoadReview(ctx); err != nil {
+		return err
+	}
+	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && (doer == nil || comment.Review.ReviewerID != doer.ID) {
+		return ErrSuggestionNotApplicable
+	}
 
 	headCommitID, err := CanApplySuggestions(ctx, doer, pr)
 	if err != nil {

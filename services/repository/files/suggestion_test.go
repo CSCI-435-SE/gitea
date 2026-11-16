@@ -6,6 +6,7 @@ package files
 import (
 	"testing"
 
+	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
@@ -156,6 +157,24 @@ func TestApplySuggestion(t *testing.T) {
 			assert.ErrorIs(t, ApplySuggestion(t.Context(), owner, pr, c.comment(pr), c.head, ""), c.err)
 		})
 	}
+
+	t.Run("a suggestion in someone else's pending review does not exist for the doer", func(t *testing.T) {
+		pending := &issues_model.Review{Type: issues_model.ReviewTypePending, ReviewerID: 4, IssueID: 3}
+		require.NoError(t, db.Insert(t.Context(), pending))
+		pr := loadPR(t, 2)
+		c := suggest(pr, "README.md", "And change for branch2", fix)
+		c.ReviewID = pending.ID
+		assert.ErrorIs(t, ApplySuggestion(t.Context(), owner, pr, c, branch2Head, ""), ErrSuggestionNotApplicable)
+	})
+
+	t.Run("the reviewer may apply a suggestion from their own pending review", func(t *testing.T) {
+		pending := &issues_model.Review{Type: issues_model.ReviewTypePending, ReviewerID: owner.ID, IssueID: 3}
+		require.NoError(t, db.Insert(t.Context(), pending))
+		pr := loadPR(t, 2)
+		c := suggest(pr, "README.md", "And an older change for branch2", fix) // outdated, so it stops before committing
+		c.PosterID, c.ReviewID = owner.ID, pending.ID
+		assert.ErrorIs(t, ApplySuggestion(t.Context(), owner, pr, c, branch2Head, ""), ErrSuggestionOutdated)
+	})
 
 	t.Run("AC6 a protected branch", func(t *testing.T) {
 		rule := &git_model.ProtectedBranch{RepoID: repo.ID, RuleName: "branch2", CanPush: false}
