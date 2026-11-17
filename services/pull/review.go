@@ -165,6 +165,10 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		err          error
 	)
 
+	if startLine != 0 && (line <= 0 || startLine < 0 || startLine >= line) {
+		return nil, ErrCodeCommentRangeInvalid // ranges are new-side only and end after they start; checked before a pending review is created
+	}
+
 	// CreateCodeComment() is used for:
 	// - Single comments
 	// - Comments that are part of a review
@@ -255,9 +259,6 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 
 // createCodeComment creates a plain code comment at the specified line / path
 func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, treePath string, line, startLine, reviewID int64, attachments []string) (*issues_model.Comment, error) {
-	if startLine != 0 && (line <= 0 || startLine < 0 || startLine >= line) {
-		return nil, ErrCodeCommentRangeInvalid // ranges are new-side only and end after they start
-	}
 	var commitID, patch string
 	if err := issue.LoadPullRequest(ctx); err != nil {
 		return nil, fmt.Errorf("LoadPullRequest: %w", err)
