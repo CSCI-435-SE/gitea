@@ -56,6 +56,7 @@ func TestCommentSuggestionOriginalLineRange(t *testing.T) {
 		{"range longer than the stored hunk", 15, 22, patch, optional.None[string]()},
 		{"no newline at end of file marker", 21, 22, patch + "\n\\ No newline at end of file", optional.Some("l21\nl22")},
 		{"empty patch", 18, 22, "", optional.None[string]()},
+		{"start after end", 23, 22, patch, optional.None[string]()},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

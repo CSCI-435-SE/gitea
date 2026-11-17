@@ -161,8 +161,11 @@ test('suggest a change across several lines', async ({page, request}) => {
   await expect(thread.locator('.markup-suggestion-line.removed code')).toHaveText(['\tB', 'C', 'D']);
   await expect(thread.locator('.markup-suggestion-line.added code')).toHaveText(['X', 'Y']);
 
-  // AC11: old side to new side is refused with a message
+  // AC11: old side to new side is refused with a message; close AC15's toast first, error toasts never auto-close
+  await page.locator('.toastify .toast-close').click();
+  await expect(page.getByText(message)).toHaveCount(0);
   await lineNum('old', 2).click();
   await lineNum('new', 4).click({modifiers: ['Shift']});
-  await expect(page.getByText(message).last()).toBeVisible();
+  await expect(page.getByText(message)).toBeVisible();
+  await expect(page.locator('tr.range-selected')).toHaveCount(0);
 });
