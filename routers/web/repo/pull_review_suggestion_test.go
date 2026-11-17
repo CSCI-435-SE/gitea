@@ -14,11 +14,14 @@ import (
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/forms"
+	pull_service "gitea.dev/services/pull"
+	files_service "gitea.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -155,4 +158,30 @@ func TestApplySuggestion(t *testing.T) {
 		ctx, resp := apply(t, 2, 3, fix, branch2Head)
 		refused(t, resp, ctx, "repo.diff.suggestion.pull_closed")
 	})
+}
+
+// What the commit itself can refuse, which only a git hook or a race reaches, so these call the error handler
+// directly. The page shows the message with textContent, so it must be plain text (#179 review).
+func TestApplySuggestionError(t *testing.T) {
+	cases := []struct {
+		name    string
+		err     error
+		message string
+	}{
+		{"a pre-receive hook's message stays text", &git.ErrPushRejected{Message: "<b>denied</b> by policy"}, "repo.editor.push_rejected\n<b>denied</b> by policy"},
+		{"a hook rejection without a message", &git.ErrPushRejected{}, "repo.editor.push_rejected_no_message"},
+		{"AC6 a protection rule the pre-check doesn't cover, like signed commits", files_service.ErrUserCannotCommit{UserName: "user2"}, "repo.editor.cannot_commit_to_protected_branch:branch2"},
+		{"AC6 a protected file pattern", pull_service.ErrFilePathProtected{Path: "README.md"}, "repo.editor.cannot_commit_to_protected_branch:branch2"},
+		{"AC4 someone pushed while the commit was made", &git.ErrPushOutOfDate{}, "repo.diff.suggestion.head_moved"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			ctx, resp := contexttest.MockContext(t, "user2/repo1/pulls/3/files/reviews/comments/apply")
+			applySuggestionError(ctx, "branch2", c.err)
+			assert.Equal(t, http.StatusBadRequest, ctx.Resp.WrittenStatus())
+			parsed := test.ParseJSONError(resp.Body.Bytes())
+			assert.Equal(t, c.message, parsed.ErrorMessage)
+			assert.Equal(t, "text", parsed.RenderFormat)
+		})
+	}
 }

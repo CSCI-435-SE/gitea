@@ -165,6 +165,20 @@ describe('applying a suggestion', {concurrent: false}, () => {
     await vi.waitFor(() => expect(POST).toHaveBeenCalledTimes(1));
   });
 
+  test('pressing Enter again while the commit is posting sends it once', async () => {
+    const {promise, resolve: finish} = Promise.withResolvers<Response>();
+    vi.mocked(POST).mockReturnValue(promise);
+    const reload = vi.spyOn(window.location, 'reload').mockImplementation(() => {});
+    const {apply, message} = setupApply();
+    apply!.click();
+    const enter = () => message().dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}));
+    enter();
+    enter();
+    finish({ok: true} as Response);
+    await vi.waitFor(() => expect(reload).toHaveBeenCalled());
+    expect(POST).toHaveBeenCalledTimes(1);
+  });
+
   test('AC3 a refusal shows the server message next to the suggestion and keeps the form open', async () => {
     const outdated = 'This suggestion is outdated: the code changed since it was written.';
     vi.mocked(POST).mockResolvedValue({ok: false, json: () => Promise.resolve({errorMessage: outdated})} as Response);

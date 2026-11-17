@@ -12,6 +12,7 @@ import (
 	"gitea.dev/models/organization"
 	pull_model "gitea.dev/models/pull"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -163,26 +164,44 @@ func ApplySuggestion(ctx *context.Context) {
 	}
 
 	err = files_service.ApplySuggestion(ctx, ctx.Doer, issue.PullRequest, comment, form.HeadCommitID, form.Message)
+	if err != nil {
+		applySuggestionError(ctx, issue.PullRequest.HeadBranch, err)
+		return
+	}
+	ctx.JSONOK() // the page reloads to show the new commit
+}
+
+// applySuggestionError answers a refused Apply. Messages are plain text (TrString), since the page shows them
+// with textContent: hook output must never become HTML.
+func applySuggestionError(ctx *context.Context, headBranch string, err error) {
 	var errProtected files_service.ErrSuggestionProtectedBranch
+	var errPushRejected *git.ErrPushRejected
 	switch {
-	case err == nil:
-		ctx.JSONOK() // the page reloads to show the new commit
 	case errors.Is(err, files_service.ErrSuggestionNotApplicable):
 		ctx.NotFound(err)
 	case errors.Is(err, files_service.ErrSuggestionPermission):
 		ctx.HTTPError(http.StatusForbidden) // AC2
 	case errors.Is(err, files_service.ErrSuggestionPullClosed):
-		ctx.JSONError(ctx.Tr("repo.diff.suggestion.pull_closed")) // AC5
-	case errors.Is(err, files_service.ErrSuggestionHeadMoved):
-		ctx.JSONError(ctx.Tr("repo.diff.suggestion.head_moved")) // AC4
+		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.pull_closed")) // AC5
+	case errors.Is(err, files_service.ErrSuggestionHeadMoved), git.IsErrPushOutOfDate(err):
+		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.head_moved")) // AC4
 	case errors.Is(err, files_service.ErrSuggestionOutdated):
-		ctx.JSONError(ctx.Tr("repo.diff.suggestion.outdated")) // AC3
+		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.outdated")) // AC3
 	case errors.Is(err, files_service.ErrSuggestionNoChange):
-		ctx.JSONError(ctx.Tr("repo.diff.suggestion.no_change")) // AC10
+		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.no_change")) // AC10
 	case errors.As(err, &errProtected):
-		ctx.JSONError(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", errProtected.Branch)) // AC6, the web editor's message
+		ctx.JSONError(ctx.Locale.TrString("repo.editor.cannot_commit_to_protected_branch", errProtected.Branch)) // AC6, the web editor's message
+	case files_service.IsErrUserCannotCommit(err), pull_service.IsErrFilePathProtected(err):
+		// what the AC6 pre-check doesn't cover: required signed commits and protected file patterns
+		ctx.JSONError(ctx.Locale.TrString("repo.editor.cannot_commit_to_protected_branch", headBranch))
+	case errors.As(err, &errPushRejected):
+		if errPushRejected.Message == "" {
+			ctx.JSONError(ctx.Locale.TrString("repo.editor.push_rejected_no_message"))
+		} else {
+			ctx.JSONError(ctx.Locale.TrString("repo.editor.push_rejected") + "\n" + errPushRejected.Message) // a pre-receive hook
+		}
 	default:
-		editorHandleFileOperationError(ctx, issue.PullRequest.HeadBranch, err) // e.g. a pre-receive hook rejecting the push
+		ctx.ServerError("ApplySuggestion", err)
 	}
 }
 

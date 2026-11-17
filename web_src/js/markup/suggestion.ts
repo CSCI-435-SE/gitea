@@ -43,7 +43,7 @@ function addApplyButton(elMarkup: HTMLElement, diff: HTMLElement): void {
   const cancelButton = makeButton(elMarkup.getAttribute('data-suggestion-cancel-label')!, 'ui small basic button');
   form.append(inputWrapper, commitButton, cancelButton);
   const error = document.createElement('div');
-  error.className = 'markup-suggestion-apply-error tw-text-red tw-px-2 tw-pb-2 tw-hidden';
+  error.className = 'markup-suggestion-apply-error tw-text-red tw-whitespace-pre-line tw-px-2 tw-pb-2 tw-hidden'; // a hook's message has lines
   diff.append(form, error);
 
   applyButton.addEventListener('click', () => {
@@ -56,6 +56,7 @@ function addApplyButton(elMarkup: HTMLElement, diff: HTMLElement): void {
     showElem(applyButton);
   });
   const submit = async () => {
+    if (commitButton.disabled) return; // a second Enter while the first commit is still posting
     commitButton.disabled = true;
     hideElem(error);
     const data = new FormData();

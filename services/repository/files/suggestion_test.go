@@ -4,6 +4,7 @@
 package files
 
 import (
+	"strings"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -55,11 +56,51 @@ func TestApplySuggestionToContent(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			result, err := applySuggestionToContent(c.content, c.line, c.original, c.suggestion)
+			result, err := applySuggestionToContent(c.content, c.line, nil, c.original, c.suggestion)
 			assert.ErrorIs(t, err, c.err)
 			assert.Equal(t, c.expected, result)
 		})
 	}
+
+	// AC3 with the lines the reviewer saw above the commented one, as #179's review asked
+	moved := []struct {
+		name     string
+		content  string
+		line     int
+		above    []string
+		original string
+		expected string
+		err      error
+	}{
+		{"AC1 the lines above still match", "a\nb\nc\n", 3, []string{"a", "b"}, "c", "a\nb\nC\n", nil},
+		{"AC1 the lines above match in a CRLF file", "a\r\nb\r\n", 2, []string{"a\r"}, "b\r", "a\r\nB\r\n", nil},
+		// a "}" reviewed on line 4, below "b"; two lines pushed above it put the "}" below "a" on line 4
+		{"AC3 the line moved onto an identical one", "x\ny\na\n}\nb\n}\n", 4, []string{"b"}, "}", "", ErrSuggestionOutdated},
+		{"AC3 a line above changed", "a\nB\nc\n", 3, []string{"a", "b"}, "c", "", ErrSuggestionOutdated},
+		{"AC3 the line moved too near the top for its lines above", "b\nc\n", 1, []string{"a"}, "b", "", ErrSuggestionOutdated},
+	}
+	for _, c := range moved {
+		t.Run(c.name, func(t *testing.T) {
+			result, err := applySuggestionToContent(c.content, c.line, c.above, c.original, strings.ToUpper(strings.TrimSuffix(c.original, "\r"))+"\n")
+			assert.ErrorIs(t, err, c.err)
+			assert.Equal(t, c.expected, result)
+		})
+	}
+}
+
+func TestSuggestionCommitMessage(t *testing.T) {
+	reviewer := &user_model.User{ID: 5, Name: "ana", Email: "ana@example.com"}
+	doer := &user_model.User{ID: 2, Name: "bo", Email: "bo@example.com"}
+	comment := func(poster *user_model.User) *issues_model.Comment {
+		return &issues_model.Comment{PosterID: poster.ID, Poster: poster, TreePath: "main.go"}
+	}
+
+	// AC1, and #156 Decision 3's default for customer question 1: the reviewer is credited as a co-author
+	assert.Equal(t, "Apply suggestion from @ana on main.go\n\nCo-authored-by: ana <ana@example.com>", suggestionCommitMessage(comment(reviewer), doer, ""))
+	assert.Equal(t, "Use err\n\nCo-authored-by: ana <ana@example.com>", suggestionCommitMessage(comment(reviewer), doer, "Use err\n"))
+	// nobody to credit: the doer's own suggestion, or a reviewer whose account was deleted (#179 review)
+	assert.Equal(t, "Apply suggestion from @bo on main.go", suggestionCommitMessage(comment(doer), doer, "  "))
+	assert.Equal(t, "Use err", suggestionCommitMessage(comment(user_model.NewGhostUser()), doer, "Use err"))
 }
 
 // The checks before the commit (#156), against fixture pull request 2: user2/repo1, head branch2, whose README.md
@@ -98,6 +139,9 @@ func TestApplySuggestion(t *testing.T) {
 	}{
 		{"AC2 signed out", nil, nil, ErrSuggestionPermission},
 		{"AC2 cannot push", reader, nil, ErrSuggestionPermission},
+		{"AC2 nobody can push to an archived head repository", owner, func(pr *issues_model.PullRequest) {
+			pr.HeadRepo = &repo_model.Repository{ID: repo.ID, OwnerID: repo.OwnerID, Name: repo.Name, IsArchived: true}
+		}, ErrSuggestionPermission},
 		{"AC5 closed", owner, func(pr *issues_model.PullRequest) { pr.Issue.IsClosed = true }, ErrSuggestionPullClosed},
 		{"AC5 merged", owner, func(pr *issues_model.PullRequest) { pr.HasMerged = true }, ErrSuggestionPullClosed},
 		{"AC5 AGit flow", owner, func(pr *issues_model.PullRequest) { pr.Flow = issues_model.PullRequestFlowAGit }, ErrSuggestionPullClosed},
@@ -146,6 +190,16 @@ func TestApplySuggestion(t *testing.T) {
 		}, branch2Head, ErrSuggestionOutdated},
 		{"AC3 the line changed", func(pr *issues_model.PullRequest) *issues_model.Comment {
 			return suggest(pr, "README.md", "And an older change for branch2", fix)
+		}, branch2Head, ErrSuggestionOutdated},
+		{"AC3 the line reads the same but the line above it changed", func(pr *issues_model.PullRequest) *issues_model.Comment {
+			c := suggest(pr, "README.md", "And change for branch2", fix)
+			c.Patch = "@@ -4,1 +4,2 @@\n Not a blank line\n+And change for branch2" // line 4 at branch2 is blank
+			return c
+		}, branch2Head, ErrSuggestionOutdated},
+		{"AC3 a comment marked outdated", func(pr *issues_model.PullRequest) *issues_model.Comment {
+			c := suggest(pr, "README.md", "And change for branch2", fix)
+			c.Invalidated = true
+			return c
 		}, branch2Head, ErrSuggestionOutdated},
 		{"AC10 the suggestion is the line as it is", func(pr *issues_model.PullRequest) *issues_model.Comment {
 			return suggest(pr, "README.md", "And change for branch2", "```suggestion\nAnd change for branch2\n```")

@@ -41,6 +41,30 @@ func TestCommentSuggestionOriginalLine(t *testing.T) {
 	}
 }
 
+func TestCommentSuggestionContextLines(t *testing.T) {
+	const header = "diff --git a/main.go b/main.go\n--- a/main.go\n+++ b/main.go\n@@ -1,3 +1,4 @@\n"
+	cases := []struct {
+		name     string
+		line     int64
+		patch    string
+		expected []string
+	}{
+		{"context and added lines above, in order", 4, header + " package main\n+import \"fmt\"\n \n+func main() {}", []string{"package main", "import \"fmt\"", ""}},
+		{"removed lines are the old side", 3, header + " package main\n-\treturn nil\n+\treturn err\n+}", []string{"package main", "\treturn err"}},
+		{"no newline marker is skipped", 2, header + " a\n\\ No newline at end of file\n+b", []string{"a"}},
+		{"first line of the hunk has nothing above", 1, header + "+package main", nil},
+		{"CRLF kept", 2, header + " a\r\n+b\r", []string{"a\r"}},
+		{"old side is not supported", -2, header + " package main\n-\treturn nil", nil},
+		{"no hunk header", 2, " a\n+b", nil},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			comment := &issues_model.Comment{Type: issues_model.CommentTypeCode, Line: c.line, Patch: c.patch}
+			assert.Equal(t, c.expected, comment.SuggestionContextLines())
+		})
+	}
+}
+
 func TestCommentSuggestionBlocks(t *testing.T) {
 	cases := []struct {
 		name     string

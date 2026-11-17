@@ -60,6 +60,9 @@ func CanApplySuggestions(ctx context.Context, doer *user_model.User, pr *issues_
 	if pr.HeadRepo == nil {
 		return "", ErrSuggestionPullClosed // the fork was deleted
 	}
+	if pr.HeadRepo.IsArchived {
+		return "", ErrSuggestionPermission // nobody may push to an archived fork; the route only checks the base repo
+	}
 	headPerm, err := access_model.GetDoerRepoPermission(ctx, pr.HeadRepo, doer)
 	if err != nil {
 		return "", err
@@ -124,6 +127,10 @@ func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_mode
 		}
 	}
 
+	if comment.Invalidated {
+		return ErrSuggestionOutdated // the page hides Apply on outdated comments, but a page loaded earlier may still post
+	}
+
 	headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
 	if err != nil {
 		return err
@@ -143,7 +150,7 @@ func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_mode
 	if err != nil {
 		return err
 	}
-	newContent, err := applySuggestionToContent(content, int(comment.Line), original.Value(), blocks[0])
+	newContent, err := applySuggestionToContent(content, int(comment.Line), comment.SuggestionContextLines(), original.Value(), blocks[0])
 	if err != nil {
 		return err
 	}
@@ -151,20 +158,11 @@ func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_mode
 	if err := comment.LoadPoster(ctx); err != nil {
 		return err
 	}
-	if strings.TrimSpace(message) == "" {
-		message = comment.SuggestionCommitMessage()
-	}
-	// customer question 1 on #151 is open; the spec's default: the doer authors and commits, the reviewer is credited
-	if comment.Poster.ID != doer.ID {
-		sig := comment.Poster.NewGitSig()
-		message = fmt.Sprintf("%s\n\n%s: %s <%s>", strings.TrimRight(message, "\n"), git.CoAuthoredByTrailer, sig.Name, sig.Email)
-	}
-
 	_, err = ChangeRepoFiles(ctx, pr.HeadRepo, doer, &ChangeRepoFilesOptions{
 		LastCommitID: expectedHeadSHA,
 		OldBranch:    pr.HeadBranch,
 		NewBranch:    pr.HeadBranch,
-		Message:      message,
+		Message:      suggestionCommitMessage(comment, doer, message),
 		Files: []*ChangeRepoFile{{
 			Operation:     "update",
 			TreePath:      comment.TreePath,
@@ -178,17 +176,38 @@ func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_mode
 	return err
 }
 
+// suggestionCommitMessage is the doer's message, or the default, crediting the reviewer (#156 AC1).
+// The comment's poster must be loaded.
+func suggestionCommitMessage(comment *issues_model.Comment, doer *user_model.User, message string) string {
+	if strings.TrimSpace(message) == "" {
+		message = comment.SuggestionCommitMessage()
+	}
+	// customer question 1 on #151 is open; the spec's default: the doer authors and commits, the reviewer is credited
+	if comment.Poster.ID == doer.ID || comment.Poster.IsGhost() { // a deleted reviewer has no address to credit
+		return message
+	}
+	sig := comment.Poster.NewGitSig()
+	return fmt.Sprintf("%s\n\n%s: %s <%s>", strings.TrimRight(message, "\n"), git.CoAuthoredByTrailer, sig.Name, sig.Email)
+}
+
 // applySuggestionToContent replaces line lineNum (1-based) of content with the suggestion's lines, the way
 // #154 draws the diff: "" deletes the line, "\n" leaves one blank line, otherwise one line per suggestion line.
-// original is the line the suggestion was written against; content and original may use CRLF.
-func applySuggestionToContent(content string, lineNum int, original, suggestion string) (string, error) {
+// original is the line the suggestion was written against, and above the lines the reviewer saw right above it;
+// content and both of those may use CRLF.
+func applySuggestionToContent(content string, lineNum int, above []string, original, suggestion string) (string, error) {
 	lines := strings.SplitAfter(content, "\n") // every element but the last keeps its "\n"
 	if lines[len(lines)-1] == "" {
 		lines = lines[:len(lines)-1] // content ended with a newline
 	}
 	idx := lineNum - 1
-	if idx < 0 || idx >= len(lines) {
+	if idx < len(above) || idx >= len(lines) { // also refuses lineNum < 1, and a line that moved too near the top
 		return "", ErrSuggestionOutdated
+	}
+	// blame-based invalidation misses a line that moved onto an identical one, like another "}"; its neighbours don't
+	for i, want := range above {
+		if strings.TrimSuffix(strings.TrimSuffix(lines[idx-len(above)+i], "\n"), "\r") != strings.TrimSuffix(want, "\r") {
+			return "", ErrSuggestionOutdated
+		}
 	}
 
 	target := lines[idx]
