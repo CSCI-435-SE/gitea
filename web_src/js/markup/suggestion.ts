@@ -1,5 +1,6 @@
 import {queryElems, hideElem, showElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
+import {showErrorToast} from '../modules/toast.ts';
 
 function makeLine(kind: 'removed' | 'added', text: string): HTMLElement {
   const row = document.createElement('div');
@@ -21,14 +22,33 @@ function makeButton(text: string, className: string): HTMLButtonElement {
   return button;
 }
 
-// Adds Apply to the suggestion's header (#156). The server only sets data-suggestion-apply-url when this viewer
-// may push to the head branch and the comment is not outdated; it checks everything again on submit.
-function addApplyButton(elMarkup: HTMLElement, diff: HTMLElement): void {
+// Posts an Apply and reloads the page to show the new commit; if it is refused, returns the message to show
+async function postApply(url: string, data: FormData): Promise<string> {
+  let errorMessage = window.config.i18n.error_occurred; // e.g. a 403, which has no message of ours
+  try {
+    const response = await POST(url, {data});
+    if (response.ok) {
+      window.location.reload(); // shows the new commit and the updated diff
+      return '';
+    }
+    const json = await response.json();
+    if (json.errorMessage) errorMessage = json.errorMessage;
+  } catch {} // a network error or a body that isn't JSON keeps the generic message
+  return errorMessage;
+}
+
+// Adds Apply to the suggestion's header (#156) and returns the header's button group. The server only sets
+// data-suggestion-apply-url when this viewer may push to the head branch and the comment is not outdated; it
+// checks everything again on submit.
+function addApplyButton(elMarkup: HTMLElement, diff: HTMLElement): HTMLElement {
   const url = elMarkup.getAttribute('data-suggestion-apply-url')!;
   const header = diff.querySelector('.markup-suggestion-header')!;
   header.classList.add('tw-flex', 'tw-items-center', 'tw-justify-between');
+  const buttons = document.createElement('div');
+  buttons.className = 'tw-flex tw-gap-1';
   const applyButton = makeButton(elMarkup.getAttribute('data-suggestion-apply-label')!, 'ui mini basic button markup-suggestion-apply');
-  header.append(applyButton);
+  buttons.append(applyButton);
+  header.append(buttons);
 
   const form = document.createElement('div');
   form.className = 'markup-suggestion-apply-form tw-flex tw-items-center tw-gap-2 tw-p-2 tw-hidden';
@@ -62,16 +82,8 @@ function addApplyButton(elMarkup: HTMLElement, diff: HTMLElement): void {
     const data = new FormData();
     data.append('head_commit_id', elMarkup.getAttribute('data-suggestion-apply-head')!);
     data.append('message', message.value);
-    let errorMessage = window.config.i18n.error_occurred; // e.g. a 403, which has no message of ours
-    try {
-      const response = await POST(url, {data});
-      if (response.ok) {
-        window.location.reload(); // shows the new commit and the updated diff
-        return;
-      }
-      const json = await response.json();
-      if (json.errorMessage) errorMessage = json.errorMessage;
-    } catch {} // a network error or a body that isn't JSON keeps the generic message
+    const errorMessage = await postApply(url, data);
+    if (!errorMessage) return;
     // the outdated, moved-branch and protected-branch messages (AC3, AC4, AC6) stay next to the suggestion
     error.textContent = errorMessage;
     showElem(error);
@@ -83,6 +95,93 @@ function addApplyButton(elMarkup: HTMLElement, diff: HTMLElement): void {
       e.preventDefault();
       await submit();
     }
+  });
+  return buttons;
+}
+
+// The suggestions picked to apply together (#159). The batch lives only in this page, so a reload empties it (AC4).
+type BatchItem = {id: string, path: string, start: number, end: number, message: string};
+const batch = new Map<string, BatchItem>();
+let batchBar: {el: HTMLElement, count: HTMLElement, message: HTMLInputElement, edited: boolean} | null = null;
+
+// The default message matches ApplySuggestions' on the server, and is the suggestion's own for one (AC1, AC11)
+function batchMessage(): string {
+  if (batch.size === 1) return batch.values().next().value!.message;
+  return `Apply ${batch.size} suggestions from code review`;
+}
+
+// Shows the bar while the batch has suggestions and removes it when it is empty (AC12)
+function updateBatchBar(elMarkup: HTMLElement): void {
+  if (batch.size === 0) {
+    batchBar?.el.remove();
+    batchBar = null;
+    return;
+  }
+  if (!batchBar) {
+    const attr = (name: string) => elMarkup.getAttribute(`data-suggestion-${name}`)!;
+    const el = document.createElement('div');
+    el.className = 'markup-suggestion-batch-bar ui segment tw-fixed tw-bottom-0 tw-inset-x-0 tw-z-50 tw-m-0 tw-flex tw-flex-wrap tw-items-center tw-gap-2';
+    const count = document.createElement('span');
+    const inputWrapper = document.createElement('div');
+    inputWrapper.className = 'ui small input tw-flex-1';
+    const message = document.createElement('input');
+    message.type = 'text';
+    message.setAttribute('aria-label', attr('message-label'));
+    inputWrapper.append(message);
+    const applyButton = makeButton(attr('batch-apply-label'), 'ui small primary button');
+    const error = document.createElement('div');
+    error.className = 'markup-suggestion-batch-error tw-w-full tw-text-red tw-whitespace-pre-line tw-hidden';
+    el.append(count, inputWrapper, applyButton, error);
+    document.body.append(el);
+    const bar = {el, count, message, edited: false};
+    batchBar = bar;
+    message.addEventListener('input', () => { bar.edited = true });
+    applyButton.addEventListener('click', async () => {
+      applyButton.disabled = true;
+      hideElem(error);
+      const data = new FormData();
+      for (const id of batch.keys()) data.append('comment_ids', id);
+      data.append('head_commit_id', attr('apply-head'));
+      data.append('message', message.value);
+      const errorMessage = await postApply(attr('batch-url'), data);
+      if (!errorMessage) return;
+      error.textContent = errorMessage; // e.g. the outdated suggestion, named (AC3)
+      showElem(error);
+      applyButton.disabled = false;
+    });
+  }
+  batchBar.count.textContent = `${batch.size} ${elMarkup.getAttribute('data-suggestion-batch-selected-label')}`;
+  if (!batchBar.edited) batchBar.message.value = batchMessage();
+}
+
+// Adds Add to batch / Remove from batch next to Apply (#159)
+function addBatchToggle(elMarkup: HTMLElement, buttons: HTMLElement): void {
+  const attr = (name: string) => elMarkup.getAttribute(`data-suggestion-${name}`)!;
+  const end = Number(attr('line'));
+  const item: BatchItem = {
+    id: attr('id'),
+    path: attr('path'),
+    start: end - attr('original').split('\n').length + 1, // a range's original holds one line per "\n"
+    end,
+    message: attr('apply-message'),
+  };
+  // a comment re-rendered after an edit (#154 AC8) may already be in the batch
+  const toggle = makeButton(attr(batch.has(item.id) ? 'batch-remove-label' : 'batch-add-label'), 'ui mini basic button markup-suggestion-batch');
+  buttons.append(toggle);
+  toggle.addEventListener('click', () => {
+    if (batch.has(item.id)) {
+      batch.delete(item.id);
+    } else if (batch.size >= Number(attr('batch-max'))) {
+      showErrorToast(attr('batch-too-large')); // AC14
+      return;
+    } else if (batch.values().some((other) => other.path === item.path && other.start <= item.end && item.start <= other.end)) {
+      showErrorToast(attr('batch-overlap')); // AC2
+      return;
+    } else {
+      batch.set(item.id, item);
+    }
+    toggle.textContent = attr(batch.has(item.id) ? 'batch-remove-label' : 'batch-add-label'); // so it can't be added twice (AC13)
+    updateBatchBar(elMarkup);
   });
 }
 
@@ -111,6 +210,8 @@ export function initMarkupCodeSuggestion(elMarkup: HTMLElement): void {
     block.replaceWith(diff);
     diffs.push(diff);
   });
-  // a comment with several suggestions has no Apply (#156 AC7; applying several at once is S6)
-  if (diffs.length === 1 && elMarkup.hasAttribute('data-suggestion-apply-url')) addApplyButton(elMarkup, diffs[0]);
+  // a comment with several suggestions has no Apply (#156 AC7), and so can't join a batch either
+  if (diffs.length === 1 && elMarkup.hasAttribute('data-suggestion-apply-url')) {
+    addBatchToggle(elMarkup, addApplyButton(elMarkup, diffs[0]));
+  }
 }

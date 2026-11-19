@@ -1,7 +1,7 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import type {Locator, Page} from '@playwright/test';
-import {apiCreateFile, apiCreatePR, apiCreateRepo, apiHeaders, baseUrl, login, randomString} from './utils.ts';
+import {apiCreateFile, apiCreatePR, apiCreateRepo, apiCreateReview, apiHeaders, baseUrl, login, randomString} from './utils.ts';
 
 const owner = env.GITEA_TEST_E2E_USER;
 const base64 = (s: string) => Buffer.from(s, 'utf8').toString('base64');
@@ -168,4 +168,33 @@ test('suggest a change across several lines', async ({page, request}) => {
   await lineNum('new', 4).click({modifiers: ['Shift']});
   await expect(page.getByText(message)).toBeVisible();
   await expect(page.locator('tr.range-selected')).toHaveCount(0);
+});
+
+// #159 AC4: a batch lives only in the page, so a reload empties it
+test('a batch of suggestions is gone after a reload', async ({page, request}) => {
+  const repo = `e2e-batch-${randomString(8)}`;
+  await apiCreateRepo(request, {name: repo});
+  await apiCreateFile(request, owner, repo, 'a.txt', 'one\ntwo\nthree\n');
+  expect((await request.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents`, {
+    headers: apiHeaders(),
+    data: {new_branch: 'feat', files: [{operation: 'upload', path: 'a.txt', content: base64('one\nTWO\nTHREE\n')}]},
+  })).ok()).toBe(true);
+  const index = await apiCreatePR(request, owner, repo, 'feat', 'main', 'batch');
+  await apiCreateReview(request, owner, repo, index, {comments: [
+    {path: 'a.txt', new_position: 2, body: '```suggestion\n2\n```'},
+    {path: 'a.txt', new_position: 3, body: '```suggestion\n3\n```'},
+  ]});
+  await login(page);
+  await page.goto(`/${owner}/${repo}/pulls/${index}/files`);
+
+  const bar = page.locator('.markup-suggestion-batch-bar');
+  await expect(page.getByRole('button', {name: 'Add to batch'})).toHaveCount(2);
+  await page.getByRole('button', {name: 'Add to batch'}).first().click();
+  await page.getByRole('button', {name: 'Add to batch'}).first().click(); // the first one now reads Remove from batch
+  await expect(bar).toContainText('2 suggestions selected');
+
+  await page.reload();
+  await expect(page.getByRole('button', {name: 'Add to batch'})).toHaveCount(2);
+  await expect(page.getByRole('button', {name: 'Remove from batch'})).toHaveCount(0);
+  await expect(bar).toHaveCount(0);
 });

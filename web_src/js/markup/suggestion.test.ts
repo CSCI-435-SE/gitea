@@ -1,8 +1,13 @@
 import {initMarkupCodeSuggestion} from './suggestion.ts';
 import {POST} from '../modules/fetch.ts';
+import {showErrorToast} from '../modules/toast.ts';
 
 vi.mock('../modules/fetch.ts', () => ({
   POST: vi.fn(),
+}));
+
+vi.mock('../modules/toast.ts', () => ({
+  showErrorToast: vi.fn(),
 }));
 
 function makeMarkup(attrs: Record<string, string>, body: string): HTMLElement {
@@ -226,5 +231,138 @@ describe('applying a suggestion', {concurrent: false}, () => {
     expect(visible('.markup-suggestion-apply-form')).toBe(false);
     expect(visible('.markup-suggestion-apply')).toBe(true);
     expect(POST).not.toHaveBeenCalled();
+  });
+});
+
+// what the server adds next to Apply's attributes (#159)
+function batchAttrs(id: number, path: string, line: number, message = `Apply suggestion from @ana on ${path}`) {
+  return {
+    ...applyAttrs,
+    'data-suggestion-apply-url': `/user2/repo/pulls/1/files/reviews/comments/${id}/apply`,
+    'data-suggestion-apply-message': message,
+    'data-suggestion-id': String(id),
+    'data-suggestion-path': path,
+    'data-suggestion-line': String(line),
+    'data-suggestion-batch-url': '/user2/repo/pulls/1/files/reviews/comments/apply',
+    'data-suggestion-batch-max': '50',
+    'data-suggestion-batch-add-label': 'Add to batch',
+    'data-suggestion-batch-remove-label': 'Remove from batch',
+    'data-suggestion-batch-selected-label': 'suggestions selected',
+    'data-suggestion-batch-apply-label': 'Apply suggestions',
+    'data-suggestion-batch-too-large': 'A batch can hold at most 50 suggestions.',
+    'data-suggestion-batch-overlap': 'This suggestion overlaps another suggestion in this batch.',
+  };
+}
+
+describe('applying several suggestions in one commit', {concurrent: false}, () => {
+  const toggles: HTMLButtonElement[] = [];
+  function suggestion(id: number, path: string, line: number, message?: string): HTMLButtonElement {
+    const el = makeMarkup(batchAttrs(id, path, line, message), codeBlock('x\n'));
+    initMarkupCodeSuggestion(el);
+    const toggle = el.querySelector<HTMLButtonElement>('.markup-suggestion-batch')!;
+    toggles.push(toggle);
+    return toggle;
+  }
+  const bar = () => document.querySelector('.markup-suggestion-batch-bar');
+  const barMessage = () => bar()!.querySelector('input')!.value;
+
+  afterEach(() => {
+    for (const toggle of toggles) {
+      if (toggle.textContent === 'Remove from batch') toggle.click(); // the batch is module state
+    }
+    toggles.length = 0;
+    vi.mocked(POST).mockReset();
+    vi.mocked(showErrorToast).mockReset();
+    vi.restoreAllMocks();
+  });
+
+  test('AC13 Add to batch becomes Remove from batch; AC12 the bar shows the count and goes when the batch is empty', () => {
+    const first = suggestion(1, 'main.go', 2);
+    const second = suggestion(2, 'main.go', 5);
+    expect(first.textContent).toEqual('Add to batch');
+    expect(bar()).toBeNull();
+    first.click();
+    second.click();
+    expect(first.textContent).toEqual('Remove from batch');
+    expect(bar()!.textContent).toContain('2 suggestions selected');
+    first.click();
+    expect(first.textContent).toEqual('Add to batch');
+    expect(bar()!.textContent).toContain('1 suggestions selected');
+    second.click();
+    expect(bar()).toBeNull();
+  });
+
+  test('AC1 AC11 the message is the suggestion\'s own for one, "Apply N suggestions from code review" for more, and an edit is kept', () => {
+    const first = suggestion(1, 'main.go', 2, 'Apply suggestion from @ana on main.go');
+    const second = suggestion(2, 'util.go', 2);
+    first.click();
+    expect(barMessage()).toEqual('Apply suggestion from @ana on main.go');
+    second.click();
+    expect(barMessage()).toEqual('Apply 2 suggestions from code review');
+    const input = bar()!.querySelector('input')!;
+    input.value = 'Tidy up';
+    input.dispatchEvent(new Event('input'));
+    second.click();
+    expect(barMessage()).toEqual('Tidy up');
+  });
+
+  test('AC2 a suggestion on a line already in the batch is refused; other lines and files are not', () => {
+    const first = suggestion(1, 'main.go', 3);
+    const sameLine = suggestion(2, 'main.go', 3);
+    const nextLine = suggestion(3, 'main.go', 4);
+    const otherFile = suggestion(4, 'util.go', 3);
+    first.click();
+    sameLine.click();
+    expect(showErrorToast).toHaveBeenCalledWith('This suggestion overlaps another suggestion in this batch.');
+    expect(sameLine.textContent).toEqual('Add to batch');
+    nextLine.click();
+    otherFile.click();
+    expect(showErrorToast).toHaveBeenCalledTimes(1);
+    expect(bar()!.textContent).toContain('3 suggestions selected');
+  });
+
+  test('a comment re-rendered after an edit keeps showing that it is in the batch', () => {
+    const first = suggestion(1, 'main.go', 2);
+    first.click();
+    toggles.splice(toggles.indexOf(first), 1); // the edit replaces this toggle, so cleanup must not click it
+    const again = suggestion(1, 'main.go', 2); // #154 AC8 re-renders an edited comment
+    expect(again.textContent).toEqual('Remove from batch');
+    again.click();
+    expect(bar()).toBeNull();
+  });
+
+  test('AC14 the 51st suggestion is refused', () => {
+    for (let i = 1; i <= 50; i++) suggestion(i, 'main.go', i).click();
+    const extra = suggestion(51, 'main.go', 51);
+    extra.click();
+    expect(showErrorToast).toHaveBeenCalledWith('A batch can hold at most 50 suggestions.');
+    expect(extra.textContent).toEqual('Add to batch');
+    expect(bar()!.textContent).toContain('50 suggestions selected');
+  });
+
+  test('AC1 Apply posts every suggestion, the head and the message, then reloads the page', async () => {
+    vi.mocked(POST).mockResolvedValue({ok: true} as Response);
+    const reload = vi.spyOn(window.location, 'reload').mockImplementation(() => {});
+    suggestion(7, 'main.go', 2).click();
+    suggestion(9, 'util.go', 4).click();
+    Array.from(bar()!.querySelectorAll('button')).find((b) => b.textContent === 'Apply suggestions')!.click();
+    await vi.waitFor(() => expect(reload).toHaveBeenCalled());
+    const [url, opts] = vi.mocked(POST).mock.calls[0];
+    expect(url).toEqual('/user2/repo/pulls/1/files/reviews/comments/apply');
+    const data = opts!.data as FormData;
+    expect(data.getAll('comment_ids')).toEqual(['7', '9']);
+    expect(data.get('head_commit_id')).toEqual('abc123');
+    expect(data.get('message')).toEqual('Apply 2 suggestions from code review');
+  });
+
+  test('AC3 a refusal shows the server message in the bar', async () => {
+    const outdated = 'This suggestion is outdated: the code changed since it was written. (util.go:4)';
+    vi.mocked(POST).mockResolvedValue({ok: false, json: () => Promise.resolve({errorMessage: outdated})} as Response);
+    suggestion(7, 'main.go', 2).click();
+    suggestion(9, 'util.go', 4).click();
+    const apply = Array.from(bar()!.querySelectorAll('button')).find((b) => b.textContent === 'Apply suggestions')!;
+    apply.click();
+    await vi.waitFor(() => expect(bar()!.querySelector('.markup-suggestion-batch-error')!.textContent).toEqual(outdated));
+    expect(apply.disabled).toBe(false);
   });
 });
