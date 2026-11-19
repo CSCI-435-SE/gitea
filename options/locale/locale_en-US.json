@@ -2716,6 +2716,8 @@
   "repo.diff.suggestion.head_moved": "This branch has new commits since the page was loaded. Reload the page and try again.",
   "repo.diff.suggestion.pull_closed": "Suggestions can only be applied to an open pull request whose branch still exists.",
   "repo.diff.suggestion.no_change": "This suggestion makes no changes to the code.",
+  "repo.diff.suggestion.already_applied": "This suggestion has already been applied.",
+  "repo.diff.suggestion.applied": "Applied by %[1]s in %[2]s",
   "repo.diff.comment.start_review": "Start review",
   "repo.diff.comment.reply": "Reply",
   "repo.diff.comment.suggest_change": "Suggest change",

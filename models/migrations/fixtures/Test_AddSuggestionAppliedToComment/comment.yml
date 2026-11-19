@@ -1,0 +1,31 @@
+# a plain comment, a code comment with a suggestion, and an outdated code comment
+-
+  id: 1
+  type: 0
+  poster_id: 1
+  issue_id: 1
+  content: looks good
+  created_unix: 946684800
+  updated_unix: 946684800
+-
+  id: 2
+  type: 21
+  poster_id: 2
+  issue_id: 2
+  tree_path: README.md
+  line: 4
+  content: "```suggestion\nfoo\n```"
+  invalidated: false
+  created_unix: 946684800
+  updated_unix: 946684800
+-
+  id: 3
+  type: 21
+  poster_id: 2
+  issue_id: 2
+  tree_path: README.md
+  line: 7
+  content: "```suggestion\nbar\n```"
+  invalidated: true
+  created_unix: 946684800
+  updated_unix: 946684800

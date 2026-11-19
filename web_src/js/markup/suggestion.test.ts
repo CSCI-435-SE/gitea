@@ -212,3 +212,49 @@ describe('applying a suggestion', {concurrent: false}, () => {
     expect(POST).not.toHaveBeenCalled();
   });
 });
+
+// what the server renders beside the comment body once its suggestion was applied (#157)
+const appliedMarker = '<template class="markup-suggestion-applied"><span class="markup-suggestion-applied-text">Applied by <a href="/ben">ben</a> in <a href="/user2/repo/commit/a1b2c3d4e5f6"><code>a1b2c3d4e5</code></a></span></template>';
+
+function withAppliedMarker(el: HTMLElement): HTMLElement {
+  const parent = document.createElement('div');
+  parent.append(el);
+  parent.insertAdjacentHTML('beforeend', appliedMarker);
+  return el;
+}
+
+describe('an applied suggestion', () => {
+  test('#157 AC1 shows who applied it and the commit in the header, with no Apply', () => {
+    const el = withAppliedMarker(makeMarkup(applyAttrs, codeBlock('\treturn nil\n')));
+    initMarkupCodeSuggestion(el);
+    const marker = el.querySelector('.markup-suggestion-header .markup-suggestion-applied-text')!;
+    expect(marker.textContent).toEqual('Applied by ben in a1b2c3d4e5');
+    expect(marker.querySelector('a[href="/user2/repo/commit/a1b2c3d4e5f6"]')).not.toBeNull();
+    expect(el.querySelector('.markup-suggestion-apply')).toBeNull();
+  });
+
+  test('#157 AC9 the marker comes back when an edit re-renders the comment', () => {
+    const el = withAppliedMarker(makeMarkup(attrs, codeBlock('\treturn nil\n')));
+    initMarkupCodeSuggestion(el);
+    // like repo-issue-edit.ts: a shallow clone keeps the attributes, the new content replaces the old
+    const edited = el.cloneNode(false) as HTMLElement;
+    edited.innerHTML = codeBlock('\treturn nil // edited\n');
+    el.replaceWith(edited);
+    initMarkupCodeSuggestion(edited);
+    expect(edited.querySelectorAll('.markup-suggestion-applied-text')).toHaveLength(1);
+  });
+
+  test('#157 AC9 an edit that adds a second suggestion keeps the marker on the first', () => {
+    const el = withAppliedMarker(makeMarkup(attrs, codeBlock('a\n') + codeBlock('b\n')));
+    initMarkupCodeSuggestion(el);
+    const diffs = el.querySelectorAll('.markup-suggestion');
+    expect(diffs[0].querySelector('.markup-suggestion-applied-text')).not.toBeNull();
+    expect(diffs[1].querySelector('.markup-suggestion-applied-text')).toBeNull();
+  });
+
+  test('a suggestion that was not applied has no marker', () => {
+    const el = makeMarkup(attrs, codeBlock('\treturn nil\n'));
+    initMarkupCodeSuggestion(el);
+    expect(el.querySelector('.markup-suggestion-applied-text')).toBeNull();
+  });
+});

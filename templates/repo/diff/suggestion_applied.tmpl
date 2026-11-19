@@ -1,0 +1,18 @@
+{{/* The "Applied by @user in <commit>" marker of an applied suggestion (#157), which suggestion.ts moves into the
+suggestion's header. It sits beside the comment body, not in it, so it survives an edit. Comment: the code comment;
+Root: the page data, with RepoLink and SuggestionCommitExists */}}
+{{$comment := .Comment}}
+{{if $comment.SuggestionApplied}}
+	{{$by := $comment.SuggestionAppliedBy}}
+	{{$applier := "Ghost"}}
+	{{if and $by (not $by.IsGhost)}}
+		{{$applier = HTMLFormat `<a class="muted" href="%s">@%s</a>` $by.HomeLink $by.Name}}
+	{{end}}
+	{{$sha := $comment.SuggestionAppliedCommit}}
+	{{/* a commit force-pushed away and garbage-collected is shown unlinked (AC4) */}}
+	{{$commit := HTMLFormat `<code>%s</code>` (ShortSha $sha)}}
+	{{if and .Root.SuggestionCommitExists (call .Root.SuggestionCommitExists $sha)}}
+		{{$commit = HTMLFormat `<a class="muted" href="%s/commit/%s"><code>%s</code></a>` .Root.RepoLink $sha (ShortSha $sha)}}
+	{{end}}
+	<template class="markup-suggestion-applied"><span class="markup-suggestion-applied-text tw-text-text-light">{{ctx.Locale.Tr "repo.diff.suggestion.applied" $applier $commit}}</span></template>
+{{end}}

@@ -15,6 +15,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
 )
 
 var (
@@ -31,6 +32,8 @@ var (
 	ErrSuggestionOutdated = errors.New("the suggestion is outdated")
 	// ErrSuggestionNoChange means applying the suggestion would leave the file as it is (#156 AC10)
 	ErrSuggestionNoChange = errors.New("the suggestion makes no changes")
+	// ErrSuggestionAlreadyApplied means the suggestion was already committed to the head branch (#157 AC2)
+	ErrSuggestionAlreadyApplied = errors.New("the suggestion was already applied")
 )
 
 // ErrSuggestionProtectedBranch means branch protection stops the doer from pushing to the head branch (#156 AC6)
@@ -102,6 +105,9 @@ func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_mode
 	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && (doer == nil || comment.Review.ReviewerID != doer.ID) {
 		return ErrSuggestionNotApplicable
 	}
+	if comment.SuggestionApplied() {
+		return ErrSuggestionAlreadyApplied // before every other refusal, so the message doesn't depend on the PR's state (#157 AC2)
+	}
 
 	headCommitID, err := CanApplySuggestions(ctx, doer, pr)
 	if err != nil {
@@ -158,7 +164,7 @@ func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_mode
 	if err := comment.LoadPoster(ctx); err != nil {
 		return err
 	}
-	_, err = ChangeRepoFiles(ctx, pr.HeadRepo, doer, &ChangeRepoFilesOptions{
+	resp, err := ChangeRepoFiles(ctx, pr.HeadRepo, doer, &ChangeRepoFilesOptions{
 		LastCommitID: expectedHeadSHA,
 		OldBranch:    pr.HeadBranch,
 		NewBranch:    pr.HeadBranch,
@@ -172,8 +178,16 @@ func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_mode
 	})
 	if IsErrCommitIDDoesNotMatch(err) {
 		return ErrSuggestionHeadMoved // someone pushed between our check and the commit
+	} else if err != nil {
+		return err
 	}
-	return err
+
+	// git isn't in the database transaction, so the commit comes first; once it is on the branch Apply has
+	// succeeded, and a failed save only leaves the comment outdated without its marker (#157 AC7)
+	if _, err := issues_model.MarkSuggestionApplied(ctx, comment, doer, resp.Commit.SHA); err != nil {
+		log.Error("MarkSuggestionApplied(%d, %s): %v", comment.ID, resp.Commit.SHA, err)
+	}
+	return nil
 }
 
 // suggestionCommitMessage is the doer's message, or the default, crediting the reviewer (#156 AC1).
