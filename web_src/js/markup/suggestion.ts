@@ -89,7 +89,7 @@ function addApplyButton(elMarkup: HTMLElement, diff: HTMLElement): void {
 // Shows "Applied by @user in <commit>" in the suggestion's header (#157). The server renders it in a <template>
 // beside the comment body rather than in it, so it survives an edit, which replaces the body's children (AC9).
 function addAppliedMarker(elMarkup: HTMLElement, diff: HTMLElement): boolean {
-  const marker = elMarkup.parentElement?.querySelector<HTMLTemplateElement>(':scope > template.markup-suggestion-applied');
+  const marker = elMarkup.parentElement!.querySelector<HTMLTemplateElement>(':scope > template.markup-suggestion-applied');
   if (!marker) return false;
   const header = diff.querySelector('.markup-suggestion-header')!;
   header.classList.add('tw-flex', 'tw-items-center', 'tw-justify-between');

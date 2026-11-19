@@ -10,6 +10,7 @@ function makeMarkup(attrs: Record<string, string>, body: string): HTMLElement {
   el.className = 'render-content markup';
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
   el.innerHTML = body;
+  document.createElement('div').append(el); // as in the comment templates, the body always has a parent (#157)
   return el;
 }
 
@@ -233,9 +234,7 @@ describe('applying a suggestion', {concurrent: false}, () => {
 const appliedMarker = '<template class="markup-suggestion-applied"><span class="markup-suggestion-applied-text">Applied by <a href="/ben">ben</a> in <a href="/user2/repo/commit/a1b2c3d4e5f6"><code>a1b2c3d4e5</code></a></span></template>';
 
 function withAppliedMarker(el: HTMLElement): HTMLElement {
-  const parent = document.createElement('div');
-  parent.append(el);
-  parent.insertAdjacentHTML('beforeend', appliedMarker);
+  el.parentElement!.insertAdjacentHTML('beforeend', appliedMarker);
   return el;
 }
 
