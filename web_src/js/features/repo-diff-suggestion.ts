@@ -54,8 +54,8 @@ export function suggestionInsertRange(value: string, start: number, end: number)
   return [start, end];
 }
 
-/** show the "Suggest change" button of a new code comment's editor, inserting a block with the text of `codeLine` */
-export function initSuggestChangeButton(editor: ComboMarkdownEditor, codeLine: HTMLElement) {
+/** show the "Suggest change" button of a new code comment's editor, inserting a block with the text of `codeLines` */
+export function initSuggestChangeButton(editor: ComboMarkdownEditor, codeLines: HTMLElement[]) {
   const button = editor.container.querySelector<HTMLElement>('.markdown-button-suggest-change');
   if (!button) return;
   showElem(button.closest('.markdown-toolbar-group')!);
@@ -65,7 +65,7 @@ export function initSuggestChangeButton(editor: ComboMarkdownEditor, codeLine: H
     const [start, end] = suggestionInsertRange(textarea.value, textarea.selectionStart, textarea.selectionEnd);
     textarea.setSelectionRange(start, end);
     // textContent drops the highlighting spans and keeps leading whitespace; the diff cell also holds the line's own newline
-    const line = codeLine.textContent.replace(/[\r\n]+$/, '');
+    const line = codeLines.map((el) => el.textContent.replace(/[\r\n]+$/, '')).join('\n');
     const {text, cursor} = buildSuggestionInsert(textarea.value.slice(0, start), line);
     replaceTextareaSelection(textarea, text);
     textarea.setSelectionRange(start + cursor, start + cursor);

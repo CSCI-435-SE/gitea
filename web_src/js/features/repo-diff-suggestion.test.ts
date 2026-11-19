@@ -93,7 +93,7 @@ test('initSuggestChangeButton', () => {
   const container = document.querySelector<HTMLElement>('.combo-markdown-editor')!;
   const textarea = container.querySelector('textarea')!;
   const button = container.querySelector<HTMLButtonElement>('.markdown-button-suggest-change')!;
-  initSuggestChangeButton({container, textarea} as ComboMarkdownEditor, document.querySelector<HTMLElement>('.code-inner')!);
+  initSuggestChangeButton({container, textarea} as ComboMarkdownEditor, [document.querySelector<HTMLElement>('.code-inner')!]);
 
   // the hidden group is shown
   expect(button.parentElement!.classList.contains('tw-hidden')).toBe(false);
@@ -121,7 +121,7 @@ test('initSuggestChangeButton in a form', () => {
   const container = document.querySelector<HTMLElement>('.combo-markdown-editor')!;
   const textarea = container.querySelector('textarea')!;
   const button = container.querySelector<HTMLButtonElement>('.markdown-button-suggest-change')!;
-  initSuggestChangeButton({container, textarea} as ComboMarkdownEditor, document.querySelector<HTMLElement>('.code-inner')!);
+  initSuggestChangeButton({container, textarea} as ComboMarkdownEditor, [document.querySelector<HTMLElement>('.code-inner')!]);
 
   // HTML spec: a <button> with no type attribute submits its form, so the click must not
   const click = new MouseEvent('click', {bubbles: true, cancelable: true});
@@ -139,5 +139,20 @@ test('initSuggestChangeButton without a button', () => {
   document.body.innerHTML = '<div class="combo-markdown-editor"><textarea></textarea></div><code class="code-inner">x</code>';
   const container = document.querySelector<HTMLElement>('.combo-markdown-editor')!;
   const editor = {container, textarea: container.querySelector('textarea')!} as ComboMarkdownEditor;
-  expect(() => initSuggestChangeButton(editor, document.querySelector<HTMLElement>('.code-inner')!)).not.toThrow();
+  expect(() => initSuggestChangeButton(editor, [document.querySelector<HTMLElement>('.code-inner')!])).not.toThrow();
+});
+
+test('initSuggestChangeButton with a range', () => {
+  document.body.innerHTML = `
+    <div class="combo-markdown-editor">
+      <div class="markdown-toolbar-group tw-hidden"><button class="markdown-button-suggest-change">s</button></div>
+      <textarea></textarea>
+    </div>
+    <code class="code-inner">func f() {\n</code><code class="code-inner">\t<span>return</span> 1\n</code><code class="code-inner">}\n</code>`;
+  const container = document.querySelector<HTMLElement>('.combo-markdown-editor')!;
+  const textarea = container.querySelector('textarea')!;
+  initSuggestChangeButton({container, textarea} as ComboMarkdownEditor, Array.from(document.querySelectorAll<HTMLElement>('.code-inner')));
+  container.querySelector<HTMLButtonElement>('.markdown-button-suggest-change')!.click();
+  // #158 AC4: every line of the range in order, indentation kept
+  expect(textarea.value).toEqual('```suggestion\nfunc f() {\n\treturn 1\n}\n```\n');
 });

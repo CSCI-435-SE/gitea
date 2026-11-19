@@ -269,7 +269,7 @@ func CreatePullReviewCommentReply(ctx *context.APIContext) {
 
 	comment, err := pull_service.CreateCodeComment(ctx,
 		ctx.Doer, ctx.Repo.GitRepo, parent.Issue,
-		parent.Line, opts.Body, parent.TreePath,
+		parent.Line, 0, opts.Body, parent.TreePath,
 		false, parent.ReviewID,
 		"", nil,
 	)
@@ -547,6 +547,7 @@ func CreatePullReview(ctx *context.APIContext) {
 			ctx.Repo.GitRepo,
 			pr.Issue,
 			line,
+			0, // the API has no start line yet (S7 #160)
 			c.Body,
 			c.Path,
 			true, // pending review

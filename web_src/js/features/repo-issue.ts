@@ -11,6 +11,7 @@ import {
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {initSuggestChangeButton} from './repo-diff-suggestion.ts';
+import {getSelectedRange, initDiffRangeSelect} from './repo-diff-range.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {triggerEditorContentChanged} from './comp/EditorMarkdown.ts';
 import {toAbsoluteUrl} from '../utils.ts';
@@ -264,6 +265,7 @@ export function initRepoPullRequestReview() {
     elReviewPanel.querySelector('.close')!.addEventListener('click', () => tippy.hide());
   }
 
+  initDiffRangeSelect();
   addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
     e.preventDefault();
 
@@ -287,17 +289,20 @@ export function initRepoPullRequestReview() {
     }
     // taken before the awaits below; a split row's new-side cell, as an expanded split row's right-side [+] sits in the old-side cell
     const codeLine = tr.querySelector<HTMLElement>('.lines-code-new .code-inner') ?? el.closest('td')!.querySelector<HTMLElement>('.code-inner')!;
+    const range = side === 'right' ? getSelectedRange(tr) : null;
+    const codeLines = range ? range.rows.map((row) => row.querySelector<HTMLElement>('.lines-code-new .code-inner') ?? row.querySelector<HTMLElement>('.lines-code .code-inner')!) : [codeLine];
     const td = ntr.querySelector(`.add-comment-${side}`)!;
     const commentCloud = td.querySelector('.comment-code-cloud');
     if (!commentCloud && !ntr.querySelector('button[name="pending_review"]')) {
-      const response = await GET(el.closest('[data-new-comment-url]')?.getAttribute('data-new-comment-url') ?? '');
+      const url = el.closest('[data-new-comment-url]')?.getAttribute('data-new-comment-url') ?? '';
+      const response = await GET(range ? `${url}?start_line=${range.start}&line=${range.end}` : url);
       td.innerHTML = await response.text();
       td.querySelector<HTMLInputElement>("input[name='line']")!.value = idx;
       td.querySelector<HTMLInputElement>("input[name='side']")!.value = (side === 'left' ? 'previous' : 'proposed');
       td.querySelector<HTMLInputElement>("input[name='path']")!.value = String(path);
       const editor = await initComboMarkdownEditor(td.querySelector<HTMLElement>('.combo-markdown-editor')!);
       // suggestions replace new-side lines only, old-side ones have nothing to apply to
-      if (side === 'right') initSuggestChangeButton(editor, codeLine);
+      if (side === 'right') initSuggestChangeButton(editor, codeLines);
       editor.focus();
     }
   });

@@ -86,6 +86,22 @@ test('other languages are left alone', () => {
   expect(el.querySelector('.markup-suggestion')).toBeNull();
 });
 
+test('a multi-line comment removes every line of its range', () => {
+  const range = {'data-suggestion-original': 'l18\n\tl19\nl20\nl21\nl22', 'data-suggestion-label': 'Suggested change'};
+  // #158 AC5: five removed lines in order, then the three block lines added
+  const el = makeMarkup(range, codeBlock('a\nb\nc\n'));
+  initMarkupCodeSuggestion(el);
+  expect(rows(el)).toEqual([
+    {kind: 'removed', text: 'l18'}, {kind: 'removed', text: '\tl19'}, {kind: 'removed', text: 'l20'},
+    {kind: 'removed', text: 'l21'}, {kind: 'removed', text: 'l22'},
+    {kind: 'added', text: 'a'}, {kind: 'added', text: 'b'}, {kind: 'added', text: 'c'},
+  ]);
+  // #158 AC6: an empty block removes the whole range and adds nothing
+  const empty = makeMarkup(range, codeBlock(''));
+  initMarkupCodeSuggestion(empty);
+  expect(rows(empty).map((r) => r.kind)).toEqual(['removed', 'removed', 'removed', 'removed', 'removed']);
+});
+
 // what the server adds for a viewer who may push to the head branch (#156)
 const applyAttrs = {
   ...attrs,

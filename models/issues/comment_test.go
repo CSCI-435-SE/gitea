@@ -45,6 +45,25 @@ func TestCreateComment(t *testing.T) {
 	unittest.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
 }
 
+func TestCreateCodeCommentStartLine(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	create := func(startLine int64) *issues_model.Comment {
+		comment, err := issues_model.CreateComment(t.Context(), &issues_model.CreateCommentOptions{
+			Type: issues_model.CommentTypeCode, Doer: doer, Repo: repo, Issue: issue,
+			Content: "range", TreePath: "README.md", LineNum: 4, StartLine: startLine,
+		})
+		assert.NoError(t, err)
+		return unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID}) // reload: the start line must survive the DB
+	}
+	assert.EqualValues(t, 2, create(2).RangeStartLine()) // #158 AC1: lines 2-4
+	assert.EqualValues(t, 0, create(0).RangeStartLine()) // a single-line comment has no range
+}
+
 func TestLoadAssigneeUserAndTeam_DeletedTeamBecomesGhostTeam(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 15})
