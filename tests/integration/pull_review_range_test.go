@@ -19,6 +19,7 @@ import (
 	repo_service "gitea.dev/services/repository"
 	files_service "gitea.dev/services/repository/files"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -96,6 +97,20 @@ func TestPullReviewRangeComment(t *testing.T) {
 			assert.Equal(t, 0, doc.Find(".code-comment-range").Length())
 			comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypeCode, Line: 11})
 			assert.EqualValues(t, 0, comment.RangeStartLine())
+		})
+
+		// applying a range is #189; until then a range suggestion offers no Apply, even to someone who can push
+		t.Run("a range suggestion has no Apply, a single-line one keeps it", func(t *testing.T) {
+			for _, page := range []string{"/files", ""} {
+				resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/user2/test_range/pulls/%d%s", pr.Issue.Index, page)), http.StatusOK)
+				markups := NewHTMLParser(t, resp.Body).Find(".render-content.markup[data-suggestion-original]")
+				original := func(want string) *goquery.Selection {
+					return markups.FilterFunction(func(_ int, s *goquery.Selection) bool { return s.AttrOr("data-suggestion-original", "") == want })
+				}
+				assert.Positive(t, original("l1\nX2\nl3").Length())
+				assert.Equal(t, 0, original("l1\nX2\nl3").Filter("[data-suggestion-apply-url]").Length())
+				assert.Positive(t, original("l11").Filter("[data-suggestion-apply-url]").Length()) // the viewer can apply
+			}
 		})
 
 		t.Run("AC12 invalid ranges are refused", func(t *testing.T) {
