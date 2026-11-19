@@ -233,6 +233,16 @@ describe('an applied suggestion', () => {
     expect(el.querySelector('.markup-suggestion-apply')).toBeNull();
   });
 
+  test('#157 AC1 the header keeps the label on the left and the marker on the right, as for Apply', () => {
+    const el = withAppliedMarker(makeMarkup(attrs, codeBlock('\treturn nil\n')));
+    initMarkupCodeSuggestion(el);
+    const header = el.querySelector('.markup-suggestion-header')!;
+    // the layout #156 gives the header for Apply, which the marker takes over (#157 Design Decision)
+    expect([...header.classList]).toEqual(expect.arrayContaining(['tw-flex', 'tw-items-center', 'tw-justify-between']));
+    expect(header.firstChild!.textContent).toEqual('Suggested change');
+    expect(header.lastElementChild!.classList.contains('markup-suggestion-applied-text')).toBe(true);
+  });
+
   test('#157 AC9 the marker comes back when an edit re-renders the comment', () => {
     const el = withAppliedMarker(makeMarkup(attrs, codeBlock('\treturn nil\n')));
     initMarkupCodeSuggestion(el);
