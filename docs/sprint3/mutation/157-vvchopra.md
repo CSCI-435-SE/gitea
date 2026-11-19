@@ -32,7 +32,7 @@ The PR's Go changes are covered by Go unit and integration tests and aren't part
 
 ## New or strengthened test
 
-Commit: <link to the commit that adds this test, once pushed> · Test: `web_src/js/markup/suggestion.test.ts` › `an applied suggestion` › `#157 AC1 the header keeps the label on the left and the marker on the right, as for Apply` · Kills: `web_src/js/markup/suggestion.ts:95` (all three)
+Commit: [ee8327afec](https://github.com/CSCI-435-SE/gitea/commit/ee8327afec) · Test: `web_src/js/markup/suggestion.test.ts` › `an applied suggestion` › `#157 AC1 the header keeps the label on the left and the marker on the right, as for Apply` · Kills: `web_src/js/markup/suggestion.ts:95` (all three)
 
 The test checks three things:
 - the header carries the flex layout #156 gives it for Apply;
@@ -40,6 +40,8 @@ The test checks three things:
 - the marker is its last element.
 
 The after report has 16 of 16 mutants killed, the three line 95 ones included.
+
+Both runs were on the code as of `ee8327afec`. A later commit, made after Carson's review of PR #192, changed line 92's `elMarkup.parentElement?.` to `elMarkup.parentElement!.`: the comment body always has a parent, and AGENTS.md asks for `!` in that case. That removes the `OptionalChaining` mutant on line 92, which both reports list as killed. It doesn't add a new mutant.
 
 ## Questions
 
