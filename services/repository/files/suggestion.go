@@ -93,6 +93,9 @@ func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_mode
 	if comment.IssueID != pr.IssueID || !original.Has() {
 		return ErrSuggestionNotApplicable
 	}
+	if comment.RangeStartLine() > 0 {
+		return ErrSuggestionNotApplicable // applying a range is #189; until then the templates show no Apply on one
+	}
 	blocks := comment.SuggestionBlocks(ctx)
 	if len(blocks) != 1 {
 		return ErrSuggestionNotApplicable

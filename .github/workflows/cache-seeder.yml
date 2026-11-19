@@ -4,6 +4,7 @@
 # Caches are ref-scoped: PR runs read their own scope then fall back to the
 # base branch. Per .github/actions/go-cache/action.yml, PRs are restore-only,
 # so push-to-main is the only opportunity to populate the fallback scope.
+# Runs on every push to main (#181): the go build cache goes stale as main moves, not only when go.sum does.
 
 name: cache-seeder
 
@@ -11,16 +12,10 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "go.sum"
-      - ".golangci.yml"
-      - ".github/actions/go-cache/action.yml"
-      - ".github/actions/go-setup/action.yml"
-      - ".github/workflows/cache-seeder.yml"
 
 concurrency:
   group: cache-seeder
-  cancel-in-progress: true
+  cancel-in-progress: false # #181: a cancelled run saves nothing, so a burst of merges would never refresh the cache; a newer push only replaces the waiting run
 
 permissions:
   contents: read
@@ -28,6 +23,7 @@ permissions:
 jobs:
   gobuild:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - uses: ./.github/actions/go-setup
@@ -37,7 +33,7 @@ jobs:
       - name: warm test compile cache (bindata)
         env:
           TAGS: bindata
-          GOTEST_FLAGS: -race -list=^$$ -count=1
+          GOTEST_FLAGS: -race -cover -list=^$$ -count=1 # same build as test-unit's -race -coverprofile pass (#181)
         run: make test-backend
       - name: warm test compile cache (bindata gogit)
         env:
@@ -53,6 +49,7 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:

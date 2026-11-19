@@ -1,6 +1,6 @@
 ---
 scope: Makefile, package.json, pyproject.toml, vite.config.ts, .golangci.yml, eslint.config.ts, stylelint.config.ts, sonar-project.properties, .github/workflows/pull-db-tests.yml
-verified-at: 331301d735
+verified-at: e8211adb4c
 ---
 
 # build and tooling — targets, linters, generated files
@@ -51,11 +51,21 @@ are the ones a course task actually needs.
   (`routers-api-v1.md`). Never hand-edit a generated file.
 - **SonarQube Cloud runs from CI, not its automatic analysis**, which cannot show coverage. The
   `sonarqube` job in `.github/workflows/pull-db-tests.yml` scans every pull request from this
-  repository and every push to `main`, where only `files-changed`, `test-unit` and `sonarqube` run.
+  repository and every push to `main`, but not tag pushes or manual runs.
   Go coverage is `test-unit`'s `coverage.out`, with paths rewritten from `gitea.dev/...` to
-  repository-relative ones, which SonarQube needs; TypeScript coverage comes from a Vitest run in the
-  job. It fails without the `SONAR_TOKEN` repository secret (set by a repository admin), or while the
-  project's Automatic Analysis is switched on.
+  repository-relative ones, which SonarQube needs; TypeScript coverage is the `lcov.info` from the
+  `test-frontend-coverage` job, which runs Vitest alongside the Go unit tests. It fails without the
+  `SONAR_TOKEN` repository secret (set by a repository admin), or while the project's Automatic
+  Analysis is switched on.
+- **`db-tests` and `e2e-tests` run every suite on each push to `main`, on `v*-csci435-*` tags,
+  and on a manual run** (Actions, Run workflow, with a `ref` input). Only pull requests skip suites
+  by `files-changed`. Merges to `main` share one concurrency group: a running suite is never
+  cancelled, and a newer merge replaces only the waiting run. The upstream `release-*` workflows
+  are guarded by `github.repository == 'go-gitea/gitea'` and show as skipped here.
+- **`.github/workflows/cache-seeder.yml` saves the Go build cache on every push to `main`**, keyed
+  by `go.sum` and the commit SHA; pull request jobs restore the newest entry
+  (`.github/actions/go-cache/action.yml`). The normal and `gogit` unit-test passes are separate
+  jobs, `test-unit` and `test-unit-gogit`.
 - `make lint-md` only checks root-level `*.md`. `make lint-shell` shellchecks every tracked `.sh`,
   which includes `.claude-students/check.sh`.
 - Conventional Commits for commit messages and PR titles; add an

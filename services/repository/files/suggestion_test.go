@@ -176,6 +176,11 @@ func TestApplySuggestion(t *testing.T) {
 			c.Line = -5
 			return c
 		}, branch2Head, ErrSuggestionNotApplicable},
+		{"a range suggestion until #189 applies ranges", func(pr *issues_model.PullRequest) *issues_model.Comment {
+			c := suggest(pr, "README.md", "And change for branch2", fix)
+			c.CommentMetaData = &issues_model.CommentMetaData{StartLine: 4} // lines 4-5, both still as the patch shows them
+			return c
+		}, branch2Head, ErrSuggestionNotApplicable},
 		{"AC7 no suggestion block", func(pr *issues_model.PullRequest) *issues_model.Comment {
 			return suggest(pr, "README.md", "And change for branch2", "looks good")
 		}, branch2Head, ErrSuggestionNotApplicable},

@@ -1,7 +1,7 @@
 ---
 source: docs/build-and-tooling.md
-source-hash: 7f414c44562f7f9a
-verified-at: 331301d735
+source-hash: a2b80e82f628c9ca
+verified-at: e8211adb4c
 ---
 
 <!-- Derived from docs/build-and-tooling.md. Do not edit by hand: fix the reference doc and
@@ -93,8 +93,16 @@ regenerate it.
 know which lines the tests run. Instead, the `sonarqube` job in `.github/workflows/pull-db-tests.yml`
 scans every pull request from this repository and every push to `main`, using the coverage reports
 the tests write: `coverage.out` for Go, from the `test-unit` job, and a Vitest report for
-TypeScript. After a merge to `main`, the database test jobs are skipped; only `files-changed`,
-`test-unit` and `sonarqube` run.
+TypeScript, from the `test-frontend-coverage` job. Tag pushes and manual runs are not scanned.
+
+**Every suite runs after every merge.** A pull request only runs the suites its files touch, but a
+push to `main`, a `v*-csci435-*` tag or a manual run (Actions, then Run workflow, with a `ref`)
+runs all of them. A newer merge never stops a running suite; it only replaces a run still waiting.
+The upstream `release-*` workflows show as skipped, because they only run on `go-gitea/gitea`.
+
+**The Go build cache is refreshed on every merge.** `.github/workflows/cache-seeder.yml` saves a new
+entry for each commit on `main`, and pull request jobs start from the newest one, which is what keeps
+`test-unit` and `test-unit-gogit` from recompiling the whole tree.
 
 **Commit messages and PR titles use Conventional Commits**, with an `Assisted-by:` trailer, and
 never `Co-Authored-By` or `Signed-off-by`.

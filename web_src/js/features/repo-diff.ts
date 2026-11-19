@@ -52,6 +52,10 @@ function initRepoDiffConversationForm() {
       // but on the conversation page, there is no parent "tr"
       const trLineType = form.closest('tr')?.getAttribute('data-line-type');
       const response = await POST(form.getAttribute('action')!, {data: formData});
+      if (!response.ok) { // e.g. a range the server's diff doesn't hold in one hunk (whitespace-ignored or single-commit view)
+        showErrorToast((await response.json()).errorMessage);
+        return;
+      }
       const newConversationHolder = createElementFromHTML(await response.text());
       const path = newConversationHolder.getAttribute('data-path');
       const side = newConversationHolder.getAttribute('data-side');
