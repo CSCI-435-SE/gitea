@@ -7,10 +7,12 @@ import (
 	"testing"
 
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCommentSuggestionOriginalLine(t *testing.T) {
@@ -133,4 +135,62 @@ func TestCommentSuggestionCommitMessage(t *testing.T) {
 	// the file is named by its full path, as decided while implementing #156
 	comment = &issues_model.Comment{Poster: ana, TreePath: "cmd/web/main.go"}
 	assert.Equal(t, "Apply suggestion from @ana on cmd/web/main.go", comment.SuggestionCommitMessage())
+}
+
+func TestMarkSuggestionApplied(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	applier := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	const sha = "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4})
+	assert.False(t, comment.SuggestionApplied()) // #157 AC3 an existing comment isn't applied
+
+	marked, err := issues_model.MarkSuggestionApplied(t.Context(), comment, applier, sha)
+	require.NoError(t, err)
+	assert.True(t, marked)
+	assert.True(t, comment.SuggestionApplied())
+
+	stored := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4})
+	assert.True(t, stored.SuggestionApplied())
+	assert.Equal(t, applier.ID, stored.SuggestionAppliedByID)
+	assert.Equal(t, sha, stored.SuggestionAppliedCommit)
+	assert.NotZero(t, stored.SuggestionAppliedUnix)
+	assert.Equal(t, "meh...", stored.Content) // only the applied columns change
+
+	// #157 AC10 a comment records only the first commit that applied it
+	marked, err = issues_model.MarkSuggestionApplied(t.Context(), stored, &user_model.User{ID: 1}, "1111111111111111111111111111111111111111")
+	require.NoError(t, err)
+	assert.False(t, marked)
+	stored = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4})
+	assert.Equal(t, applier.ID, stored.SuggestionAppliedByID)
+	assert.Equal(t, sha, stored.SuggestionAppliedCommit)
+}
+
+func TestCommentListLoadSuggestionAppliedBys(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	const sha = "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+	notApplied := &issues_model.Comment{}
+	applied := &issues_model.Comment{SuggestionAppliedByID: 2, SuggestionAppliedCommit: sha}
+	deleted := &issues_model.Comment{SuggestionAppliedByID: 1000, SuggestionAppliedCommit: sha} // no user 1000
+
+	require.NoError(t, issues_model.CommentList{notApplied, applied, deleted}.LoadSuggestionAppliedBys(t.Context()))
+	assert.Nil(t, notApplied.SuggestionAppliedBy) // not applied: nobody to load
+	assert.Equal(t, "user2", applied.SuggestionAppliedBy.Name)
+	assert.True(t, deleted.SuggestionAppliedBy.IsGhost()) // #157 AC8 a deleted applier shows as Ghost
+}
+
+func TestFetchCodeCommentsLoadsSuggestionAppliedBy(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4}) // README.md line 4
+	_, err := issues_model.MarkSuggestionApplied(t.Context(), comment, &user_model.User{ID: 2}, "65f1bf27bc3bf70f64657658635e66094edbcb4d")
+	require.NoError(t, err)
+
+	comments, err := issues_model.FetchCodeCommentsByLine(t.Context(), issue, user, "README.md", 4, true)
+	require.NoError(t, err)
+	require.Len(t, comments, 1)
+	// #157 AC1 the marker names who applied it on every page that shows code comments
+	require.NotNil(t, comments[0].SuggestionAppliedBy)
+	assert.Equal(t, "user2", comments[0].SuggestionAppliedBy.Name)
 }

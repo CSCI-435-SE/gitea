@@ -253,4 +253,38 @@ func TestApplySuggestion(t *testing.T) {
 		err = ApplySuggestion(t.Context(), owner, pr, suggest(pr, "README.md", "And an older change for branch2", fix), branch2Head, "")
 		assert.ErrorIs(t, err, ErrSuggestionOutdated)
 	})
+
+	// #157 AC2: an applied suggestion is refused as applied before any of #156's other refusals
+	applied := func(c *issues_model.Comment) *issues_model.Comment {
+		c.SuggestionAppliedByID, c.SuggestionAppliedCommit = owner.ID, masterHead
+		return c
+	}
+	alreadyApplied := []struct {
+		name   string
+		doer   *user_model.User
+		change func(pr *issues_model.PullRequest, c *issues_model.Comment)
+		head   string
+	}{
+		{"AC2 already applied", owner, nil, branch2Head},
+		{"AC2 already applied wins over a closed pull request", owner, func(pr *issues_model.PullRequest, _ *issues_model.Comment) { pr.Issue.IsClosed = true }, branch2Head},
+		{"AC2 already applied wins over no push permission", reader, nil, branch2Head},
+		{"AC2 already applied wins over a moved head", owner, nil, masterHead},
+		{"AC2 already applied wins over an outdated comment", owner, func(_ *issues_model.PullRequest, c *issues_model.Comment) { c.Invalidated = true }, branch2Head},
+	}
+	for _, c := range alreadyApplied {
+		t.Run(c.name, func(t *testing.T) {
+			pr := loadPR(t, 2)
+			comment := applied(suggest(pr, "README.md", "And change for branch2", fix))
+			if c.change != nil {
+				c.change(pr, comment)
+			}
+			assert.ErrorIs(t, ApplySuggestion(t.Context(), c.doer, pr, comment, c.head, ""), ErrSuggestionAlreadyApplied)
+		})
+	}
+
+	t.Run("AC2 a comment that has nothing to apply is still not found once applied", func(t *testing.T) {
+		pr := loadPR(t, 2)
+		comment := applied(suggest(pr, "README.md", "And change for branch2", fix+"\nor\n"+fix))
+		assert.ErrorIs(t, ApplySuggestion(t.Context(), owner, pr, comment, branch2Head, ""), ErrSuggestionNotApplicable)
+	})
 }

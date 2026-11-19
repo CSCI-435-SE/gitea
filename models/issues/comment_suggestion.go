@@ -8,8 +8,12 @@ import (
 	"fmt"
 	"strings"
 
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
 )
 
 // SuggestionOriginalLine returns the commented line as the reviewer saw it: the last line of the
@@ -98,4 +102,44 @@ func (c *Comment) SuggestionBlocks(ctx context.Context) []string {
 // The poster must be loaded.
 func (c *Comment) SuggestionCommitMessage() string {
 	return fmt.Sprintf("Apply suggestion from @%s on %s", c.Poster.Name, c.TreePath)
+}
+
+// SuggestionApplied reports whether the comment's suggestion was committed to the PR branch (#157)
+func (c *Comment) SuggestionApplied() bool {
+	return c.SuggestionAppliedCommit != ""
+}
+
+// MarkSuggestionApplied records that doer committed the comment's suggestion as commitSHA (#157). It returns
+// false, changing nothing, when the comment was already marked: only the first commit is recorded (AC10).
+func MarkSuggestionApplied(ctx context.Context, c *Comment, doer *user_model.User, commitSHA string) (bool, error) {
+	now := timeutil.TimeStampNow()
+	n, err := db.GetEngine(ctx).ID(c.ID).Where("suggestion_applied_commit = ''").
+		Cols("suggestion_applied_by_id", "suggestion_applied_commit", "suggestion_applied_unix").NoAutoTime().
+		Update(&Comment{SuggestionAppliedByID: doer.ID, SuggestionAppliedCommit: commitSHA, SuggestionAppliedUnix: now})
+	if err != nil || n == 0 {
+		return false, err
+	}
+	c.SuggestionAppliedByID, c.SuggestionAppliedBy, c.SuggestionAppliedCommit, c.SuggestionAppliedUnix = doer.ID, doer, commitSHA, now
+	return true, nil
+}
+
+// LoadSuggestionAppliedBys loads who applied each comment's suggestion: the Ghost user once their account is
+// deleted (#157 AC8)
+func (comments CommentList) LoadSuggestionAppliedBys(ctx context.Context) error {
+	ids := container.FilterSlice(comments, func(c *Comment) (int64, bool) {
+		return c.SuggestionAppliedByID, c.SuggestionApplied() && c.SuggestionAppliedBy == nil
+	})
+	if len(ids) == 0 {
+		return nil
+	}
+	users, err := user_model.GetUsersMapByIDs(ctx, ids)
+	if err != nil {
+		return err
+	}
+	for _, c := range comments {
+		if c.SuggestionApplied() && c.SuggestionAppliedBy == nil {
+			c.SuggestionAppliedBy = user_model.GetPossibleUserFromMap(c.SuggestionAppliedByID, users)
+		}
+	}
+	return nil
 }

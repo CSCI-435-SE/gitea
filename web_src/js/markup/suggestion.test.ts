@@ -10,6 +10,7 @@ function makeMarkup(attrs: Record<string, string>, body: string): HTMLElement {
   el.className = 'render-content markup';
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
   el.innerHTML = body;
+  document.createElement('div').append(el); // as in the comment templates, the body always has a parent (#157)
   return el;
 }
 
@@ -226,5 +227,59 @@ describe('applying a suggestion', {concurrent: false}, () => {
     expect(visible('.markup-suggestion-apply-form')).toBe(false);
     expect(visible('.markup-suggestion-apply')).toBe(true);
     expect(POST).not.toHaveBeenCalled();
+  });
+});
+
+// what the server renders beside the comment body once its suggestion was applied (#157)
+const appliedMarker = '<template class="markup-suggestion-applied"><span class="markup-suggestion-applied-text">Applied by <a href="/ben">ben</a> in <a href="/user2/repo/commit/a1b2c3d4e5f6"><code>a1b2c3d4e5</code></a></span></template>';
+
+function withAppliedMarker(el: HTMLElement): HTMLElement {
+  el.parentElement!.insertAdjacentHTML('beforeend', appliedMarker);
+  return el;
+}
+
+describe('an applied suggestion', () => {
+  test('#157 AC1 shows who applied it and the commit in the header, with no Apply', () => {
+    const el = withAppliedMarker(makeMarkup(applyAttrs, codeBlock('\treturn nil\n')));
+    initMarkupCodeSuggestion(el);
+    const marker = el.querySelector('.markup-suggestion-header .markup-suggestion-applied-text')!;
+    expect(marker.textContent).toEqual('Applied by ben in a1b2c3d4e5');
+    expect(marker.querySelector('a[href="/user2/repo/commit/a1b2c3d4e5f6"]')).not.toBeNull();
+    expect(el.querySelector('.markup-suggestion-apply')).toBeNull();
+  });
+
+  test('#157 AC1 the header keeps the label on the left and the marker on the right, as for Apply', () => {
+    const el = withAppliedMarker(makeMarkup(attrs, codeBlock('\treturn nil\n')));
+    initMarkupCodeSuggestion(el);
+    const header = el.querySelector('.markup-suggestion-header')!;
+    // the layout #156 gives the header for Apply, which the marker takes over (#157 Design Decision)
+    expect([...header.classList]).toEqual(expect.arrayContaining(['tw-flex', 'tw-items-center', 'tw-justify-between']));
+    expect(header.firstChild!.textContent).toEqual('Suggested change');
+    expect(header.lastElementChild!.classList.contains('markup-suggestion-applied-text')).toBe(true);
+  });
+
+  test('#157 AC9 the marker comes back when an edit re-renders the comment', () => {
+    const el = withAppliedMarker(makeMarkup(attrs, codeBlock('\treturn nil\n')));
+    initMarkupCodeSuggestion(el);
+    // like repo-issue-edit.ts: a shallow clone keeps the attributes, the new content replaces the old
+    const edited = el.cloneNode(false) as HTMLElement;
+    edited.innerHTML = codeBlock('\treturn nil // edited\n');
+    el.replaceWith(edited);
+    initMarkupCodeSuggestion(edited);
+    expect(edited.querySelectorAll('.markup-suggestion-applied-text')).toHaveLength(1);
+  });
+
+  test('#157 AC9 an edit that adds a second suggestion keeps the marker on the first', () => {
+    const el = withAppliedMarker(makeMarkup(attrs, codeBlock('a\n') + codeBlock('b\n')));
+    initMarkupCodeSuggestion(el);
+    const diffs = el.querySelectorAll('.markup-suggestion');
+    expect(diffs[0].querySelector('.markup-suggestion-applied-text')).not.toBeNull();
+    expect(diffs[1].querySelector('.markup-suggestion-applied-text')).toBeNull();
+  });
+
+  test('a suggestion that was not applied has no marker', () => {
+    const el = makeMarkup(attrs, codeBlock('\treturn nil\n'));
+    initMarkupCodeSuggestion(el);
+    expect(el.querySelector('.markup-suggestion-applied-text')).toBeNull();
   });
 });
