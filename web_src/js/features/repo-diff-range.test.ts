@@ -32,6 +32,13 @@ test('collectRangeRows refuses a range outside one hunk', () => {
   expect(collectRangeRows(expanded[0], expanded[1])).toBeNull();
 });
 
+// a thread under a line is its own row, with one cell and no line numbers (templates/repo/diff/section_unified.tmpl)
+test('collectRangeRows skips a comment thread inside the range', () => {
+  const trs = rowsOf(`${row('same-code', '18')}<tr class="add-comment"><td class="add-comment-left add-comment-right" colspan="5"></td></tr>${row('same-code', '19')}`);
+  // #158 AC1: lines 18-19; the thread between them is not a line of the range
+  expect(lineNums(collectRangeRows(trs[0], trs[2]))).toEqual(['18', '19']);
+});
+
 vi.mock('../modules/toast.ts', () => ({showErrorToast: vi.fn()}));
 
 // a unified diff with both line-number cells, inside the element that carries the refusal message
@@ -100,4 +107,22 @@ test('a range across sides or hunks is refused', () => {
   // the refused range drops its start, so a later shift-click starts a new one
   click(cell('new', 20), true);
   expect(selectedLines()).toEqual(['20']);
+});
+
+test('a two-line range is a range', () => {
+  const trs = diffRows(hunk);
+  click(cell('new', 19));
+  click(cell('new', 20), true);
+  // #158 AC1: any range of more than one line; AC3 is only the one-line case
+  expect(getSelectedRange(trs[3])).toEqual({rows: [trs[2], trs[3]], start: 19, end: 20});
+});
+
+test('a range from the new side to the old side is refused', () => {
+  diffRows(hunk);
+  vi.mocked(showErrorToast).mockClear();
+  click(cell('new', 18));
+  click(cell('old', 19), true);
+  // #158 AC11: "or the other way round"
+  expect(showErrorToast).toHaveBeenCalledWith('msg');
+  expect(selectedLines()).toEqual([]);
 });
