@@ -175,7 +175,7 @@ func ApplySuggestion(ctx *context.Context) {
 		return
 	}
 
-	err = files_service.ApplySuggestion(ctx, ctx.Doer, issue.PullRequest, comment, form.HeadCommitID, form.Message)
+	_, err = files_service.ApplySuggestion(ctx, ctx.Doer, issue.PullRequest, comment, form.HeadCommitID, form.Message)
 	if err != nil {
 		applySuggestionError(ctx, issue.PullRequest.HeadBranch, err)
 		return

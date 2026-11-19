@@ -84,40 +84,41 @@ func CanApplySuggestions(ctx context.Context, doer *user_model.User, pr *issues_
 }
 
 // ApplySuggestion commits the comment's single suggestion to the pull request's head branch, replacing the
-// commented line. expectedHeadSHA is the head commit the page showed; message may be empty for the default.
-func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment, expectedHeadSHA, message string) error {
+// commented line, and returns the new commit's SHA (#160 AC2). expectedHeadSHA is the head commit the page
+// showed; message may be empty for the default.
+func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment, expectedHeadSHA, message string) (string, error) {
 	original := comment.SuggestionOriginalLine()
 	if comment.IssueID != pr.IssueID || !original.Has() {
-		return ErrSuggestionNotApplicable
+		return "", ErrSuggestionNotApplicable
 	}
 	if comment.RangeStartLine() > 0 {
-		return ErrSuggestionNotApplicable // applying a range is #189; until then the templates show no Apply on one
+		return "", ErrSuggestionNotApplicable // applying a range is #189; until then the templates show no Apply on one
 	}
 	blocks := comment.SuggestionBlocks(ctx)
 	if len(blocks) != 1 {
-		return ErrSuggestionNotApplicable
+		return "", ErrSuggestionNotApplicable
 	}
 	// a pending review's comments are visible only to its reviewer (FetchCodeComments, the API), so for anyone
 	// else the suggestion doesn't exist; applying it would publish a draft into the branch history
 	if err := comment.LoadReview(ctx); err != nil {
-		return err
+		return "", err
 	}
 	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && (doer == nil || comment.Review.ReviewerID != doer.ID) {
-		return ErrSuggestionNotApplicable
+		return "", ErrSuggestionNotApplicable
 	}
 
 	headCommitID, err := CanApplySuggestions(ctx, doer, pr)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if headCommitID != expectedHeadSHA {
-		return ErrSuggestionHeadMoved
+		return "", ErrSuggestionHeadMoved
 	}
 
 	// the web editor's check, so the user gets our message rather than the pre-receive hook's output
 	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.HeadRepo.ID, pr.HeadBranch)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if protectedBranch != nil {
 		protectedBranch.Repo = pr.HeadRepo
@@ -126,42 +127,42 @@ func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_mode
 			canPush = protectedBranch.IsUnprotectedFile(protectedBranch.GetUnprotectedFilePatterns(), comment.TreePath)
 		}
 		if !canPush {
-			return ErrSuggestionProtectedBranch{Branch: pr.HeadBranch}
+			return "", ErrSuggestionProtectedBranch{Branch: pr.HeadBranch}
 		}
 	}
 
 	if comment.Invalidated {
-		return ErrSuggestionOutdated // the page hides Apply on outdated comments, but a page loaded earlier may still post
+		return "", ErrSuggestionOutdated // the page hides Apply on outdated comments, but a page loaded earlier may still post
 	}
 
 	headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer closer.Close()
 	headCommit, err := headGitRepo.GetCommit(headCommitID)
 	if err != nil {
-		return err
+		return "", err
 	}
 	blob, err := headCommit.GetBlobByPath(comment.TreePath)
 	if git.IsErrNotExist(err) {
-		return ErrSuggestionOutdated // deleted or renamed since the review
+		return "", ErrSuggestionOutdated // deleted or renamed since the review
 	} else if err != nil {
-		return err
+		return "", err
 	}
 	content, err := blob.GetBlobContent(blob.Size())
 	if err != nil {
-		return err
+		return "", err
 	}
 	newContent, err := applySuggestionToContent(content, int(comment.Line), comment.SuggestionContextLines(), original.Value(), blocks[0])
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if err := comment.LoadPoster(ctx); err != nil {
-		return err
+		return "", err
 	}
-	_, err = ChangeRepoFiles(ctx, pr.HeadRepo, doer, &ChangeRepoFilesOptions{
+	resp, err := ChangeRepoFiles(ctx, pr.HeadRepo, doer, &ChangeRepoFilesOptions{
 		LastCommitID: expectedHeadSHA,
 		OldBranch:    pr.HeadBranch,
 		NewBranch:    pr.HeadBranch,
@@ -174,9 +175,11 @@ func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_mode
 		}},
 	})
 	if IsErrCommitIDDoesNotMatch(err) {
-		return ErrSuggestionHeadMoved // someone pushed between our check and the commit
+		return "", ErrSuggestionHeadMoved // someone pushed between our check and the commit
+	} else if err != nil {
+		return "", err
 	}
-	return err
+	return resp.Commit.SHA, nil
 }
 
 // suggestionCommitMessage is the doer's message, or the default, crediting the reviewer (#156 AC1).

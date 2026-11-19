@@ -156,7 +156,7 @@ func TestApplySuggestion(t *testing.T) {
 			_, err := CanApplySuggestions(t.Context(), c.doer, pr)
 			assert.ErrorIs(t, err, c.err)
 			// ApplySuggestion makes the same check before anything else that touches the branch
-			assert.ErrorIs(t, ApplySuggestion(t.Context(), c.doer, pr, suggest(pr, "README.md", "And change for branch2", fix), branch2Head, ""), c.err)
+			assert.ErrorIs(t, errOf(ApplySuggestion(t.Context(), c.doer, pr, suggest(pr, "README.md", "And change for branch2", fix), branch2Head, "")), c.err)
 		})
 	}
 
@@ -213,7 +213,7 @@ func TestApplySuggestion(t *testing.T) {
 	for _, c := range refused {
 		t.Run(c.name, func(t *testing.T) {
 			pr := loadPR(t, 2)
-			assert.ErrorIs(t, ApplySuggestion(t.Context(), owner, pr, c.comment(pr), c.head, ""), c.err)
+			assert.ErrorIs(t, errOf(ApplySuggestion(t.Context(), owner, pr, c.comment(pr), c.head, "")), c.err)
 		})
 	}
 
@@ -223,7 +223,7 @@ func TestApplySuggestion(t *testing.T) {
 		pr := loadPR(t, 2)
 		c := suggest(pr, "README.md", "And change for branch2", fix)
 		c.ReviewID = pending.ID
-		assert.ErrorIs(t, ApplySuggestion(t.Context(), owner, pr, c, branch2Head, ""), ErrSuggestionNotApplicable)
+		assert.ErrorIs(t, errOf(ApplySuggestion(t.Context(), owner, pr, c, branch2Head, "")), ErrSuggestionNotApplicable)
 	})
 
 	t.Run("the reviewer may apply a suggestion from their own pending review", func(t *testing.T) {
@@ -232,7 +232,7 @@ func TestApplySuggestion(t *testing.T) {
 		pr := loadPR(t, 2)
 		c := suggest(pr, "README.md", "And an older change for branch2", fix) // outdated, so it stops before committing
 		c.PosterID, c.ReviewID = owner.ID, pending.ID
-		assert.ErrorIs(t, ApplySuggestion(t.Context(), owner, pr, c, branch2Head, ""), ErrSuggestionOutdated)
+		assert.ErrorIs(t, errOf(ApplySuggestion(t.Context(), owner, pr, c, branch2Head, "")), ErrSuggestionOutdated)
 	})
 
 	t.Run("AC6 a protected branch", func(t *testing.T) {
@@ -241,7 +241,7 @@ func TestApplySuggestion(t *testing.T) {
 		defer func() { require.NoError(t, git_model.DeleteProtectedBranch(t.Context(), repo, rule.ID)) }()
 
 		pr := loadPR(t, 2)
-		err := ApplySuggestion(t.Context(), owner, pr, suggest(pr, "README.md", "And change for branch2", fix), branch2Head, "")
+		_, err := ApplySuggestion(t.Context(), owner, pr, suggest(pr, "README.md", "And change for branch2", fix), branch2Head, "")
 		var errProtected ErrSuggestionProtectedBranch
 		require.ErrorAs(t, err, &errProtected)
 		assert.Equal(t, "branch2", errProtected.Branch)
@@ -250,7 +250,12 @@ func TestApplySuggestion(t *testing.T) {
 		// so this one gets past protection and stops at its outdated line instead
 		rule.UnprotectedFilePatterns = "README.md"
 		require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo, rule, git_model.WhitelistOptions{}))
-		err = ApplySuggestion(t.Context(), owner, pr, suggest(pr, "README.md", "And an older change for branch2", fix), branch2Head, "")
+		_, err = ApplySuggestion(t.Context(), owner, pr, suggest(pr, "README.md", "And an older change for branch2", fix), branch2Head, "")
 		assert.ErrorIs(t, err, ErrSuggestionOutdated)
 	})
+}
+
+// errOf drops ApplySuggestion's commit SHA for the cases that only check its error
+func errOf(_ string, err error) error {
+	return err
 }
