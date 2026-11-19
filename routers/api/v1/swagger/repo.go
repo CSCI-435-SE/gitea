@@ -168,6 +168,13 @@ type swaggerPullReviewComment struct {
 	Body api.PullReviewComment `json:"body"`
 }
 
+// AppliedPullReviewSuggestion
+// swagger:response AppliedPullReviewSuggestion
+type swaggerAppliedPullReviewSuggestion struct {
+	// in:body
+	Body api.AppliedPullReviewSuggestion `json:"body"`
+}
+
 // PullCommentList
 // swagger:response PullReviewCommentList
 type swaggerResponsePullReviewCommentList struct {

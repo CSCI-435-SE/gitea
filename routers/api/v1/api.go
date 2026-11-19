@@ -1469,6 +1469,7 @@ func Routes() *web.Router {
 					m.Get("/pinned", repo.ListPinnedPullRequests)
 					m.Post("/comments/{id}/resolve", reqToken(), mustNotBeArchived, repo.ResolvePullReviewComment)
 					m.Post("/comments/{id}/unresolve", reqToken(), mustNotBeArchived, repo.UnresolvePullReviewComment)
+					m.Post("/comments/{id}/suggestion/apply", reqToken(), mustNotBeArchived, bind(api.ApplyPullReviewSuggestionOptions{}), repo.ApplyPullReviewSuggestion)
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetPullRequest).
 							Patch(reqToken(), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
