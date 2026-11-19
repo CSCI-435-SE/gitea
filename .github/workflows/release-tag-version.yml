@@ -13,6 +13,7 @@ concurrency:
 
 jobs:
   binary:
+    if: github.repository == 'go-gitea/gitea' # #181: upstream's release workflow, only runs on go-gitea/gitea (needs its runners, secrets and store accounts)
     runs-on: namespace-profile-gitea-release-binary
     permissions:
       contents: read
@@ -83,6 +84,7 @@ jobs:
           gh release create "$TAG" --title "$TAG" --notes-from-tag dist/release/*
 
   container:
+    if: github.repository == 'go-gitea/gitea' # #181: upstream's release workflow, only runs on go-gitea/gitea (needs its runners, secrets and store accounts)
     runs-on: namespace-profile-gitea-release-docker
     permissions:
       contents: read

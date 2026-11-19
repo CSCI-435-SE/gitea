@@ -49,8 +49,11 @@ jobs:
       e2e: ${{ steps.changes.outputs.e2e }}
       shell: ${{ steps.changes.outputs.shell }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+      # #181: push, tag and manual runs test the whole tree and may have no base to diff against, so they skip detection and every output stays empty
+      - if: github.event_name == 'pull_request'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: changes
         with:
           filters: |
