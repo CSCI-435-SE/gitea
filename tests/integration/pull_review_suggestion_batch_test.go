@@ -197,6 +197,20 @@ func TestPullReviewApplySuggestions(t *testing.T) {
 			assert.Equal(t, "# Title\na\nb\nc\nl3\nl5\nl6\n", readme(t))
 			assert.Equal(t, "Apply 2 suggestions from code review\n\n"+coAuthor, strings.TrimSpace(commit.MessageRaw))
 			assert.Equal(t, user2.GetEmail(), commit.Author.Email)
+			// AC1: each suggestion is marked applied (S4) with that commit
+			for _, c := range []*issues_model.Comment{deleteLine, threeLines} {
+				stored := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: c.ID})
+				assert.Equal(t, commit.ID.String(), stored.SuggestionAppliedCommit)
+				assert.Equal(t, user2.ID, stored.SuggestionAppliedByID)
+			}
+		})
+
+		t.Run("AC10 an applied suggestion in a batch is refused and named", func(t *testing.T) {
+			before := headCommit(t).ID.String()
+			l5 := suggest(t, 6, "```suggestion\nL5\n```")
+			resp := applyBatch(t, ownerSession, []*issues_model.Comment{l5, deleteLine}, before, "", http.StatusBadRequest)
+			assert.Equal(t, "This suggestion has already been applied. (README.md:4)", errorMessage(t, resp))
+			assert.Equal(t, before, headCommit(t).ID.String())
 		})
 
 		t.Run("AC11 a batch of one commits what Apply would, with its default message", func(t *testing.T) {

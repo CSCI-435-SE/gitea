@@ -185,6 +185,17 @@ function addBatchToggle(elMarkup: HTMLElement, buttons: HTMLElement): void {
   });
 }
 
+// Shows "Applied by @user in <commit>" in the suggestion's header (#157). The server renders it in a <template>
+// beside the comment body rather than in it, so it survives an edit, which replaces the body's children (AC9).
+function addAppliedMarker(elMarkup: HTMLElement, diff: HTMLElement): boolean {
+  const marker = elMarkup.parentElement!.querySelector<HTMLTemplateElement>(':scope > template.markup-suggestion-applied');
+  if (!marker) return false;
+  const header = diff.querySelector('.markup-suggestion-header')!;
+  header.classList.add('tw-flex', 'tw-items-center', 'tw-justify-between');
+  header.append(marker.content.cloneNode(true));
+  return true;
+}
+
 // Replaces ```suggestion blocks in a PR code comment with a diff against the commented line.
 // The server only sets data-suggestion-original on new-side code comments, so plain comments keep a code block.
 export function initMarkupCodeSuggestion(elMarkup: HTMLElement): void {
@@ -210,6 +221,7 @@ export function initMarkupCodeSuggestion(elMarkup: HTMLElement): void {
     block.replaceWith(diff);
     diffs.push(diff);
   });
+  if (diffs.length && addAppliedMarker(elMarkup, diffs[0])) return; // an applied suggestion can't be applied again
   // a comment with several suggestions has no Apply (#156 AC7), and so can't join a batch either
   if (diffs.length === 1 && elMarkup.hasAttribute('data-suggestion-apply-url')) {
     addBatchToggle(elMarkup, addApplyButton(elMarkup, diffs[0]));

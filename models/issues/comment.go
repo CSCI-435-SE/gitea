@@ -324,6 +324,12 @@ type Comment struct {
 	ReviewID    int64   `xorm:"index"`
 	Invalidated bool
 
+	// set once a suggestion in a code comment is committed to the PR branch (#157); empty means not applied
+	SuggestionAppliedByID   int64              `xorm:"NOT NULL DEFAULT 0"`
+	SuggestionAppliedBy     *user_model.User   `xorm:"-"`
+	SuggestionAppliedCommit string             `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	SuggestionAppliedUnix   timeutil.TimeStamp `xorm:"NOT NULL DEFAULT 0"`
+
 	// Reference an issue or pull from another comment, issue or PR
 	// All information is about the origin of the reference
 	RefRepoID    int64                 `xorm:"index"` // Repo where the referencing

@@ -133,6 +133,11 @@ func CreateCodeComment(ctx *context.Context) {
 // prepareSuggestionApply tells the comment templates whether the viewer may apply suggestions on this pull
 // request (#156), and which head commit the page shows (AC4). Comment-specific checks happen in the template.
 func prepareSuggestionApply(ctx *context.Context, issue *issues_model.Issue) {
+	// every viewer sees an applied suggestion's marker; its commit is linked only while it exists (#157 AC4).
+	// The base repository holds a fork PR's commits under its refs/pull/<index>/head.
+	ctx.Data["SuggestionCommitExists"] = func(sha string) bool {
+		return ctx.Repo.GitRepo != nil && ctx.Repo.GitRepo.IsObjectExist(sha)
+	}
 	if err := issue.LoadPullRequest(ctx); err != nil {
 		log.Error("LoadPullRequest: %v", err)
 		return
@@ -256,6 +261,8 @@ func applySuggestionError(ctx *context.Context, headBranch string, err error) {
 		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.head_moved")) // AC4
 	case errors.Is(err, files_service.ErrSuggestionOutdated):
 		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.outdated") + where) // AC3
+	case errors.Is(err, files_service.ErrSuggestionAlreadyApplied):
+		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.already_applied") + where) // #157 AC2, #159 AC10
 	case errors.Is(err, files_service.ErrSuggestionNoChange):
 		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.no_change") + where) // AC10
 	case errors.Is(err, files_service.ErrSuggestionBatchEmpty):

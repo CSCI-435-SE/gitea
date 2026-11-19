@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/log"
 )
 
 var (
@@ -34,6 +35,8 @@ var (
 	ErrSuggestionOutdated = errors.New("the suggestion is outdated")
 	// ErrSuggestionNoChange means applying the suggestion would leave the file as it is (#156 AC10)
 	ErrSuggestionNoChange = errors.New("the suggestion makes no changes")
+	// ErrSuggestionAlreadyApplied means the suggestion was already committed to the head branch (#157 AC2)
+	ErrSuggestionAlreadyApplied = errors.New("the suggestion was already applied")
 	// ErrSuggestionBatchEmpty means a batch holds no suggestions (#159 AC12)
 	ErrSuggestionBatchEmpty = errors.New("the batch holds no suggestions")
 	// ErrSuggestionBatchTooLarge means a batch holds more than MaxSuggestionBatch suggestions (#159 AC14)
@@ -149,6 +152,10 @@ func suggestionEditFor(ctx context.Context, doer *user_model.User, pr *issues_mo
 	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && (doer == nil || comment.Review.ReviewerID != doer.ID) {
 		return suggestionEdit{}, ErrSuggestionNotApplicable
 	}
+	if comment.SuggestionApplied() {
+		// right after the 404 checks, so the message doesn't depend on the PR's state (#157 AC2); a batch names it (#159 AC10)
+		return suggestionEdit{}, ErrSuggestionAt{Comment: comment, Err: ErrSuggestionAlreadyApplied}
+	}
 	return suggestionEdit{comment: comment, original: original.Value(), suggestion: blocks[0]}, nil
 }
 
@@ -247,7 +254,7 @@ func ApplySuggestions(ctx context.Context, doer *user_model.User, pr *issues_mod
 			return err
 		}
 	}
-	_, err = ChangeRepoFiles(ctx, pr.HeadRepo, doer, &ChangeRepoFilesOptions{
+	resp, err := ChangeRepoFiles(ctx, pr.HeadRepo, doer, &ChangeRepoFilesOptions{
 		LastCommitID: expectedHeadSHA,
 		OldBranch:    pr.HeadBranch,
 		NewBranch:    pr.HeadBranch,
@@ -256,8 +263,18 @@ func ApplySuggestions(ctx context.Context, doer *user_model.User, pr *issues_mod
 	})
 	if IsErrCommitIDDoesNotMatch(err) {
 		return ErrSuggestionHeadMoved // someone pushed between our check and the commit
+	} else if err != nil {
+		return err
 	}
-	return err
+
+	// git isn't in the database transaction, so the commit comes first; once it is on the branch Apply has
+	// succeeded, and a failed save only leaves the comment outdated without its marker (#157 AC7, #159 AC1)
+	for _, comment := range comments {
+		if _, err := issues_model.MarkSuggestionApplied(ctx, comment, doer, resp.Commit.SHA); err != nil {
+			log.Error("MarkSuggestionApplied(%d, %s): %v", comment.ID, resp.Commit.SHA, err)
+		}
+	}
+	return nil
 }
 
 // applySuggestionsToContent applies one file's suggestions bottom-up, so each edit leaves the line numbers of the

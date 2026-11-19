@@ -152,6 +152,28 @@ func TestApplySuggestion(t *testing.T) {
 		refused(t, resp, ctx, "repo.editor.cannot_commit_to_protected_branch:branch2")
 	})
 
+	t.Run("#157 AC4 every viewer's page can tell whether an applied commit still exists", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "user2/repo1/pulls/3/files")
+		contexttest.LoadUser(t, ctx, 4) // cannot push, but still sees the marker (#157 AC1)
+		contexttest.LoadRepo(t, ctx, repo.ID)
+		contexttest.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+		prepareSuggestionApply(ctx, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3}))
+		exists, ok := ctx.Data["SuggestionCommitExists"].(func(string) bool)
+		require.True(t, ok)
+		assert.True(t, exists(branch2Head))
+		assert.False(t, exists("0000000000000000000000000000000000000001")) // gone after a force-push and gc
+	})
+
+	t.Run("#157 AC2 an applied suggestion is refused as already applied", func(t *testing.T) {
+		applied := comment(t, "And change for branch2", "```suggestion\nAnd a change for branch2\n```")
+		_, err := db.GetEngine(t.Context()).ID(applied).Cols("suggestion_applied_by_id", "suggestion_applied_commit").
+			Update(&issues_model.Comment{SuggestionAppliedByID: 2, SuggestionAppliedCommit: masterHead})
+		require.NoError(t, err)
+		ctx, resp := apply(t, 2, 3, applied, branch2Head)
+		refused(t, resp, ctx, "repo.diff.suggestion.already_applied")
+	})
+
 	t.Run("AC5 a closed pull request", func(t *testing.T) {
 		_, err := db.GetEngine(t.Context()).ID(3).Cols("is_closed").Update(&issues_model.Issue{IsClosed: true})
 		require.NoError(t, err)
