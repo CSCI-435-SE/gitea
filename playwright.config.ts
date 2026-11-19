@@ -21,6 +21,7 @@ export default defineConfig({
     locale: 'en-US',
     actionTimeout: timeout,
     navigationTimeout: 2 * timeout,
+    trace: env.CI ? 'retain-on-failure' : 'off', // CI failures can't be reproduced locally, so keep their trace (#186)
   },
   projects: [
     {
