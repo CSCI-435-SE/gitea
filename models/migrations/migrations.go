@@ -423,6 +423,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(343, "Add close reason columns to issue", v1_27.AddCloseReasonToIssue),
 		newMigration(344, "Add require two-factor setting to organizations", v1_27.AddRequireTwoFactorToUser),
 		newMigration(345, "Add reason column to notification", v1_27.AddReasonToNotification),
+		newMigration(346, "Add suggestion applied columns to comment", v1_27.AddSuggestionAppliedToComment),
 	}
 	return preparedMigrations
 }

@@ -152,6 +152,28 @@ func TestApplySuggestion(t *testing.T) {
 		refused(t, resp, ctx, "repo.editor.cannot_commit_to_protected_branch:branch2")
 	})
 
+	t.Run("#157 AC4 every viewer's page can tell whether an applied commit still exists", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "user2/repo1/pulls/3/files")
+		contexttest.LoadUser(t, ctx, 4) // cannot push, but still sees the marker (#157 AC1)
+		contexttest.LoadRepo(t, ctx, repo.ID)
+		contexttest.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+		prepareSuggestionApply(ctx, unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3}))
+		exists, ok := ctx.Data["SuggestionCommitExists"].(func(string) bool)
+		require.True(t, ok)
+		assert.True(t, exists(branch2Head))
+		assert.False(t, exists("0000000000000000000000000000000000000001")) // gone after a force-push and gc
+	})
+
+	t.Run("#157 AC2 an applied suggestion is refused as already applied", func(t *testing.T) {
+		applied := comment(t, "And change for branch2", "```suggestion\nAnd a change for branch2\n```")
+		_, err := db.GetEngine(t.Context()).ID(applied).Cols("suggestion_applied_by_id", "suggestion_applied_commit").
+			Update(&issues_model.Comment{SuggestionAppliedByID: 2, SuggestionAppliedCommit: masterHead})
+		require.NoError(t, err)
+		ctx, resp := apply(t, 2, 3, applied, branch2Head)
+		refused(t, resp, ctx, "repo.diff.suggestion.already_applied")
+	})
+
 	t.Run("AC5 a closed pull request", func(t *testing.T) {
 		_, err := db.GetEngine(t.Context()).ID(3).Cols("is_closed").Update(&issues_model.Issue{IsClosed: true})
 		require.NoError(t, err)
@@ -173,6 +195,13 @@ func TestApplySuggestionError(t *testing.T) {
 		{"AC6 a protection rule the pre-check doesn't cover, like signed commits", files_service.ErrUserCannotCommit{UserName: "user2"}, "repo.editor.cannot_commit_to_protected_branch:branch2"},
 		{"AC6 a protected file pattern", pull_service.ErrFilePathProtected{Path: "README.md"}, "repo.editor.cannot_commit_to_protected_branch:branch2"},
 		{"AC4 someone pushed while the commit was made", &git.ErrPushOutOfDate{}, "repo.diff.suggestion.head_moved"},
+		// #159: a batch's own refusals, and the suggestion it stopped at named after the message (AC3)
+		{"#159 AC12 an empty batch", files_service.ErrSuggestionBatchEmpty, "repo.diff.suggestion.batch_empty"},
+		{"#159 AC14 a batch over the limit", files_service.ErrSuggestionBatchTooLarge, "repo.diff.suggestion.batch_too_large:50"},
+		{"#159 AC13 a suggestion twice", files_service.ErrSuggestionBatchDuplicate, "repo.diff.suggestion.batch_duplicate"},
+		{"#159 AC2 overlapping suggestions", files_service.ErrSuggestionOverlap, "repo.diff.suggestion.batch_overlap"},
+		{"#159 AC3 the outdated suggestion is named", files_service.ErrSuggestionAt{Comment: &issues_model.Comment{TreePath: "docs/a.md", Line: 7}, Err: files_service.ErrSuggestionOutdated}, "repo.diff.suggestion.outdated (docs/a.md:7)"},
+		{"a single Apply's outdated message has no name", files_service.ErrSuggestionOutdated, "repo.diff.suggestion.outdated"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

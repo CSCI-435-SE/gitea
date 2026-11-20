@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
@@ -21,6 +22,7 @@ import (
 	repo_service "gitea.dev/services/repository"
 	files_service "gitea.dev/services/repository/files"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -164,6 +166,8 @@ func TestPullReviewApplySuggestion(t *testing.T) {
 		})
 
 		coAuthor := fmt.Sprintf("Co-authored-by: %s <%s>", user4.GitName(), user4.GetEmail())
+		var appliedSHA string                                   // the commit that applied useNil
+		useZero := suggest(t, "```suggestion\n\treturn 0\n```") // also on "\treturn err", never applied: AC3 below needs it
 
 		t.Run("AC1 AC8 applying adds one commit that changes only that line, with the given message", func(t *testing.T) {
 			apply(t, ownerSession, useNil, startHead, "Return nil instead", http.StatusOK)
@@ -177,6 +181,44 @@ func TestPullReviewApplySuggestion(t *testing.T) {
 			// customer question 1's default: the person who applied it authors and commits
 			assert.Equal(t, user2.GetEmail(), commit.Author.Email)
 			assert.Equal(t, user2.GetEmail(), commit.Committer.Email)
+			appliedSHA = commit.ID.String()
+		})
+
+		t.Run("#157 AC10 AC6 the comment records the commit that applied it, and its conversation stays open", func(t *testing.T) {
+			applied := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: useNil.ID})
+			assert.Equal(t, user2.ID, applied.SuggestionAppliedByID)
+			assert.Equal(t, appliedSHA, applied.SuggestionAppliedCommit)
+			assert.NotZero(t, applied.SuggestionAppliedUnix)
+			assert.Zero(t, applied.ResolveDoerID) // customer question 3's default: applying doesn't resolve
+		})
+
+		// the marker suggestion.ts moves into the header of a comment's suggestion, found beside the comment's raw content
+		marker := func(t *testing.T, session *TestSession, page string, comment *issues_model.Comment) *goquery.Selection {
+			return applyAttrs(t, session, page).Find(fmt.Sprintf("#issuecomment-%d-raw", comment.ID)).PrevAll().Filter("template.markup-suggestion-applied")
+		}
+		applyURL := func(comment *issues_model.Comment) string {
+			return fmt.Sprintf(`[data-suggestion-apply-url="%s/files/reviews/comments/%d/apply"]`, pullURL, comment.ID)
+		}
+
+		t.Run("#157 AC1 every viewer sees who applied it and the commit, and nobody gets Apply", func(t *testing.T) {
+			for _, session := range []*TestSession{ownerSession, readerSession, emptyTestSession(t)} {
+				for _, page := range []string{pullURL + "/files", pullURL} { // Files and Conversation tabs
+					found := marker(t, session, page, useNil)
+					require.Equal(t, 1, found.Length(), page)
+					assert.Equal(t, "Applied by @user2 in "+appliedSHA[:10], strings.TrimSpace(found.Text()), page)
+					assert.Equal(t, 1, found.Find(fmt.Sprintf(`a[href="/user2/test_apply_suggestion/commit/%s"]`, appliedSHA)).Length(), page)
+					assert.Equal(t, 0, applyAttrs(t, session, page).Find(applyURL(useNil)).Length(), page)
+				}
+			}
+		})
+
+		t.Run("#157 AC2 applying it again is refused, even for someone who cannot push", func(t *testing.T) {
+			before := headCommit(t).ID.String()
+			for _, session := range []*TestSession{ownerSession, readerSession} {
+				resp := apply(t, session, useNil, before, "", http.StatusBadRequest)
+				assert.Equal(t, "This suggestion has already been applied.", errorMessage(t, resp))
+			}
+			assert.Equal(t, before, headCommit(t).ID.String())
 		})
 
 		t.Run("AC1 an empty message gets the default", func(t *testing.T) {
@@ -189,8 +231,39 @@ func TestPullReviewApplySuggestion(t *testing.T) {
 
 		t.Run("AC3 a suggestion whose line has changed is outdated", func(t *testing.T) {
 			before := headCommit(t).ID.String()
-			resp := apply(t, ownerSession, useNil, before, "", http.StatusBadRequest) // written against "\treturn err"
+			resp := apply(t, ownerSession, useZero, before, "", http.StatusBadRequest) // written against "\treturn err"
 			assert.Equal(t, "This suggestion is outdated: the code changed since it was written.", errorMessage(t, resp))
+			assert.Equal(t, before, headCommit(t).ID.String())
+		})
+
+		t.Run("#157 AC9 editing an applied comment keeps the marker", func(t *testing.T) {
+			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/test_apply_suggestion/comments/%d", useNil.ID), map[string]string{
+				"content":         "```suggestion\n\treturn nil // edited\n```",
+				"content_version": "0",
+			})
+			readerSession.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, 1, marker(t, ownerSession, pullURL+"/files", useNil).Length())
+			assert.Equal(t, 0, applyAttrs(t, ownerSession, pullURL+"/files").Find(applyURL(useNil)).Length())
+		})
+
+		t.Run("#157 AC4 AC8 a commit that is gone is shown unlinked, and a deleted applier as Ghost", func(t *testing.T) {
+			const gone = "0000000000000000000000000000000000000001" // force-pushed away and garbage-collected
+			_, err := db.GetEngine(t.Context()).ID(useNil.ID).Cols("suggestion_applied_by_id", "suggestion_applied_commit").
+				Update(&issues_model.Comment{SuggestionAppliedByID: 1000, SuggestionAppliedCommit: gone}) // there is no user 1000
+			require.NoError(t, err)
+			found := marker(t, ownerSession, pullURL, useNil)
+			require.Equal(t, 1, found.Length())
+			assert.Equal(t, "Applied by Ghost in "+gone[:10], strings.TrimSpace(found.Text()))
+			assert.Equal(t, 0, found.Find("a").Length())
+		})
+
+		t.Run("#157 AC5 deleting an applied comment keeps the commit and the pages render", func(t *testing.T) {
+			before := headCommit(t).ID.String()
+			readerSession.MakeRequest(t, NewRequest(t, "POST", fmt.Sprintf("/user2/test_apply_suggestion/comments/%d/delete", useNil.ID)), http.StatusOK)
+			unittest.AssertNotExistsBean(t, &issues_model.Comment{ID: useNil.ID})
+			for _, page := range []string{pullURL + "/files", pullURL} {
+				ownerSession.MakeRequest(t, NewRequest(t, "GET", page), http.StatusOK)
+			}
 			assert.Equal(t, before, headCommit(t).ID.String())
 		})
 

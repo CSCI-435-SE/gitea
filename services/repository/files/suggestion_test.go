@@ -96,11 +96,65 @@ func TestSuggestionCommitMessage(t *testing.T) {
 	}
 
 	// AC1, and #156 Decision 3's default for customer question 1: the reviewer is credited as a co-author
-	assert.Equal(t, "Apply suggestion from @ana on main.go\n\nCo-authored-by: ana <ana@example.com>", suggestionCommitMessage(comment(reviewer), doer, ""))
-	assert.Equal(t, "Use err\n\nCo-authored-by: ana <ana@example.com>", suggestionCommitMessage(comment(reviewer), doer, "Use err\n"))
+	assert.Equal(t, "Apply suggestion from @ana on main.go\n\nCo-authored-by: ana <ana@example.com>", suggestionCommitMessage([]*issues_model.Comment{comment(reviewer)}, doer, ""))
+	assert.Equal(t, "Use err\n\nCo-authored-by: ana <ana@example.com>", suggestionCommitMessage([]*issues_model.Comment{comment(reviewer)}, doer, "Use err\n"))
 	// nobody to credit: the doer's own suggestion, or a reviewer whose account was deleted (#179 review)
-	assert.Equal(t, "Apply suggestion from @bo on main.go", suggestionCommitMessage(comment(doer), doer, "  "))
-	assert.Equal(t, "Use err", suggestionCommitMessage(comment(user_model.NewGhostUser()), doer, "Use err"))
+	assert.Equal(t, "Apply suggestion from @bo on main.go", suggestionCommitMessage([]*issues_model.Comment{comment(doer)}, doer, "  "))
+	assert.Equal(t, "Use err", suggestionCommitMessage([]*issues_model.Comment{comment(user_model.NewGhostUser())}, doer, "Use err"))
+
+	// #159 AC1: several suggestions get "Apply <N> suggestions from code review", and each reviewer other than the
+	// applier is credited once, in batch order
+	carl := &user_model.User{ID: 6, Name: "carl", Email: "carl@example.com"}
+	batch := []*issues_model.Comment{comment(reviewer), comment(doer), comment(carl), comment(reviewer), comment(user_model.NewGhostUser())}
+	assert.Equal(t, "Apply 5 suggestions from code review\n\nCo-authored-by: ana <ana@example.com>\nCo-authored-by: carl <carl@example.com>", suggestionCommitMessage(batch, doer, ""))
+	assert.Equal(t, "Tidy up\n\nCo-authored-by: ana <ana@example.com>\nCo-authored-by: carl <carl@example.com>", suggestionCommitMessage(batch, doer, "Tidy up"))
+	assert.Equal(t, "Apply 2 suggestions from code review", suggestionCommitMessage([]*issues_model.Comment{comment(doer), comment(doer)}, doer, ""))
+}
+
+// #159 AC9 and AC2: one file's suggestions are applied bottom-up, and two that share a line are refused
+func TestApplySuggestionsToContent(t *testing.T) {
+	edit := func(line int64, original, suggestion string) suggestionEdit {
+		return suggestionEdit{
+			comment:    &issues_model.Comment{Type: issues_model.CommentTypeCode, Line: line, TreePath: "main.go", Patch: "@@ -1,1 +1,1 @@\n+" + original},
+			original:   original,
+			suggestion: suggestion,
+		}
+	}
+	const content = "l1\nl2\nl3\nl4\nl5\nl6\n"
+
+	t.Run("AC9 one line becomes three above, a line deleted below: the same as applying them one at a time", func(t *testing.T) {
+		got, err := applySuggestionsToContent(content, []suggestionEdit{edit(2, "l2", "a\nb\nc\n"), edit(5, "l5", "")})
+		require.NoError(t, err)
+		assert.Equal(t, "l1\na\nb\nc\nl3\nl4\nl6\n", got)
+		// the order the suggestions were selected in doesn't matter
+		got, err = applySuggestionsToContent(content, []suggestionEdit{edit(5, "l5", ""), edit(2, "l2", "a\nb\nc\n")})
+		require.NoError(t, err)
+		assert.Equal(t, "l1\na\nb\nc\nl3\nl4\nl6\n", got)
+	})
+
+	t.Run("neighbouring lines both apply", func(t *testing.T) {
+		got, err := applySuggestionsToContent(content, []suggestionEdit{edit(3, "l3", "x\n"), edit(4, "l4", "y\n")})
+		require.NoError(t, err)
+		assert.Equal(t, "l1\nl2\nx\ny\nl5\nl6\n", got)
+	})
+
+	t.Run("AC2 two suggestions on the same line overlap", func(t *testing.T) {
+		_, err := applySuggestionsToContent(content, []suggestionEdit{edit(3, "l3", "x\n"), edit(3, "l3", "y\n")})
+		assert.ErrorIs(t, err, ErrSuggestionOverlap)
+	})
+
+	t.Run("AC2 a range that covers another suggestion's line overlaps", func(t *testing.T) {
+		_, err := applySuggestionsToContent(content, []suggestionEdit{edit(4, "l3\nl4", "x\n"), edit(3, "l3", "y\n")})
+		assert.ErrorIs(t, err, ErrSuggestionOverlap)
+	})
+
+	t.Run("AC3 an outdated suggestion is named", func(t *testing.T) {
+		_, err := applySuggestionsToContent(content, []suggestionEdit{edit(2, "l2", "x\n"), edit(5, "changed", "y\n")})
+		var at ErrSuggestionAt
+		require.ErrorAs(t, err, &at)
+		assert.ErrorIs(t, err, ErrSuggestionOutdated)
+		assert.EqualValues(t, 5, at.Comment.Line)
+	})
 }
 
 // The checks before the commit (#156), against fixture pull request 2: user2/repo1, head branch2, whose README.md
@@ -252,6 +306,96 @@ func TestApplySuggestion(t *testing.T) {
 		require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo, rule, git_model.WhitelistOptions{}))
 		_, err = ApplySuggestion(t.Context(), owner, pr, suggest(pr, "README.md", "And an older change for branch2", fix), branch2Head, "")
 		assert.ErrorIs(t, err, ErrSuggestionOutdated)
+	})
+
+	// #159: a batch is refused as a whole before anything is committed
+	batch := func(pr *issues_model.PullRequest, n int) []*issues_model.Comment {
+		comments := make([]*issues_model.Comment, n)
+		for i := range comments {
+			comments[i] = suggest(pr, "README.md", "And change for branch2", fix)
+			comments[i].ID = int64(1000 + i)
+		}
+		return comments
+	}
+
+	t.Run("AC12 an empty batch", func(t *testing.T) {
+		assert.ErrorIs(t, errOf(ApplySuggestions(t.Context(), owner, loadPR(t, 2), nil, branch2Head, "")), ErrSuggestionBatchEmpty)
+	})
+
+	t.Run("AC14 a batch of 51", func(t *testing.T) {
+		pr := loadPR(t, 2)
+		assert.ErrorIs(t, errOf(ApplySuggestions(t.Context(), owner, pr, batch(pr, 51), branch2Head, "")), ErrSuggestionBatchTooLarge)
+	})
+
+	t.Run("AC13 the same suggestion twice", func(t *testing.T) {
+		pr := loadPR(t, 2)
+		comments := batch(pr, 2)
+		comments[1].ID = comments[0].ID
+		assert.ErrorIs(t, errOf(ApplySuggestions(t.Context(), owner, pr, comments, branch2Head, "")), ErrSuggestionBatchDuplicate)
+	})
+
+	t.Run("AC3 an outdated suggestion in a batch is named, and a single Apply keeps #156's bare error", func(t *testing.T) {
+		pr := loadPR(t, 2)
+		comments := batch(pr, 2)
+		comments[1].Invalidated = true
+		_, err := ApplySuggestions(t.Context(), owner, pr, comments, branch2Head, "")
+		var at ErrSuggestionAt
+		require.ErrorAs(t, err, &at)
+		assert.ErrorIs(t, err, ErrSuggestionOutdated)
+		assert.Same(t, comments[1], at.Comment)
+
+		_, err = ApplySuggestion(t.Context(), owner, pr, comments[1], branch2Head, "")
+		assert.Equal(t, ErrSuggestionOutdated, err)
+	})
+
+	t.Run("AC2 two suggestions on the same line", func(t *testing.T) {
+		pr := loadPR(t, 2)
+		assert.ErrorIs(t, errOf(ApplySuggestions(t.Context(), owner, pr, batch(pr, 2), branch2Head, "")), ErrSuggestionOverlap)
+	})
+
+	// #157 AC2: an applied suggestion is refused as applied before any of #156's other refusals
+	applied := func(c *issues_model.Comment) *issues_model.Comment {
+		c.SuggestionAppliedByID, c.SuggestionAppliedCommit = owner.ID, masterHead
+		return c
+	}
+	alreadyApplied := []struct {
+		name   string
+		doer   *user_model.User
+		change func(pr *issues_model.PullRequest, c *issues_model.Comment)
+		head   string
+	}{
+		{"AC2 already applied", owner, nil, branch2Head},
+		{"AC2 already applied wins over a closed pull request", owner, func(pr *issues_model.PullRequest, _ *issues_model.Comment) { pr.Issue.IsClosed = true }, branch2Head},
+		{"AC2 already applied wins over no push permission", reader, nil, branch2Head},
+		{"AC2 already applied wins over a moved head", owner, nil, masterHead},
+		{"AC2 already applied wins over an outdated comment", owner, func(_ *issues_model.PullRequest, c *issues_model.Comment) { c.Invalidated = true }, branch2Head},
+	}
+	for _, c := range alreadyApplied {
+		t.Run(c.name, func(t *testing.T) {
+			pr := loadPR(t, 2)
+			comment := applied(suggest(pr, "README.md", "And change for branch2", fix))
+			if c.change != nil {
+				c.change(pr, comment)
+			}
+			assert.ErrorIs(t, errOf(ApplySuggestion(t.Context(), c.doer, pr, comment, c.head, "")), ErrSuggestionAlreadyApplied)
+		})
+	}
+
+	t.Run("AC2 a comment that has nothing to apply is still not found once applied", func(t *testing.T) {
+		pr := loadPR(t, 2)
+		comment := applied(suggest(pr, "README.md", "And change for branch2", fix+"\nor\n"+fix))
+		assert.ErrorIs(t, errOf(ApplySuggestion(t.Context(), owner, pr, comment, branch2Head, "")), ErrSuggestionNotApplicable)
+	})
+
+	t.Run("#159 AC10 an applied suggestion in a batch is refused and named", func(t *testing.T) {
+		pr := loadPR(t, 2)
+		comments := batch(pr, 2)
+		applied(comments[1])
+		_, err := ApplySuggestions(t.Context(), owner, pr, comments, branch2Head, "")
+		var at ErrSuggestionAt
+		require.ErrorAs(t, err, &at)
+		assert.ErrorIs(t, err, ErrSuggestionAlreadyApplied)
+		assert.Same(t, comments[1], at.Comment)
 	})
 }
 
