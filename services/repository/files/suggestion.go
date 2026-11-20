@@ -115,13 +115,14 @@ func CanApplySuggestions(ctx context.Context, doer *user_model.User, pr *issues_
 }
 
 // ApplySuggestion commits the comment's single suggestion to the pull request's head branch, replacing the
-// commented line. expectedHeadSHA is the head commit the page showed; message may be empty for the default.
-func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment, expectedHeadSHA, message string) error {
-	err := ApplySuggestions(ctx, doer, pr, []*issues_model.Comment{comment}, expectedHeadSHA, message)
+// commented line, and returns the new commit's SHA (#160 AC2). expectedHeadSHA is the head commit the page
+// showed; message may be empty for the default.
+func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment, expectedHeadSHA, message string) (string, error) {
+	commitSHA, err := ApplySuggestions(ctx, doer, pr, []*issues_model.Comment{comment}, expectedHeadSHA, message)
 	if at, ok := errors.AsType[ErrSuggestionAt](err); ok {
-		return at.Err // one suggestion needs no name, so #156's messages stay as they were
+		return "", at.Err // one suggestion needs no name, so #156's messages stay as they were
 	}
-	return err
+	return commitSHA, err
 }
 
 // suggestionEdit is one suggestion to apply: its comment, the line(s) it was written against and its text
@@ -160,47 +161,47 @@ func suggestionEditFor(ctx context.Context, doer *user_model.User, pr *issues_mo
 }
 
 // ApplySuggestions commits the comments' suggestions to the pull request's head branch as one commit, or nothing
-// if any of them can't be applied (#159). expectedHeadSHA is the head commit the page showed; message may be empty
-// for the default.
-func ApplySuggestions(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comments []*issues_model.Comment, expectedHeadSHA, message string) error {
+// if any of them can't be applied (#159), and returns the commit's SHA (#160 AC2). expectedHeadSHA is the head
+// commit the page showed; message may be empty for the default.
+func ApplySuggestions(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comments []*issues_model.Comment, expectedHeadSHA, message string) (string, error) {
 	if len(comments) == 0 {
-		return ErrSuggestionBatchEmpty
+		return "", ErrSuggestionBatchEmpty
 	}
 	if len(comments) > MaxSuggestionBatch {
-		return ErrSuggestionBatchTooLarge
+		return "", ErrSuggestionBatchTooLarge
 	}
 	seen := make(container.Set[int64], len(comments))
 	edits := make([]suggestionEdit, 0, len(comments))
 	for _, comment := range comments {
 		if !seen.Add(comment.ID) {
-			return ErrSuggestionBatchDuplicate
+			return "", ErrSuggestionBatchDuplicate
 		}
 		edit, err := suggestionEditFor(ctx, doer, pr, comment)
 		if err != nil {
-			return err
+			return "", err
 		}
 		edits = append(edits, edit)
 	}
 
 	headCommitID, err := CanApplySuggestions(ctx, doer, pr)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if headCommitID != expectedHeadSHA {
-		return ErrSuggestionHeadMoved
+		return "", ErrSuggestionHeadMoved
 	}
 
 	// the web editor's check, so the user gets our message rather than the pre-receive hook's output
 	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.HeadRepo.ID, pr.HeadBranch)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if protectedBranch != nil {
 		protectedBranch.Repo = pr.HeadRepo
 		if !protectedBranch.CanUserPush(ctx, doer) {
 			for _, edit := range edits {
 				if protectedBranch.UnprotectedFilePatterns == "" || !protectedBranch.IsUnprotectedFile(protectedBranch.GetUnprotectedFilePatterns(), edit.comment.TreePath) {
-					return ErrSuggestionProtectedBranch{Branch: pr.HeadBranch}
+					return "", ErrSuggestionProtectedBranch{Branch: pr.HeadBranch}
 				}
 			}
 		}
@@ -209,18 +210,18 @@ func ApplySuggestions(ctx context.Context, doer *user_model.User, pr *issues_mod
 	for _, edit := range edits {
 		if edit.comment.Invalidated {
 			// the page hides Apply on outdated comments, but a page loaded earlier may still post
-			return ErrSuggestionAt{Comment: edit.comment, Err: ErrSuggestionOutdated}
+			return "", ErrSuggestionAt{Comment: edit.comment, Err: ErrSuggestionOutdated}
 		}
 	}
 
 	headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer closer.Close()
 	headCommit, err := headGitRepo.GetCommit(headCommitID)
 	if err != nil {
-		return err
+		return "", err
 	}
 	var paths []string // in batch order, so the commit is the same however often it is retried
 	byPath := map[string][]suggestionEdit{}
@@ -234,24 +235,24 @@ func ApplySuggestions(ctx context.Context, doer *user_model.User, pr *issues_mod
 	for _, path := range paths {
 		blob, err := headCommit.GetBlobByPath(path)
 		if git.IsErrNotExist(err) {
-			return ErrSuggestionAt{Comment: byPath[path][0].comment, Err: ErrSuggestionOutdated} // deleted or renamed since the review
+			return "", ErrSuggestionAt{Comment: byPath[path][0].comment, Err: ErrSuggestionOutdated} // deleted or renamed since the review
 		} else if err != nil {
-			return err
+			return "", err
 		}
 		content, err := blob.GetBlobContent(blob.Size())
 		if err != nil {
-			return err
+			return "", err
 		}
 		newContent, err := applySuggestionsToContent(content, byPath[path])
 		if err != nil {
-			return err
+			return "", err
 		}
 		files = append(files, &ChangeRepoFile{Operation: "update", TreePath: path, FromTreePath: path, ContentReader: strings.NewReader(newContent)})
 	}
 
 	for _, edit := range edits {
 		if err := edit.comment.LoadPoster(ctx); err != nil {
-			return err
+			return "", err
 		}
 	}
 	resp, err := ChangeRepoFiles(ctx, pr.HeadRepo, doer, &ChangeRepoFilesOptions{
@@ -262,9 +263,9 @@ func ApplySuggestions(ctx context.Context, doer *user_model.User, pr *issues_mod
 		Files:        files,
 	})
 	if IsErrCommitIDDoesNotMatch(err) {
-		return ErrSuggestionHeadMoved // someone pushed between our check and the commit
+		return "", ErrSuggestionHeadMoved // someone pushed between our check and the commit
 	} else if err != nil {
-		return err
+		return "", err
 	}
 
 	// git isn't in the database transaction, so the commit comes first; once it is on the branch Apply has
@@ -274,7 +275,7 @@ func ApplySuggestions(ctx context.Context, doer *user_model.User, pr *issues_mod
 			log.Error("MarkSuggestionApplied(%d, %s): %v", comment.ID, resp.Commit.SHA, err)
 		}
 	}
-	return nil
+	return resp.Commit.SHA, nil
 }
 
 // applySuggestionsToContent applies one file's suggestions bottom-up, so each edit leaves the line numbers of the

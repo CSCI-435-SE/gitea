@@ -14592,6 +14592,76 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/comments/{id}/suggestion/apply": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Apply a review comment's suggestion as a commit on the pull request's head branch",
+        "operationId": "repoApplyPullReviewSuggestion",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ApplyPullReviewSuggestionOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/AppliedPullReviewSuggestion"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls/comments/{id}/unresolve": {
       "post": {
         "produces": [
@@ -22880,6 +22950,18 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "AppliedPullReviewSuggestion": {
+      "description": "AppliedPullReviewSuggestion is the commit that applied a review comment's suggestion",
+      "type": "object",
+      "properties": {
+        "commit_sha": {
+          "description": "the new head commit of the pull request's branch",
+          "type": "string",
+          "x-go-name": "CommitSHA"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "ApplyDiffPatchFileOptions": {
       "description": "ApplyDiffPatchFileOptions options for applying a diff patch\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
@@ -22924,6 +23006,23 @@
           "description": "Add a Signed-off-by trailer by the committer at the end of the commit log message.",
           "type": "boolean",
           "x-go-name": "Signoff"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "ApplyPullReviewSuggestionOptions": {
+      "description": "ApplyPullReviewSuggestionOptions are options to commit a review comment's suggestion to the pull request's head branch",
+      "type": "object",
+      "properties": {
+        "head_sha": {
+          "description": "the head commit the suggestion was reviewed against; refused with 409 once the branch has moved",
+          "type": "string",
+          "x-go-name": "HeadSHA"
+        },
+        "message": {
+          "description": "the commit message; empty means \"Apply suggestion from @\u003creviewer\u003e on \u003cpath\u003e\"",
+          "type": "string",
+          "x-go-name": "Message"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -31041,6 +31140,12 @@
       "description": "AnnotatedTag",
       "schema": {
         "$ref": "#/definitions/AnnotatedTag"
+      }
+    },
+    "AppliedPullReviewSuggestion": {
+      "description": "AppliedPullReviewSuggestion",
+      "schema": {
+        "$ref": "#/definitions/AppliedPullReviewSuggestion"
       }
     },
     "Artifact": {

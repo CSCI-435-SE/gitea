@@ -77,6 +77,16 @@
         },
         "description": "AnnotatedTag"
       },
+      "AppliedPullReviewSuggestion": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AppliedPullReviewSuggestion"
+            }
+          }
+        },
+        "description": "AppliedPullReviewSuggestion"
+      },
       "Artifact": {
         "content": {
           "application/json": {
@@ -2592,6 +2602,18 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "AppliedPullReviewSuggestion": {
+        "description": "AppliedPullReviewSuggestion is the commit that applied a review comment's suggestion",
+        "properties": {
+          "commit_sha": {
+            "description": "the new head commit of the pull request's branch",
+            "type": "string",
+            "x-go-name": "CommitSHA"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "ApplyDiffPatchFileOptions": {
         "description": "ApplyDiffPatchFileOptions options for applying a diff patch\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
         "properties": {
@@ -2637,6 +2659,23 @@
         "required": [
           "content"
         ],
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "ApplyPullReviewSuggestionOptions": {
+        "description": "ApplyPullReviewSuggestionOptions are options to commit a review comment's suggestion to the pull request's head branch",
+        "properties": {
+          "head_sha": {
+            "description": "the head commit the suggestion was reviewed against; refused with 409 once the branch has moved",
+            "type": "string",
+            "x-go-name": "HeadSHA"
+          },
+          "message": {
+            "description": "the commit message; empty means \"Apply suggestion from @\u003creviewer\u003e on \u003cpath\u003e\"",
+            "type": "string",
+            "x-go-name": "Message"
+          }
+        },
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -26421,6 +26460,79 @@
           }
         },
         "summary": "Resolve a pull request review comment",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/comments/{id}/suggestion/apply": {
+      "post": {
+        "operationId": "repoApplyPullReviewSuggestion",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the review comment",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyPullReviewSuggestionOptions"
+              }
+            }
+          },
+          "required": true,
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/AppliedPullReviewSuggestion"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
+          }
+        },
+        "summary": "Apply a review comment's suggestion as a commit on the pull request's head branch",
         "tags": [
           "repository"
         ]

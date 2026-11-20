@@ -99,6 +99,20 @@ type CreatePullReviewCommentReplyOptions struct {
 	Body string `json:"body" binding:"Required"`
 }
 
+// ApplyPullReviewSuggestionOptions are options to commit a review comment's suggestion to the pull request's head branch
+type ApplyPullReviewSuggestionOptions struct {
+	// the head commit the suggestion was reviewed against; refused with 409 once the branch has moved
+	HeadSHA string `json:"head_sha" binding:"Required"`
+	// the commit message; empty means "Apply suggestion from @<reviewer> on <path>"
+	Message string `json:"message"`
+}
+
+// AppliedPullReviewSuggestion is the commit that applied a review comment's suggestion
+type AppliedPullReviewSuggestion struct {
+	// the new head commit of the pull request's branch
+	CommitSHA string `json:"commit_sha"`
+}
+
 // SubmitPullReviewOptions are options to submit a pending pull request review
 type SubmitPullReviewOptions struct {
 	Event ReviewStateType `json:"event"`

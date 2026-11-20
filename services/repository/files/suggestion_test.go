@@ -210,7 +210,7 @@ func TestApplySuggestion(t *testing.T) {
 			_, err := CanApplySuggestions(t.Context(), c.doer, pr)
 			assert.ErrorIs(t, err, c.err)
 			// ApplySuggestion makes the same check before anything else that touches the branch
-			assert.ErrorIs(t, ApplySuggestion(t.Context(), c.doer, pr, suggest(pr, "README.md", "And change for branch2", fix), branch2Head, ""), c.err)
+			assert.ErrorIs(t, errOf(ApplySuggestion(t.Context(), c.doer, pr, suggest(pr, "README.md", "And change for branch2", fix), branch2Head, "")), c.err)
 		})
 	}
 
@@ -267,7 +267,7 @@ func TestApplySuggestion(t *testing.T) {
 	for _, c := range refused {
 		t.Run(c.name, func(t *testing.T) {
 			pr := loadPR(t, 2)
-			assert.ErrorIs(t, ApplySuggestion(t.Context(), owner, pr, c.comment(pr), c.head, ""), c.err)
+			assert.ErrorIs(t, errOf(ApplySuggestion(t.Context(), owner, pr, c.comment(pr), c.head, "")), c.err)
 		})
 	}
 
@@ -277,7 +277,7 @@ func TestApplySuggestion(t *testing.T) {
 		pr := loadPR(t, 2)
 		c := suggest(pr, "README.md", "And change for branch2", fix)
 		c.ReviewID = pending.ID
-		assert.ErrorIs(t, ApplySuggestion(t.Context(), owner, pr, c, branch2Head, ""), ErrSuggestionNotApplicable)
+		assert.ErrorIs(t, errOf(ApplySuggestion(t.Context(), owner, pr, c, branch2Head, "")), ErrSuggestionNotApplicable)
 	})
 
 	t.Run("the reviewer may apply a suggestion from their own pending review", func(t *testing.T) {
@@ -286,7 +286,7 @@ func TestApplySuggestion(t *testing.T) {
 		pr := loadPR(t, 2)
 		c := suggest(pr, "README.md", "And an older change for branch2", fix) // outdated, so it stops before committing
 		c.PosterID, c.ReviewID = owner.ID, pending.ID
-		assert.ErrorIs(t, ApplySuggestion(t.Context(), owner, pr, c, branch2Head, ""), ErrSuggestionOutdated)
+		assert.ErrorIs(t, errOf(ApplySuggestion(t.Context(), owner, pr, c, branch2Head, "")), ErrSuggestionOutdated)
 	})
 
 	t.Run("AC6 a protected branch", func(t *testing.T) {
@@ -295,7 +295,7 @@ func TestApplySuggestion(t *testing.T) {
 		defer func() { require.NoError(t, git_model.DeleteProtectedBranch(t.Context(), repo, rule.ID)) }()
 
 		pr := loadPR(t, 2)
-		err := ApplySuggestion(t.Context(), owner, pr, suggest(pr, "README.md", "And change for branch2", fix), branch2Head, "")
+		_, err := ApplySuggestion(t.Context(), owner, pr, suggest(pr, "README.md", "And change for branch2", fix), branch2Head, "")
 		var errProtected ErrSuggestionProtectedBranch
 		require.ErrorAs(t, err, &errProtected)
 		assert.Equal(t, "branch2", errProtected.Branch)
@@ -304,7 +304,7 @@ func TestApplySuggestion(t *testing.T) {
 		// so this one gets past protection and stops at its outdated line instead
 		rule.UnprotectedFilePatterns = "README.md"
 		require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo, rule, git_model.WhitelistOptions{}))
-		err = ApplySuggestion(t.Context(), owner, pr, suggest(pr, "README.md", "And an older change for branch2", fix), branch2Head, "")
+		_, err = ApplySuggestion(t.Context(), owner, pr, suggest(pr, "README.md", "And an older change for branch2", fix), branch2Head, "")
 		assert.ErrorIs(t, err, ErrSuggestionOutdated)
 	})
 
@@ -319,38 +319,38 @@ func TestApplySuggestion(t *testing.T) {
 	}
 
 	t.Run("AC12 an empty batch", func(t *testing.T) {
-		assert.ErrorIs(t, ApplySuggestions(t.Context(), owner, loadPR(t, 2), nil, branch2Head, ""), ErrSuggestionBatchEmpty)
+		assert.ErrorIs(t, errOf(ApplySuggestions(t.Context(), owner, loadPR(t, 2), nil, branch2Head, "")), ErrSuggestionBatchEmpty)
 	})
 
 	t.Run("AC14 a batch of 51", func(t *testing.T) {
 		pr := loadPR(t, 2)
-		assert.ErrorIs(t, ApplySuggestions(t.Context(), owner, pr, batch(pr, 51), branch2Head, ""), ErrSuggestionBatchTooLarge)
+		assert.ErrorIs(t, errOf(ApplySuggestions(t.Context(), owner, pr, batch(pr, 51), branch2Head, "")), ErrSuggestionBatchTooLarge)
 	})
 
 	t.Run("AC13 the same suggestion twice", func(t *testing.T) {
 		pr := loadPR(t, 2)
 		comments := batch(pr, 2)
 		comments[1].ID = comments[0].ID
-		assert.ErrorIs(t, ApplySuggestions(t.Context(), owner, pr, comments, branch2Head, ""), ErrSuggestionBatchDuplicate)
+		assert.ErrorIs(t, errOf(ApplySuggestions(t.Context(), owner, pr, comments, branch2Head, "")), ErrSuggestionBatchDuplicate)
 	})
 
 	t.Run("AC3 an outdated suggestion in a batch is named, and a single Apply keeps #156's bare error", func(t *testing.T) {
 		pr := loadPR(t, 2)
 		comments := batch(pr, 2)
 		comments[1].Invalidated = true
-		err := ApplySuggestions(t.Context(), owner, pr, comments, branch2Head, "")
+		_, err := ApplySuggestions(t.Context(), owner, pr, comments, branch2Head, "")
 		var at ErrSuggestionAt
 		require.ErrorAs(t, err, &at)
 		assert.ErrorIs(t, err, ErrSuggestionOutdated)
 		assert.Same(t, comments[1], at.Comment)
 
-		err = ApplySuggestion(t.Context(), owner, pr, comments[1], branch2Head, "")
+		_, err = ApplySuggestion(t.Context(), owner, pr, comments[1], branch2Head, "")
 		assert.Equal(t, ErrSuggestionOutdated, err)
 	})
 
 	t.Run("AC2 two suggestions on the same line", func(t *testing.T) {
 		pr := loadPR(t, 2)
-		assert.ErrorIs(t, ApplySuggestions(t.Context(), owner, pr, batch(pr, 2), branch2Head, ""), ErrSuggestionOverlap)
+		assert.ErrorIs(t, errOf(ApplySuggestions(t.Context(), owner, pr, batch(pr, 2), branch2Head, "")), ErrSuggestionOverlap)
 	})
 
 	// #157 AC2: an applied suggestion is refused as applied before any of #156's other refusals
@@ -377,24 +377,29 @@ func TestApplySuggestion(t *testing.T) {
 			if c.change != nil {
 				c.change(pr, comment)
 			}
-			assert.ErrorIs(t, ApplySuggestion(t.Context(), c.doer, pr, comment, c.head, ""), ErrSuggestionAlreadyApplied)
+			assert.ErrorIs(t, errOf(ApplySuggestion(t.Context(), c.doer, pr, comment, c.head, "")), ErrSuggestionAlreadyApplied)
 		})
 	}
 
 	t.Run("AC2 a comment that has nothing to apply is still not found once applied", func(t *testing.T) {
 		pr := loadPR(t, 2)
 		comment := applied(suggest(pr, "README.md", "And change for branch2", fix+"\nor\n"+fix))
-		assert.ErrorIs(t, ApplySuggestion(t.Context(), owner, pr, comment, branch2Head, ""), ErrSuggestionNotApplicable)
+		assert.ErrorIs(t, errOf(ApplySuggestion(t.Context(), owner, pr, comment, branch2Head, "")), ErrSuggestionNotApplicable)
 	})
 
 	t.Run("#159 AC10 an applied suggestion in a batch is refused and named", func(t *testing.T) {
 		pr := loadPR(t, 2)
 		comments := batch(pr, 2)
 		applied(comments[1])
-		err := ApplySuggestions(t.Context(), owner, pr, comments, branch2Head, "")
+		_, err := ApplySuggestions(t.Context(), owner, pr, comments, branch2Head, "")
 		var at ErrSuggestionAt
 		require.ErrorAs(t, err, &at)
 		assert.ErrorIs(t, err, ErrSuggestionAlreadyApplied)
 		assert.Same(t, comments[1], at.Comment)
 	})
+}
+
+// errOf drops ApplySuggestion's commit SHA for the cases that only check its error
+func errOf(_ string, err error) error {
+	return err
 }
