@@ -157,6 +157,21 @@ test('initSuggestChangeButton with a range', () => {
   expect(textarea.value).toEqual('```suggestion\nfunc f() {\n\treturn 1\n}\n```\n');
 });
 
+test('initSuggestChangeButton drops a CRLF line ending', () => {
+  document.body.innerHTML = `
+    <div class="combo-markdown-editor">
+      <div class="markdown-toolbar-group tw-hidden"><button class="markdown-button-suggest-change">s</button></div>
+      <textarea></textarea>
+    </div>
+    <code class="code-inner">x := 1\r\n</code>`;
+  const container = document.querySelector<HTMLElement>('.combo-markdown-editor')!;
+  const textarea = container.querySelector('textarea')!;
+  initSuggestChangeButton({container, textarea} as ComboMarkdownEditor, Array.from(document.querySelectorAll<HTMLElement>('.code-inner')));
+  container.querySelector<HTMLButtonElement>('.markdown-button-suggest-change')!.click();
+  // #158 AC4: the block holds the line itself; the cell's own line ending, CRLF in a CRLF file, is not part of it
+  expect(textarea.value).toEqual('```suggestion\nx := 1\n```\n');
+});
+
 // #187: the reply form of a Files tab conversation, under the diff row it comments on
 function replyTable(side: 'left' | 'right', row: string, {unified = false, button = true} = {}): string {
   return `<table><tbody>${row}<tr class="add-comment"><td class="add-comment-${unified ? 'left add-comment-right' : side}">
