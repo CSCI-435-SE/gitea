@@ -100,9 +100,30 @@ function addApplyButton(elMarkup: HTMLElement, diff: HTMLElement): HTMLElement {
 }
 
 // The suggestions picked to apply together (#159). The batch lives only in this page, so a reload empties it (AC4).
-type BatchItem = {id: string, path: string, start: number, end: number, message: string};
+type BatchItem = {id: string, path: string, start: number, end: number, message: string, toggle: HTMLElement};
 const batch = new Map<string, BatchItem>();
 let batchBar: {el: HTMLElement, count: HTMLElement, message: HTMLInputElement, edited: boolean} | null = null;
+
+// a suggestion whose comment was deleted, or edited so it no longer offers one, has lost its toggle from the page and
+// can't be applied, so it leaves the batch; true if any did
+function dropRemovedFromBatch(): boolean {
+  let dropped = false;
+  for (const [id, item] of batch) {
+    if (!item.toggle.isConnected) {
+      batch.delete(id);
+      dropped = true;
+    }
+  }
+  return dropped;
+}
+
+// not batch.values().some(): Iterator helpers need Safari 18.4 / Firefox 131, newer than the es2020 build target
+function overlapsBatch(item: BatchItem): boolean {
+  for (const other of batch.values()) {
+    if (other.path === item.path && other.start <= item.end && item.start <= other.end) return true;
+  }
+  return false;
+}
 
 // The default message matches ApplySuggestions' on the server, and is the suggestion's own for one (AC1, AC11)
 function batchMessage(): string {
@@ -137,6 +158,10 @@ function updateBatchBar(elMarkup: HTMLElement): void {
     batchBar = bar;
     message.addEventListener('input', () => { bar.edited = true });
     applyButton.addEventListener('click', async () => {
+      if (dropRemovedFromBatch()) { // show what is left rather than posting a different batch than the bar showed
+        updateBatchBar(elMarkup);
+        return;
+      }
       applyButton.disabled = true;
       hideElem(error);
       const data = new FormData();
@@ -158,15 +183,18 @@ function updateBatchBar(elMarkup: HTMLElement): void {
 function addBatchToggle(elMarkup: HTMLElement, buttons: HTMLElement): void {
   const attr = (name: string) => elMarkup.getAttribute(`data-suggestion-${name}`)!;
   const end = Number(attr('line'));
+  const id = attr('id');
+  // a comment re-rendered after an edit (#154 AC8) may already be in the batch
+  const toggle = makeButton(attr(batch.has(id) ? 'batch-remove-label' : 'batch-add-label'), 'ui mini basic button markup-suggestion-batch');
   const item: BatchItem = {
-    id: attr('id'),
+    id,
     path: attr('path'),
     start: end - attr('original').split('\n').length + 1, // a range's original holds one line per "\n"
     end,
     message: attr('apply-message'),
+    toggle,
   };
-  // a comment re-rendered after an edit (#154 AC8) may already be in the batch
-  const toggle = makeButton(attr(batch.has(item.id) ? 'batch-remove-label' : 'batch-add-label'), 'ui mini basic button markup-suggestion-batch');
+  if (batch.has(id)) batch.set(id, item); // the re-rendered comment's toggle and text replace the old ones
   buttons.append(toggle);
   toggle.addEventListener('click', () => {
     if (batch.has(item.id)) {
@@ -174,7 +202,7 @@ function addBatchToggle(elMarkup: HTMLElement, buttons: HTMLElement): void {
     } else if (batch.size >= Number(attr('batch-max'))) {
       showErrorToast(attr('batch-too-large')); // AC14
       return;
-    } else if (batch.values().some((other) => other.path === item.path && other.start <= item.end && item.start <= other.end)) {
+    } else if (overlapsBatch(item)) {
       showErrorToast(attr('batch-overlap')); // AC2
       return;
     } else {

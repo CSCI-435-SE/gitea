@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -18,6 +19,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/queue"
 	issue_service "gitea.dev/services/issue"
 	repo_service "gitea.dev/services/repository"
 	files_service "gitea.dev/services/repository/files"
@@ -90,7 +92,13 @@ func TestPullReviewApplySuggestions(t *testing.T) {
 			for _, c := range comments {
 				values.Add("comment_ids", strconv.FormatInt(c.ID, 10))
 			}
-			return session.MakeRequest(t, NewRequestWithURLValues(t, "POST", pullURL+"/files/reviews/comments/apply", values), status)
+			resp := session.MakeRequest(t, NewRequestWithURLValues(t, "POST", pullURL+"/files/reviews/comments/apply", values), status)
+			if status == http.StatusOK {
+				// applying pushes, and the pull request is updated in the background; a comment posted before that
+				// finishes can fail (seen on MySQL CI), so let it finish before the next request
+				require.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
+			}
+			return resp
 		}
 		errorMessage := func(t *testing.T, resp *httptest.ResponseRecorder) string {
 			return DecodeJSON(t, resp, &struct {

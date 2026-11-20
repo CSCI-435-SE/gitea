@@ -280,20 +280,26 @@ function batchAttrs(id: number, path: string, line: number, message = `Apply sug
 
 describe('applying several suggestions in one commit', {concurrent: false}, () => {
   const toggles: HTMLButtonElement[] = [];
+  // a comment on the page, as the batch only keeps suggestions whose toggle is still there
   function suggestion(id: number, path: string, line: number, message?: string): HTMLButtonElement {
     const el = makeMarkup(batchAttrs(id, path, line, message), codeBlock('x\n'));
+    document.body.append(el);
     initMarkupCodeSuggestion(el);
     const toggle = el.querySelector<HTMLButtonElement>('.markup-suggestion-batch')!;
     toggles.push(toggle);
     return toggle;
   }
+  const comment = (toggle: HTMLElement) => toggle.closest<HTMLElement>('.render-content')!;
   const bar = () => document.querySelector('.markup-suggestion-batch-bar');
   const barMessage = () => bar()!.querySelector('input')!.value;
+  const applyButton = () => Array.from(bar()!.querySelectorAll('button')).find((b) => b.textContent === 'Apply suggestions')!;
 
   afterEach(() => {
     for (const toggle of toggles) {
-      if (toggle.textContent === 'Remove from batch') toggle.click(); // the batch is module state
+      // the batch is module state; a toggle no longer on the page belongs to a comment the test removed
+      if (toggle.isConnected && toggle.textContent === 'Remove from batch') toggle.click();
     }
+    for (const toggle of toggles) toggle.closest('.render-content')?.remove();
     toggles.length = 0;
     vi.mocked(POST).mockReset();
     vi.mocked(showErrorToast).mockReset();
@@ -348,10 +354,41 @@ describe('applying several suggestions in one commit', {concurrent: false}, () =
   test('a comment re-rendered after an edit keeps showing that it is in the batch', () => {
     const first = suggestion(1, 'main.go', 2);
     first.click();
-    toggles.splice(toggles.indexOf(first), 1); // the edit replaces this toggle, so cleanup must not click it
+    comment(first).remove();
     const again = suggestion(1, 'main.go', 2); // #154 AC8 re-renders an edited comment
     expect(again.textContent).toEqual('Remove from batch');
     again.click();
+    expect(bar()).toBeNull();
+  });
+
+  // #196 review: a suggestion that leaves the page must not stay in the batch, or every Apply would fail on it
+  test('a deleted comment, or one edited to have no suggestion, leaves the batch before it is posted', async () => {
+    vi.mocked(POST).mockResolvedValue({ok: true} as Response);
+    const reload = vi.spyOn(window.location, 'reload').mockImplementation(() => {});
+    const kept = suggestion(1, 'main.go', 2);
+    const deleted = suggestion(2, 'main.go', 5);
+    const edited = suggestion(3, 'util.go', 4);
+    for (const toggle of [kept, deleted, edited]) toggle.click();
+    expect(bar()!.textContent).toContain('3 suggestions selected');
+
+    comment(deleted).remove();
+    comment(edited).innerHTML = '<p>never mind</p>'; // the edited comment re-renders without a suggestion
+    applyButton().click();
+    expect(POST).not.toHaveBeenCalled(); // the bar first shows what is left
+    expect(bar()!.textContent).toContain('1 suggestions selected');
+    expect(barMessage()).toEqual('Apply suggestion from @ana on main.go');
+
+    applyButton().click();
+    await vi.waitFor(() => expect(reload).toHaveBeenCalled());
+    expect((vi.mocked(POST).mock.calls[0][1]!.data as FormData).getAll('comment_ids')).toEqual(['1']);
+  });
+
+  test('when every suggestion in the batch has left the page, the bar goes', () => {
+    const gone = suggestion(1, 'main.go', 2);
+    gone.click();
+    comment(gone).remove();
+    applyButton().click();
+    expect(POST).not.toHaveBeenCalled();
     expect(bar()).toBeNull();
   });
 
