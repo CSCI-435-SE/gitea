@@ -90,6 +90,9 @@ func TestCreateCodeCommentRange(t *testing.T) {
 		reply, err := create(5, 0, comment.ReviewID)
 		require.NoError(t, err)
 		assert.EqualValues(t, 3, reply.RangeStartLine())
+		// #189 AC10: a suggestion in the reply is applied to the thread's whole range
+		assert.Equal(t, comment.SuggestionOriginalLine(), reply.SuggestionOriginalLine())
+		assert.Equal(t, comment.SuggestionContextLines(), reply.SuggestionContextLines())
 	})
 
 	invalidated := func(t *testing.T, branch string) bool {

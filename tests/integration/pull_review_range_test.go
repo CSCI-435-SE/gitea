@@ -99,8 +99,7 @@ func TestPullReviewRangeComment(t *testing.T) {
 			assert.EqualValues(t, 0, comment.RangeStartLine())
 		})
 
-		// applying a range is #189; until then a range suggestion offers no Apply, even to someone who can push
-		t.Run("a range suggestion has no Apply, a single-line one keeps it", func(t *testing.T) {
+		t.Run("#189 AC4 a range suggestion offers Apply like a single-line one", func(t *testing.T) {
 			for _, page := range []string{"/files", ""} {
 				resp := session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/user2/test_range/pulls/%d%s", pr.Issue.Index, page)), http.StatusOK)
 				markups := NewHTMLParser(t, resp.Body).Find(".render-content.markup[data-suggestion-original]")
@@ -108,7 +107,7 @@ func TestPullReviewRangeComment(t *testing.T) {
 					return markups.FilterFunction(func(_ int, s *goquery.Selection) bool { return s.AttrOr("data-suggestion-original", "") == want })
 				}
 				assert.Positive(t, original("l1\nX2\nl3").Length())
-				assert.Equal(t, 0, original("l1\nX2\nl3").Filter("[data-suggestion-apply-url]").Length())
+				assert.Equal(t, original("l1\nX2\nl3").Length(), original("l1\nX2\nl3").Filter("[data-suggestion-apply-url]").Length())
 				assert.Positive(t, original("l11").Filter("[data-suggestion-apply-url]").Length()) // the viewer can apply
 			}
 		})
@@ -157,6 +156,29 @@ func TestPullReviewRangeComment(t *testing.T) {
 			for _, c := range cs {
 				assert.True(t, c.Invalidated, "comment on line %d", c.Line)
 			}
+		})
+
+		// last, since it moves the branch
+		t.Run("#189 AC1 applying a range replaces only its lines, in one commit", func(t *testing.T) {
+			post(t, "diff", "proposed", "11", "13", http.StatusOK) // l11, l12, Y13 become "new"
+			comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pr.IssueID, Type: issues_model.CommentTypeCode, Line: 13})
+			head, err := gitRepo.GetBranchCommitID("range-branch")
+			require.NoError(t, err)
+			session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/test_range/pulls/%d/files/reviews/comments/%d/apply", pr.Issue.Index, comment.ID), map[string]string{
+				"head_commit_id": head,
+			}), http.StatusOK)
+
+			commit, err := gitRepo.GetBranchCommit("range-branch")
+			require.NoError(t, err)
+			parent, err := commit.ParentID(0)
+			require.NoError(t, err)
+			assert.Equal(t, head, parent.String())
+			assert.Equal(t, "Apply suggestion from @user2 on README.md", strings.TrimSpace(commit.MessageRaw)) // S3 AC1, no co-author: user2 applied their own
+			blob, err := commit.GetBlobByPath("README.md")
+			require.NoError(t, err)
+			content, err := blob.GetBlobContent(1024)
+			require.NoError(t, err)
+			assert.Equal(t, fileLines(10, map[int]string{2: "Y2"})+"new\nl14\n", content)
 		})
 	})
 }

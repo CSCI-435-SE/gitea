@@ -138,9 +138,6 @@ func suggestionEditFor(ctx context.Context, doer *user_model.User, pr *issues_mo
 	if comment.IssueID != pr.IssueID || !original.Has() {
 		return suggestionEdit{}, ErrSuggestionNotApplicable
 	}
-	if comment.RangeStartLine() > 0 {
-		return suggestionEdit{}, ErrSuggestionNotApplicable // applying a range is #189; until then the templates show no Apply on one
-	}
 	blocks := comment.SuggestionBlocks(ctx)
 	if len(blocks) != 1 {
 		return suggestionEdit{}, ErrSuggestionNotApplicable
@@ -329,36 +326,35 @@ func suggestionCommitMessage(comments []*issues_model.Comment, doer *user_model.
 	return strings.TrimRight(message, "\n") + "\n\n" + strings.Join(trailers, "\n")
 }
 
-// applySuggestionToContent replaces line lineNum (1-based) of content with the suggestion's lines, the way
-// #154 draws the diff: "" deletes the line, "\n" leaves one blank line, otherwise one line per suggestion line.
-// original is the line the suggestion was written against, and above the lines the reviewer saw right above it;
-// content and both of those may use CRLF.
+// applySuggestionToContent replaces the line(s) ending at line lineNum (1-based) of content with the suggestion's
+// lines, the way #154 draws the diff: "" deletes them, "\n" leaves one blank line, otherwise one line per suggestion
+// line. original is the line(s) the suggestion was written against, one per "\n" for a range (#189), and above the
+// lines the reviewer saw right above them; content and both of those may use CRLF.
 func applySuggestionToContent(content string, lineNum int, above []string, original, suggestion string) (string, error) {
 	lines := strings.SplitAfter(content, "\n") // every element but the last keeps its "\n"
 	if lines[len(lines)-1] == "" {
 		lines = lines[:len(lines)-1] // content ended with a newline
 	}
-	idx := lineNum - 1
-	if idx < len(above) || idx >= len(lines) { // also refuses lineNum < 1, and a line that moved too near the top
+	want := append(slices.Clip(above), strings.Split(original, "\n")...)
+	first := lineNum - len(want)           // index of the first line checked
+	start := first + len(above)            // index of the first line replaced
+	if first < 0 || lineNum > len(lines) { // also refuses lineNum < 1, and lines that moved too near the top
 		return "", ErrSuggestionOutdated
 	}
 	// blame-based invalidation misses a line that moved onto an identical one, like another "}"; its neighbours don't
-	for i, want := range above {
-		if strings.TrimSuffix(strings.TrimSuffix(lines[idx-len(above)+i], "\n"), "\r") != strings.TrimSuffix(want, "\r") {
+	for i, w := range want {
+		if strings.TrimSuffix(strings.TrimSuffix(lines[first+i], "\n"), "\r") != strings.TrimSuffix(w, "\r") {
 			return "", ErrSuggestionOutdated
 		}
 	}
 
-	target := lines[idx]
+	target := lines[lineNum-1] // the last line replaced decides the ending, so a final line without one keeps it
 	ending := ""
 	switch {
 	case strings.HasSuffix(target, "\r\n"):
 		ending = "\r\n"
 	case strings.HasSuffix(target, "\n"):
 		ending = "\n"
-	}
-	if strings.TrimSuffix(target, ending) != strings.TrimSuffix(original, "\r") {
-		return "", ErrSuggestionOutdated
 	}
 
 	var replacement string
@@ -374,14 +370,14 @@ func applySuggestionToContent(content string, lineNum int, above []string, origi
 		replacement = strings.Join(newLines, innerEnding) + ending
 	}
 
-	before := strings.Join(lines[:idx], "")
-	if replacement == "" && ending == "" && idx > 0 {
+	before := strings.Join(lines[:start], "")
+	if replacement == "" && ending == "" && start > 0 {
 		// deleting a last line that has no newline: the line before it becomes last and loses its newline,
 		// so the file still ends without one (#156 AC11)
-		prev := lines[idx-1]
-		before = strings.Join(lines[:idx-1], "") + strings.TrimSuffix(strings.TrimSuffix(prev, "\n"), "\r")
+		prev := lines[start-1]
+		before = strings.Join(lines[:start-1], "") + strings.TrimSuffix(strings.TrimSuffix(prev, "\n"), "\r")
 	}
-	result := before + replacement + strings.Join(lines[idx+1:], "")
+	result := before + replacement + strings.Join(lines[lineNum:], "")
 	if result == content {
 		return "", ErrSuggestionNoChange
 	}

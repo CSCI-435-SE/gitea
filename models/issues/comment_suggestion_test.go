@@ -10,6 +10,8 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -94,6 +96,18 @@ func TestCommentSuggestionContextLines(t *testing.T) {
 			assert.Equal(t, c.expected, comment.SuggestionContextLines())
 		})
 	}
+
+	t.Run("#189 AC3 a range's context is the lines above its first line", func(t *testing.T) {
+		comment := &issues_model.Comment{
+			Type: issues_model.CommentTypeCode, Line: 4, CommentMetaData: &issues_model.CommentMetaData{StartLine: 3},
+			Patch: header + " a\n+b\n c\n+d",
+		}
+		assert.Equal(t, []string{"a", "b"}, comment.SuggestionContextLines())
+
+		// the stored hunk above can be long; only as many lines as S3's snippet holds are checked
+		defer test.MockVariableValue(&setting.UI.CodeCommentLines, 1)()
+		assert.Equal(t, []string{"b"}, comment.SuggestionContextLines())
+	})
 }
 
 func TestCommentSuggestionBlocks(t *testing.T) {

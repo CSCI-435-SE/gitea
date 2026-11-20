@@ -86,6 +86,42 @@ func TestApplySuggestionToContent(t *testing.T) {
 			assert.Equal(t, c.expected, result)
 		})
 	}
+
+	// #189: a range L-M is its lines joined by "\n", ending at line M
+	ranges := []struct {
+		name       string
+		content    string
+		line       int
+		above      []string
+		original   string
+		suggestion string
+		expected   string
+		err        error
+	}{
+		{"#189 AC1 lines 2-4 become two lines, nothing else changes", "a\nb\nc\nd\ne\n", 4, nil, "b\nc\nd", "X\nY\n", "a\nX\nY\ne\n", nil},
+		{"#189 AC1 a range from the first line", "a\nb\nc\n", 2, nil, "a\nb", "X\n", "X\nc\n", nil},
+		{"#189 AC1 a range with matching lines above", "a\nb\nc\nd\n", 3, []string{"a"}, "b\nc", "X\n", "a\nX\nd\n", nil},
+		{"#189 AC2 an empty block deletes the range", "a\nb\nc\nd\ne\n", 4, nil, "b\nc\nd", "", "a\ne\n", nil},
+		{"#189 AC2 one blank line replaces the range", "a\nb\nc\nd\ne\n", 4, nil, "b\nc\nd", "\n", "a\n\ne\n", nil},
+		{"#189 AC3 the first line of the range changed", "a\nB\nc\nd\ne\n", 4, nil, "b\nc\nd", "X\n", "", ErrSuggestionOutdated},
+		{"#189 AC3 a middle line of the range changed", "a\nb\nC\nd\ne\n", 4, nil, "b\nc\nd", "X\n", "", ErrSuggestionOutdated},
+		{"#189 AC3 the last line of the range changed", "a\nb\nc\nD\ne\n", 4, nil, "b\nc\nd", "X\n", "", ErrSuggestionOutdated},
+		{"#189 AC3 the file now has fewer than M lines", "a\nb\nc\n", 4, nil, "b\nc\nd", "X\n", "", ErrSuggestionOutdated},
+		{"#189 AC3 a line above the range changed", "A\nb\nc\nd\n", 3, []string{"a"}, "b\nc", "X\n", "", ErrSuggestionOutdated},
+		{"#189 AC3 a range that moved too near the top for its lines above", "b\nc\n", 2, []string{"a"}, "b\nc", "X\n", "", ErrSuggestionOutdated},
+		{"#189 AC5 a CRLF file keeps CRLF", "a\r\nb\r\nc\r\nd\r\n", 3, nil, "b\r\nc\r", "X\nY\nZ\n", "a\r\nX\r\nY\r\nZ\r\nd\r\n", nil},
+		{"#189 AC5 a range ending on a last line without a final newline", "a\nb\nc", 3, nil, "b\nc", "X\nY\n", "a\nX\nY", nil},
+		{"#189 AC5 the same in a CRLF file", "a\r\nb\r\nc", 3, nil, "b\r\nc", "X\nY\n", "a\r\nX\r\nY", nil},
+		{"#189 AC5 deleting a range that ends on a last line without a final newline", "a\nb\nc", 3, nil, "b\nc", "", "a", nil},
+		{"#189 AC6 the block equals the range", "a\nb\nc\n", 3, nil, "b\nc", "b\nc\n", "", ErrSuggestionNoChange},
+	}
+	for _, c := range ranges {
+		t.Run(c.name, func(t *testing.T) {
+			result, err := applySuggestionToContent(c.content, c.line, c.above, c.original, c.suggestion)
+			assert.ErrorIs(t, err, c.err)
+			assert.Equal(t, c.expected, result)
+		})
+	}
 }
 
 func TestSuggestionCommitMessage(t *testing.T) {
@@ -148,6 +184,27 @@ func TestApplySuggestionsToContent(t *testing.T) {
 		assert.ErrorIs(t, err, ErrSuggestionOverlap)
 	})
 
+	t.Run("#189 AC8 a range and a single line in one batch apply as each would alone", func(t *testing.T) {
+		rangeEdit := func(start, end int64, original, suggestion string) suggestionEdit {
+			return suggestionEdit{
+				comment: &issues_model.Comment{
+					Type: issues_model.CommentTypeCode, Line: end, TreePath: "main.go", CommentMetaData: &issues_model.CommentMetaData{StartLine: start},
+					Patch: "@@ -1,1 +1,2 @@\n+" + strings.ReplaceAll(original, "\n", "\n+"),
+				},
+				original:   original,
+				suggestion: suggestion,
+			}
+		}
+		// AC1: lines 3-4 become "x"; S3 AC1: line 6 becomes "y"
+		got, err := applySuggestionsToContent(content, []suggestionEdit{rangeEdit(3, 4, "l3\nl4", "x\n"), edit(6, "l6", "y\n")})
+		require.NoError(t, err)
+		assert.Equal(t, "l1\nl2\nx\nl5\ny\n", got)
+		// the single line above the range, which AC2 deletes
+		got, err = applySuggestionsToContent(content, []suggestionEdit{edit(1, "l1", "y\n"), rangeEdit(3, 5, "l3\nl4\nl5", "")})
+		require.NoError(t, err)
+		assert.Equal(t, "y\nl2\nl6\n", got)
+	})
+
 	t.Run("AC3 an outdated suggestion is named", func(t *testing.T) {
 		_, err := applySuggestionsToContent(content, []suggestionEdit{edit(2, "l2", "x\n"), edit(5, "changed", "y\n")})
 		var at ErrSuggestionAt
@@ -178,6 +235,13 @@ func TestApplySuggestion(t *testing.T) {
 		}
 	}
 	const fix = "```suggestion\nAnd a change for branch2\n```"
+	// a range on lines 4-5 of README.md, whose line 4 the reviewer saw as line4
+	suggestRange := func(pr *issues_model.PullRequest, line4 string) *issues_model.Comment {
+		c := suggest(pr, "README.md", "And change for branch2", fix)
+		c.Patch = "@@ -4,1 +4,2 @@\n+" + line4 + "\n+And change for branch2"
+		c.CommentMetaData = &issues_model.CommentMetaData{StartLine: 4}
+		return c
+	}
 
 	t.Run("AC1 someone who can push gets the head branch's commit", func(t *testing.T) {
 		head, err := CanApplySuggestions(t.Context(), owner, loadPR(t, 2))
@@ -211,6 +275,7 @@ func TestApplySuggestion(t *testing.T) {
 			assert.ErrorIs(t, err, c.err)
 			// ApplySuggestion makes the same check before anything else that touches the branch
 			assert.ErrorIs(t, errOf(ApplySuggestion(t.Context(), c.doer, pr, suggest(pr, "README.md", "And change for branch2", fix), branch2Head, "")), c.err)
+			assert.ErrorIs(t, errOf(ApplySuggestion(t.Context(), c.doer, pr, suggestRange(pr, ""), branch2Head, "")), c.err) // #189 AC4
 		})
 	}
 
@@ -230,11 +295,17 @@ func TestApplySuggestion(t *testing.T) {
 			c.Line = -5
 			return c
 		}, branch2Head, ErrSuggestionNotApplicable},
-		{"a range suggestion until #189 applies ranges", func(pr *issues_model.PullRequest) *issues_model.Comment {
-			c := suggest(pr, "README.md", "And change for branch2", fix)
-			c.CommentMetaData = &issues_model.CommentMetaData{StartLine: 4} // lines 4-5, both still as the patch shows them
+		{"#189 AC1 a range suggestion gets past the comment checks", func(pr *issues_model.PullRequest) *issues_model.Comment {
+			return suggestRange(pr, "")
+		}, masterHead, ErrSuggestionHeadMoved}, // stops at the stale head, since committing needs git hooks
+		{"#189 AC9 a range whose lines the snippet doesn't hold", func(pr *issues_model.PullRequest) *issues_model.Comment {
+			c := suggestRange(pr, "")
+			c.CommentMetaData.StartLine = 1 // lines 1-5, but the hunk shows only 4-5
 			return c
 		}, branch2Head, ErrSuggestionNotApplicable},
+		{"#189 AC3 the range's first line changed", func(pr *issues_model.PullRequest) *issues_model.Comment {
+			return suggestRange(pr, "Not a blank line") // line 4 at branch2 is blank
+		}, branch2Head, ErrSuggestionOutdated},
 		{"AC7 no suggestion block", func(pr *issues_model.PullRequest) *issues_model.Comment {
 			return suggest(pr, "README.md", "And change for branch2", "looks good")
 		}, branch2Head, ErrSuggestionNotApplicable},
@@ -299,6 +370,7 @@ func TestApplySuggestion(t *testing.T) {
 		var errProtected ErrSuggestionProtectedBranch
 		require.ErrorAs(t, err, &errProtected)
 		assert.Equal(t, "branch2", errProtected.Branch)
+		assert.ErrorAs(t, errOf(ApplySuggestion(t.Context(), owner, pr, suggestRange(pr, ""), branch2Head, "")), &errProtected) // #189 AC4
 
 		// like the web editor, a file matching the rule's unprotected patterns may still be changed,
 		// so this one gets past protection and stops at its outdated line instead
