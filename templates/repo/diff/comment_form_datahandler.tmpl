@@ -1,5 +1,5 @@
 {{if $.comment}}
-	{{template "repo/diff/comment_form" dict "root" $.root "hidden" $.hidden "reply" $.reply "Line" $.comment.UnsignedLine "File" $.comment.TreePath "Side" $.comment.DiffSide "HasComments" true}}
+	{{template "repo/diff/comment_form" dict "root" $.root "hidden" $.hidden "reply" $.reply "Line" $.comment.UnsignedLine "File" $.comment.TreePath "Side" $.comment.DiffSide "HasComments" true "SuggestReply" (and $.root.PageIsPullFiles (not $.comment.Invalidated) (not $.comment.RangeStartLine))}}
 {{else if $.root}}
 	{{template "repo/diff/comment_form" $}}
 {{else}}

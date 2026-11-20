@@ -10,6 +10,7 @@ vi.mock('./comp/ComboMarkdownEditor.ts', async () => {
   return {
     ComboMarkdownEditor: {EventEditorContentChanged, EventUploadStateChanged},
     getComboMarkdownEditor: (el: any) => el._giteaComboMarkdownEditor,
+    initComboMarkdownEditor: async () => { throw new Error('not used here') },
   };
 });
 // a fixed stand-in for the # list's search: the answers depend only on the query, since the tests run concurrently

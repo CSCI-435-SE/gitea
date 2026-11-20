@@ -1,4 +1,4 @@
-import {buildSuggestionInsert, initSuggestChangeButton, suggestionFence, suggestionInsertPos, suggestionInsertRange} from './repo-diff-suggestion.ts';
+import {buildSuggestionInsert, initReplySuggestChangeButton, initSuggestChangeButton, suggestionFence, suggestionInsertPos, suggestionInsertRange} from './repo-diff-suggestion.ts';
 import type {ComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 
 // expected values come from #155's acceptance criteria and CommonMark's fence rule
@@ -170,4 +170,76 @@ test('initSuggestChangeButton drops a CRLF line ending', () => {
   container.querySelector<HTMLButtonElement>('.markdown-button-suggest-change')!.click();
   // #158 AC4: the block holds the line itself; the cell's own line ending, CRLF in a CRLF file, is not part of it
   expect(textarea.value).toEqual('```suggestion\nx := 1\n```\n');
+});
+
+// #187: the reply form of a Files tab conversation, under the diff row it comments on
+function replyTable(side: 'left' | 'right', row: string, {unified = false, button = true} = {}): string {
+  return `<table><tbody>${row}<tr class="add-comment"><td class="add-comment-${unified ? 'left add-comment-right' : side}">
+    <div class="conversation-holder" data-side="${side}"><div class="comment-code-cloud"><form class="comment-form">
+      <div class="combo-markdown-editor">
+        ${button ? '<div class="markdown-toolbar-group tw-hidden"><button class="markdown-button-suggest-change">s</button></div>' : ''}
+        <textarea></textarea>
+      </div>
+    </form></div></div>
+  </td></tr></tbody></table>`;
+}
+
+function initReply(): {button: HTMLButtonElement | null, textarea: HTMLTextAreaElement} {
+  const container = document.querySelector<HTMLElement>('.combo-markdown-editor')!;
+  const textarea = container.querySelector('textarea')!;
+  initReplySuggestChangeButton({container, textarea} as ComboMarkdownEditor);
+  return {button: container.querySelector<HTMLButtonElement>('.markdown-button-suggest-change'), textarea};
+}
+
+// a changed-line pair in split view: the old line and the new line share one row
+const splitRow = `<tr><td class="lines-code lines-code-old"><code class="code-inner">\tif a &gt; b {\n</code></td>
+  <td class="lines-code lines-code-new"><code class="code-inner">\tif a &gt;= b {\n</code></td></tr>`;
+
+test('initReplySuggestChangeButton in split view', () => {
+  // #187 AC1: the new-side line of the row, not the old-side one
+  document.body.innerHTML = replyTable('right', splitRow);
+  const {button, textarea} = initReply();
+  expect(button!.parentElement!.classList.contains('tw-hidden')).toBe(false);
+  button!.click();
+  expect(textarea.value).toEqual('```suggestion\n\tif a >= b {\n```\n');
+});
+
+test('initReplySuggestChangeButton in unified view', () => {
+  // #187 AC1
+  document.body.innerHTML = replyTable('right', '<tr><td class="lines-code"><code class="code-inner">return <span>x</span>\n</code></td></tr>', {unified: true});
+  const {button, textarea} = initReply();
+  button!.click();
+  expect(textarea.value).toEqual('```suggestion\nreturn x\n```\n');
+});
+
+test('initReplySuggestChangeButton on an old-side conversation', () => {
+  // #187 AC2: split view left column, and a deleted line in unified view
+  document.body.innerHTML = replyTable('left', splitRow);
+  expect(initReply().button!.parentElement!.classList.contains('tw-hidden')).toBe(true);
+  document.body.innerHTML = replyTable('left', '<tr><td class="lines-code lines-code-old"><code class="code-inner">gone\n</code></td></tr>', {unified: true});
+  expect(initReply().button!.parentElement!.classList.contains('tw-hidden')).toBe(true);
+});
+
+test('initReplySuggestChangeButton without a rendered button', () => {
+  // #187 AC3, AC5, AC8: the template leaves the button out for outdated, range and Conversation tab threads
+  document.body.innerHTML = replyTable('right', splitRow, {button: false});
+  expect(() => initReply()).not.toThrow();
+  // the Conversation tab has no diff row around its reply form
+  document.body.innerHTML = '<div class="conversation-holder" data-side="right"><div class="combo-markdown-editor"><div class="markdown-toolbar-group tw-hidden"><button class="markdown-button-suggest-change">s</button></div><textarea></textarea></div></div>';
+  expect(initReply().button!.parentElement!.classList.contains('tw-hidden')).toBe(true);
+});
+
+test('initReplySuggestChangeButton on an expanded context line', () => {
+  // #187 AC10: blob_excerpt.tmpl's split row puts a right-side [+] in the old-side cell; the line is the new-side cell's
+  document.body.innerHTML = replyTable('right', `<tr class="same-code line-expanded">
+    <td class="lines-code lines-code-old"><button class="add-code-comment" data-side="right"></button><code class="code-inner">  keep 2\n</code></td>
+    <td class="lines-code lines-code-new"><code class="code-inner">  keep 2\n</code></td></tr>`);
+  const {button, textarea} = initReply();
+  button!.click();
+  expect(textarea.value).toEqual('```suggestion\n  keep 2\n```\n');
+  // and the unified excerpt row
+  document.body.innerHTML = replyTable('right', '<tr class="same-code line-expanded"><td class="lines-code"><code class="code-inner">  keep 2\n</code></td></tr>', {unified: true});
+  const unified = initReply();
+  unified.button!.click();
+  expect(unified.textarea.value).toEqual('```suggestion\n  keep 2\n```\n');
 });

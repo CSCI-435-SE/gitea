@@ -10,7 +10,7 @@ import {
   toggleElem,
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
-import {initSuggestChangeButton} from './repo-diff-suggestion.ts';
+import {diffRowCodeLine, initReplySuggestChangeButton, initSuggestChangeButton} from './repo-diff-suggestion.ts';
 import {getSelectedRange, initDiffRangeSelect} from './repo-diff-range.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {triggerEditorContentChanged} from './comp/EditorMarkdown.ts';
@@ -195,7 +195,11 @@ export async function handleReply(el: HTMLElement) {
 
   hideElem(el);
   showElem(form);
-  const editor = getComboMarkdownEditor(textarea) ?? await initComboMarkdownEditor(form.querySelector('.combo-markdown-editor')!);
+  let editor = getComboMarkdownEditor(textarea);
+  if (!editor) { // only on the first Reply, so a reopened form gets no second click handler
+    editor = await initComboMarkdownEditor(form.querySelector('.combo-markdown-editor')!);
+    initReplySuggestChangeButton(editor);
+  }
   editor.focus();
   return editor;
 }
@@ -288,9 +292,9 @@ export function initRepoPullRequestReview() {
       tr.after(ntr);
     }
     // taken before the awaits below; a split row's new-side cell, as an expanded split row's right-side [+] sits in the old-side cell
-    const codeLine = tr.querySelector<HTMLElement>('.lines-code-new .code-inner') ?? el.closest('td')!.querySelector<HTMLElement>('.code-inner')!;
+    const codeLine = diffRowCodeLine(tr)!;
     const range = side === 'right' ? getSelectedRange(tr) : null;
-    const codeLines = range ? range.rows.map((row) => row.querySelector<HTMLElement>('.lines-code-new .code-inner') ?? row.querySelector<HTMLElement>('.lines-code .code-inner')!) : [codeLine];
+    const codeLines = range ? range.rows.map((row) => diffRowCodeLine(row)!) : [codeLine];
     const td = ntr.querySelector(`.add-comment-${side}`)!;
     const commentCloud = td.querySelector('.comment-code-cloud');
     if (!commentCloud && !ntr.querySelector('button[name="pending_review"]')) {

@@ -5,6 +5,12 @@ import {createElementFromHTML} from '../utils/dom.ts';
 // the real editor needs a whole page, so a stand-in is attached to the editor element instead
 vi.mock('./comp/ComboMarkdownEditor.ts', () => ({
   getComboMarkdownEditor: (el: any) => el._giteaComboMarkdownEditor,
+  initComboMarkdownEditor: async (container: HTMLElement) => {
+    const textarea = container.querySelector('textarea')!;
+    const editor = {container, textarea, focus: () => textarea.focus()};
+    (textarea as any)._giteaComboMarkdownEditor = editor;
+    return editor;
+  },
 }));
 
 initGlobalShortcut(); // listens for the key presses
@@ -66,19 +72,20 @@ test('r quotes the selection after the existing text, or only moves to the reply
   expect(getShortcuts()).toContainEqual({keys: 'r', description: 'Quote Reply', section: 'Conversation'});
 
   select(text(root, '#first p'), 0, text(root, '#first p:last-child'), 6);
-  document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'r', bubbles: true}));
+  // cancelable like a real key press, so a second global listener (another test file's initGlobalShortcut under isolate: false) sees defaultPrevented
+  document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'r', bubbles: true, cancelable: true}));
   expect(value).toBe('earlier text'); // ignored until the editor has loaded
   expect(editor.focus).not.toHaveBeenCalled();
 
   editor.textarea = document.createElement('textarea');
-  document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'r', bubbles: true}));
+  document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'r', bubbles: true, cancelable: true}));
   expect(value).toMatch(/^earlier text\n\n> first line\n(> \n)?> second\n/);
   const quoted = value;
   expect(editor.switchTabToEditor).toHaveBeenCalledTimes(1);
   expect(editor.moveCursorToEnd).toHaveBeenCalledTimes(1);
 
   window.getSelection()!.removeAllRanges();
-  document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'r', bubbles: true}));
+  document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'r', bubbles: true, cancelable: true}));
   expect(value).toBe(quoted);
   expect(editor.switchTabToEditor).toHaveBeenCalledTimes(1); // already on the Write tab
   expect(editor.moveCursorToEnd).toHaveBeenCalledTimes(2);
@@ -86,4 +93,38 @@ test('r quotes the selection after the existing text, or only moves to the reply
   root.remove();
   form.remove();
   expect(getShortcuts()).not.toContainEqual(expect.objectContaining({keys: 'r'}));
+});
+
+test('handleReply makes the Suggest change button once, so a reopened form inserts one block per click', async () => {
+  // #187 AC4: Reply creates the editor and wires the button; Cancel then Reply again reuses both
+  const root = createElementFromHTML<HTMLElement>(`<table><tbody>
+    <tr><td class="lines-code lines-code-new"><code class="code-inner">x := 1\n</code></td></tr>
+    <tr class="add-comment"><td class="add-comment-right"><div class="conversation-holder" data-side="right"><div class="comment-code-cloud">
+      <button class="comment-form-reply">Reply</button>
+      <form class="comment-form tw-hidden">
+        <div class="combo-markdown-editor">
+          <div class="markdown-toolbar-group tw-hidden"><button class="markdown-button-suggest-change">s</button></div>
+          <textarea></textarea>
+        </div>
+      </form>
+    </div></div></td></tr>
+  </tbody></table>`);
+  document.body.append(root);
+  // isolate: false shares the module cache across files; a fresh one keeps this copy of repo-diff-range.ts (and its real toast) away from repo-diff-range.test.ts
+  vi.resetModules();
+  const {handleReply} = await import('./repo-issue.ts');
+  vi.resetModules();
+  const reply = root.querySelector<HTMLElement>('.comment-form-reply')!;
+  const form = root.querySelector<HTMLElement>('.comment-form')!;
+  const textarea = root.querySelector('textarea')!;
+
+  await handleReply(reply);
+  form.classList.add('tw-hidden'); // what Cancel does
+  reply.classList.remove('tw-hidden');
+  await handleReply(reply);
+  expect(form.classList.contains('tw-hidden')).toBe(false);
+
+  root.querySelector<HTMLElement>('.markdown-button-suggest-change')!.click();
+  expect(textarea.value).toEqual('```suggestion\nx := 1\n```\n');
+  root.remove();
 });

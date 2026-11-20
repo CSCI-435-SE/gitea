@@ -1,7 +1,7 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import type {Locator, Page} from '@playwright/test';
-import {apiCreateFile, apiCreatePR, apiCreateRepo, apiCreateReview, apiHeaders, baseUrl, login, randomString} from './utils.ts';
+import {apiCreateFile, apiCreatePR, apiCreateRepo, apiCreateReview, apiEditRepo, apiHeaders, baseUrl, login, randomString} from './utils.ts';
 
 const owner = env.GITEA_TEST_E2E_USER;
 const base64 = (s: string) => Buffer.from(s, 'utf8').toString('base64');
@@ -59,11 +59,6 @@ test('suggest change button in the code comment form', async ({page, request}) =
   const comments = await commentsResp.json();
   expect(comments[0].body).toEqual(content.replaceAll('\n', '\r\n'));
 
-  // a reply in an existing conversation has no button (AC7)
-  await page.locator('.conversation-holder .comment-form-reply').click();
-  await expect(page.locator('.conversation-holder form textarea[name="content"]')).toBeVisible();
-  await expect(page.locator('.conversation-holder form').getByRole('button', {name: 'Suggest change'})).toBeHidden();
-
   // old-side (deleted) line has no button (AC6)
   form = await openCommentForm(page, 'left', 4);
   await expect(form.locator('textarea[name="content"]')).toBeVisible();
@@ -89,6 +84,74 @@ test('suggest change button in the code comment form', async ({page, request}) =
   await page.goto(filesUrl);
   await expect(page.locator('.diff-file-box')).toBeVisible();
   await expect(page.locator('.add-code-comment')).toHaveCount(0);
+});
+
+// #187: a Files tab reply in a conversation on new-side line 5 of the same diff as above
+test('suggest change button in a Files tab reply', async ({page, request}) => {
+  const repo = `e2e-suggest-reply-${randomString(8)}`;
+  await apiCreateRepo(request, {name: repo});
+  await apiCreateFile(request, owner, repo, 'main.go', before);
+  expect((await request.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents`, {
+    headers: apiHeaders(),
+    data: {new_branch: 'feat', files: [{operation: 'upload', path: 'main.go', content: base64(after)}]},
+  })).ok()).toBe(true);
+  const index = await apiCreatePR(request, owner, repo, 'feat', 'main', 'reply');
+  const reviewsUrl = `${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/reviews`;
+  expect((await request.post(reviewsUrl, {
+    headers: apiHeaders(),
+    data: {event: 'COMMENT', body: '', comments: [{path: 'main.go', new_position: 5, body: 'quote style?'}]},
+  })).ok()).toBe(true);
+  const filesUrl = `/${owner}/${repo}/pulls/${index}/files`;
+  await login(page);
+
+  // AC1: the reply form has the button, holding line 5's text
+  await page.goto(`${filesUrl}?style=unified`);
+  const thread = page.locator('.conversation-holder');
+  await thread.locator('.comment-form-reply').click();
+  const replyForm = thread.locator('form.comment-form');
+  await replyForm.getByRole('button', {name: 'Suggest change'}).click();
+  const block = '````suggestion\n\ts := "```js"\n````\n';
+  await expect(replyForm.locator('textarea[name="content"]')).toHaveValue(block);
+
+  // AC6: the stored reply is the textarea text, in the same review, path and line as the thread
+  await replyForm.getByRole('button', {name: 'Reply'}).click();
+  await expect(thread.locator('.comment-body')).toHaveCount(2);
+  const reviews = await (await request.get(reviewsUrl, {headers: apiHeaders()})).json();
+  expect(reviews).toHaveLength(1);
+  const comments = await (await request.get(`${reviewsUrl}/${reviews[0].id}/comments`, {headers: apiHeaders()})).json();
+  expect(comments).toHaveLength(2);
+  expect(comments[1].body).toEqual(block.replaceAll('\n', '\r\n')); // CRLF, as every form submit sends (HTML spec)
+  expect([comments[1].path, comments[1].position]).toEqual([comments[0].path, comments[0].position]);
+
+  // AC4: the re-rendered conversation's new reply form, and that form after Cancel and Reply, insert one block per click
+  const newForm = thread.locator('form.comment-form');
+  const newTextarea = newForm.locator('textarea[name="content"]');
+  await thread.locator('.comment-form-reply').click();
+  await newForm.getByRole('button', {name: 'Suggest change'}).click();
+  await expect(newTextarea).toHaveValue(block);
+  await newTextarea.fill('');
+  await newForm.getByRole('button', {name: 'Cancel'}).click();
+  await expect(newForm).toBeHidden();
+  await thread.locator('.comment-form-reply').click();
+  await newForm.getByRole('button', {name: 'Suggest change'}).click();
+  await expect(newTextarea).toHaveValue(block);
+
+  // AC5: a reply in the Conversation tab has no button
+  await page.goto(`/${owner}/${repo}/pulls/${index}`);
+  await thread.locator('.comment-form-reply').click();
+  await expect(thread.locator('form textarea[name="content"]')).toBeVisible();
+  await expect(thread.locator('form').getByRole('button', {name: 'Suggest change'})).toHaveCount(0);
+
+  // AC7: signed out, then an archived repository, show the conversation with no Reply
+  await page.context().clearCookies();
+  await page.goto(filesUrl);
+  await expect(thread).toHaveCount(1);
+  await expect(page.locator('.comment-form-reply')).toHaveCount(0);
+  await apiEditRepo(request, owner, repo, {archived: true});
+  await login(page);
+  await page.goto(filesUrl);
+  await expect(thread).toHaveCount(1);
+  await expect(page.locator('.comment-form-reply')).toHaveCount(0);
 });
 
 test('suggest change on a line revealed by expand', async ({page, request}) => {
@@ -161,6 +224,11 @@ test('suggest a change across several lines', async ({page, request}) => {
   await expect(thread.locator('.markup-suggestion-line.removed code')).toHaveText(['\tB', 'C', 'D']);
   await expect(thread.locator('.markup-suggestion-line.added code')).toHaveText(['X', 'Y']);
 
+  // #187 AC8: a reply to a range conversation has no button
+  await thread.locator('.comment-form-reply').click();
+  await expect(thread.locator('form.comment-form textarea[name="content"]')).toBeVisible();
+  await expect(thread.locator('form.comment-form').getByRole('button', {name: 'Suggest change'})).toHaveCount(0);
+
   // AC11: old side to new side is refused with a message; close AC15's toast first, error toasts never auto-close
   await page.locator('.toastify .toast-close').click();
   await expect(page.getByText(message)).toHaveCount(0);
@@ -197,4 +265,32 @@ test('a batch of suggestions is gone after a reload', async ({page, request}) =>
   await expect(page.getByRole('button', {name: 'Add to batch'})).toHaveCount(2);
   await expect(page.getByRole('button', {name: 'Remove from batch'})).toHaveCount(0);
   await expect(bar).toHaveCount(0);
+});
+
+// #187 AC3: a thread whose line changed in a later push is outdated, and its reply has no button
+test('no suggest change in a reply to an outdated conversation', async ({page, request}) => {
+  const repo = `e2e-suggest-outdated-${randomString(8)}`;
+  await apiCreateRepo(request, {name: repo});
+  await apiCreateFile(request, owner, repo, 'a.txt', 'a\nb\n');
+  const push = async (content: string, newBranch?: string) => expect((await request.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents`, {
+    headers: apiHeaders(),
+    data: {branch: newBranch ? undefined : 'feat', new_branch: newBranch, files: [{operation: 'upload', path: 'a.txt', content: base64(content)}]},
+  })).ok()).toBe(true);
+  await push('a\nB\n', 'feat');
+  const index = await apiCreatePR(request, owner, repo, 'feat', 'main', 'outdated');
+  expect((await request.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/pulls/${index}/reviews`, {
+    headers: apiHeaders(),
+    data: {event: 'COMMENT', body: '', comments: [{path: 'a.txt', new_position: 2, body: 'B?'}]},
+  })).ok()).toBe(true);
+  await push('a\nC\n');
+  await login(page);
+
+  const thread = page.locator('.conversation-holder');
+  await expect(async () => { // the push marks the thread outdated in the background
+    await page.goto(`/${owner}/${repo}/pulls/${index}/files?style=unified&show-outdated=true`);
+    await expect(thread.getByText('Outdated')).toBeVisible({timeout: 500});
+  }).toPass();
+  await thread.locator('.comment-form-reply').click();
+  await expect(thread.locator('form.comment-form textarea[name="content"]')).toBeVisible();
+  await expect(thread.locator('form.comment-form').getByRole('button', {name: 'Suggest change'})).toHaveCount(0);
 });
