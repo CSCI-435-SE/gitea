@@ -4,15 +4,18 @@
 package files
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
@@ -34,7 +37,32 @@ var (
 	ErrSuggestionNoChange = errors.New("the suggestion makes no changes")
 	// ErrSuggestionAlreadyApplied means the suggestion was already committed to the head branch (#157 AC2)
 	ErrSuggestionAlreadyApplied = errors.New("the suggestion was already applied")
+	// ErrSuggestionBatchEmpty means a batch holds no suggestions (#159 AC12)
+	ErrSuggestionBatchEmpty = errors.New("the batch holds no suggestions")
+	// ErrSuggestionBatchTooLarge means a batch holds more than MaxSuggestionBatch suggestions (#159 AC14)
+	ErrSuggestionBatchTooLarge = errors.New("the batch holds too many suggestions")
+	// ErrSuggestionBatchDuplicate means a batch holds the same suggestion twice (#159 AC13)
+	ErrSuggestionBatchDuplicate = errors.New("the batch holds a suggestion twice")
+	// ErrSuggestionOverlap means two suggestions in a batch change the same line (#159 AC2)
+	ErrSuggestionOverlap = errors.New("two suggestions in the batch change the same line")
 )
+
+// MaxSuggestionBatch is how many suggestions one batch may apply (#159 AC14)
+const MaxSuggestionBatch = 50
+
+// ErrSuggestionAt names the suggestion a batch was refused for, so the page can say which one (#159 AC3)
+type ErrSuggestionAt struct {
+	Comment *issues_model.Comment
+	Err     error
+}
+
+func (err ErrSuggestionAt) Error() string {
+	return fmt.Sprintf("%s:%d: %v", err.Comment.TreePath, err.Comment.Line, err.Err)
+}
+
+func (err ErrSuggestionAt) Unwrap() error {
+	return err.Err
+}
 
 // ErrSuggestionProtectedBranch means branch protection stops the doer from pushing to the head branch (#156 AC6)
 type ErrSuggestionProtectedBranch struct {
@@ -89,27 +117,69 @@ func CanApplySuggestions(ctx context.Context, doer *user_model.User, pr *issues_
 // ApplySuggestion commits the comment's single suggestion to the pull request's head branch, replacing the
 // commented line. expectedHeadSHA is the head commit the page showed; message may be empty for the default.
 func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment, expectedHeadSHA, message string) error {
+	err := ApplySuggestions(ctx, doer, pr, []*issues_model.Comment{comment}, expectedHeadSHA, message)
+	if at, ok := errors.AsType[ErrSuggestionAt](err); ok {
+		return at.Err // one suggestion needs no name, so #156's messages stay as they were
+	}
+	return err
+}
+
+// suggestionEdit is one suggestion to apply: its comment, the line(s) it was written against and its text
+type suggestionEdit struct {
+	comment    *issues_model.Comment
+	original   string
+	suggestion string
+}
+
+// suggestionEditFor checks that the comment holds a suggestion this doer may apply (#156 AC7)
+func suggestionEditFor(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment) (suggestionEdit, error) {
 	original := comment.SuggestionOriginalLine()
 	if comment.IssueID != pr.IssueID || !original.Has() {
-		return ErrSuggestionNotApplicable
+		return suggestionEdit{}, ErrSuggestionNotApplicable
 	}
 	if comment.RangeStartLine() > 0 {
-		return ErrSuggestionNotApplicable // applying a range is #189; until then the templates show no Apply on one
+		return suggestionEdit{}, ErrSuggestionNotApplicable // applying a range is #189; until then the templates show no Apply on one
 	}
 	blocks := comment.SuggestionBlocks(ctx)
 	if len(blocks) != 1 {
-		return ErrSuggestionNotApplicable
+		return suggestionEdit{}, ErrSuggestionNotApplicable
 	}
 	// a pending review's comments are visible only to its reviewer (FetchCodeComments, the API), so for anyone
 	// else the suggestion doesn't exist; applying it would publish a draft into the branch history
 	if err := comment.LoadReview(ctx); err != nil {
-		return err
+		return suggestionEdit{}, err
 	}
 	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && (doer == nil || comment.Review.ReviewerID != doer.ID) {
-		return ErrSuggestionNotApplicable
+		return suggestionEdit{}, ErrSuggestionNotApplicable
 	}
 	if comment.SuggestionApplied() {
-		return ErrSuggestionAlreadyApplied // before every other refusal, so the message doesn't depend on the PR's state (#157 AC2)
+		// right after the 404 checks, so the message doesn't depend on the PR's state (#157 AC2); a batch names it (#159 AC10)
+		return suggestionEdit{}, ErrSuggestionAt{Comment: comment, Err: ErrSuggestionAlreadyApplied}
+	}
+	return suggestionEdit{comment: comment, original: original.Value(), suggestion: blocks[0]}, nil
+}
+
+// ApplySuggestions commits the comments' suggestions to the pull request's head branch as one commit, or nothing
+// if any of them can't be applied (#159). expectedHeadSHA is the head commit the page showed; message may be empty
+// for the default.
+func ApplySuggestions(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, comments []*issues_model.Comment, expectedHeadSHA, message string) error {
+	if len(comments) == 0 {
+		return ErrSuggestionBatchEmpty
+	}
+	if len(comments) > MaxSuggestionBatch {
+		return ErrSuggestionBatchTooLarge
+	}
+	seen := make(container.Set[int64], len(comments))
+	edits := make([]suggestionEdit, 0, len(comments))
+	for _, comment := range comments {
+		if !seen.Add(comment.ID) {
+			return ErrSuggestionBatchDuplicate
+		}
+		edit, err := suggestionEditFor(ctx, doer, pr, comment)
+		if err != nil {
+			return err
+		}
+		edits = append(edits, edit)
 	}
 
 	headCommitID, err := CanApplySuggestions(ctx, doer, pr)
@@ -127,17 +197,20 @@ func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_mode
 	}
 	if protectedBranch != nil {
 		protectedBranch.Repo = pr.HeadRepo
-		canPush := protectedBranch.CanUserPush(ctx, doer)
-		if !canPush && protectedBranch.UnprotectedFilePatterns != "" {
-			canPush = protectedBranch.IsUnprotectedFile(protectedBranch.GetUnprotectedFilePatterns(), comment.TreePath)
-		}
-		if !canPush {
-			return ErrSuggestionProtectedBranch{Branch: pr.HeadBranch}
+		if !protectedBranch.CanUserPush(ctx, doer) {
+			for _, edit := range edits {
+				if protectedBranch.UnprotectedFilePatterns == "" || !protectedBranch.IsUnprotectedFile(protectedBranch.GetUnprotectedFilePatterns(), edit.comment.TreePath) {
+					return ErrSuggestionProtectedBranch{Branch: pr.HeadBranch}
+				}
+			}
 		}
 	}
 
-	if comment.Invalidated {
-		return ErrSuggestionOutdated // the page hides Apply on outdated comments, but a page loaded earlier may still post
+	for _, edit := range edits {
+		if edit.comment.Invalidated {
+			// the page hides Apply on outdated comments, but a page loaded earlier may still post
+			return ErrSuggestionAt{Comment: edit.comment, Err: ErrSuggestionOutdated}
+		}
 	}
 
 	headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
@@ -149,35 +222,44 @@ func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_mode
 	if err != nil {
 		return err
 	}
-	blob, err := headCommit.GetBlobByPath(comment.TreePath)
-	if git.IsErrNotExist(err) {
-		return ErrSuggestionOutdated // deleted or renamed since the review
-	} else if err != nil {
-		return err
+	var paths []string // in batch order, so the commit is the same however often it is retried
+	byPath := map[string][]suggestionEdit{}
+	for _, edit := range edits {
+		if _, ok := byPath[edit.comment.TreePath]; !ok {
+			paths = append(paths, edit.comment.TreePath)
+		}
+		byPath[edit.comment.TreePath] = append(byPath[edit.comment.TreePath], edit)
 	}
-	content, err := blob.GetBlobContent(blob.Size())
-	if err != nil {
-		return err
-	}
-	newContent, err := applySuggestionToContent(content, int(comment.Line), comment.SuggestionContextLines(), original.Value(), blocks[0])
-	if err != nil {
-		return err
+	files := make([]*ChangeRepoFile, 0, len(paths))
+	for _, path := range paths {
+		blob, err := headCommit.GetBlobByPath(path)
+		if git.IsErrNotExist(err) {
+			return ErrSuggestionAt{Comment: byPath[path][0].comment, Err: ErrSuggestionOutdated} // deleted or renamed since the review
+		} else if err != nil {
+			return err
+		}
+		content, err := blob.GetBlobContent(blob.Size())
+		if err != nil {
+			return err
+		}
+		newContent, err := applySuggestionsToContent(content, byPath[path])
+		if err != nil {
+			return err
+		}
+		files = append(files, &ChangeRepoFile{Operation: "update", TreePath: path, FromTreePath: path, ContentReader: strings.NewReader(newContent)})
 	}
 
-	if err := comment.LoadPoster(ctx); err != nil {
-		return err
+	for _, edit := range edits {
+		if err := edit.comment.LoadPoster(ctx); err != nil {
+			return err
+		}
 	}
 	resp, err := ChangeRepoFiles(ctx, pr.HeadRepo, doer, &ChangeRepoFilesOptions{
 		LastCommitID: expectedHeadSHA,
 		OldBranch:    pr.HeadBranch,
 		NewBranch:    pr.HeadBranch,
-		Message:      suggestionCommitMessage(comment, doer, message),
-		Files: []*ChangeRepoFile{{
-			Operation:     "update",
-			TreePath:      comment.TreePath,
-			FromTreePath:  comment.TreePath,
-			ContentReader: strings.NewReader(newContent),
-		}},
+		Message:      suggestionCommitMessage(comments, doer, message),
+		Files:        files,
 	})
 	if IsErrCommitIDDoesNotMatch(err) {
 		return ErrSuggestionHeadMoved // someone pushed between our check and the commit
@@ -186,25 +268,64 @@ func ApplySuggestion(ctx context.Context, doer *user_model.User, pr *issues_mode
 	}
 
 	// git isn't in the database transaction, so the commit comes first; once it is on the branch Apply has
-	// succeeded, and a failed save only leaves the comment outdated without its marker (#157 AC7)
-	if _, err := issues_model.MarkSuggestionApplied(ctx, comment, doer, resp.Commit.SHA); err != nil {
-		log.Error("MarkSuggestionApplied(%d, %s): %v", comment.ID, resp.Commit.SHA, err)
+	// succeeded, and a failed save only leaves the comment outdated without its marker (#157 AC7, #159 AC1)
+	for _, comment := range comments {
+		if _, err := issues_model.MarkSuggestionApplied(ctx, comment, doer, resp.Commit.SHA); err != nil {
+			log.Error("MarkSuggestionApplied(%d, %s): %v", comment.ID, resp.Commit.SHA, err)
+		}
 	}
 	return nil
 }
 
-// suggestionCommitMessage is the doer's message, or the default, crediting the reviewer (#156 AC1).
-// The comment's poster must be loaded.
-func suggestionCommitMessage(comment *issues_model.Comment, doer *user_model.User, message string) string {
-	if strings.TrimSpace(message) == "" {
-		message = comment.SuggestionCommitMessage()
+// applySuggestionsToContent applies one file's suggestions bottom-up, so each edit leaves the line numbers of the
+// ones above it as they were (#159 AC9). Two suggestions that share a line are refused (#159 AC2).
+func applySuggestionsToContent(content string, edits []suggestionEdit) (string, error) {
+	edits = slices.Clone(edits)
+	slices.SortFunc(edits, func(a, b suggestionEdit) int { return cmp.Compare(b.comment.Line, a.comment.Line) })
+	for i := 1; i < len(edits); i++ {
+		if edits[i].comment.Line >= edits[i-1].startLine() {
+			return "", ErrSuggestionOverlap
+		}
 	}
-	// customer question 1 on #151 is open; the spec's default: the doer authors and commits, the reviewer is credited
-	if comment.Poster.ID == doer.ID || comment.Poster.IsGhost() { // a deleted reviewer has no address to credit
+	for _, edit := range edits {
+		var err error
+		content, err = applySuggestionToContent(content, int(edit.comment.Line), edit.comment.SuggestionContextLines(), edit.original, edit.suggestion)
+		if err != nil {
+			return "", ErrSuggestionAt{Comment: edit.comment, Err: err}
+		}
+	}
+	return content, nil
+}
+
+// startLine is the first line the suggestion replaces: its comment's line, or the start of the range it covers
+func (edit suggestionEdit) startLine() int64 {
+	return edit.comment.Line - int64(strings.Count(edit.original, "\n"))
+}
+
+// suggestionCommitMessage is the doer's message, or the default, crediting each reviewer once (#156 AC1, #159 AC1).
+// The comments' posters must be loaded.
+func suggestionCommitMessage(comments []*issues_model.Comment, doer *user_model.User, message string) string {
+	if strings.TrimSpace(message) == "" {
+		if len(comments) == 1 {
+			message = comments[0].SuggestionCommitMessage()
+		} else {
+			message = fmt.Sprintf("Apply %d suggestions from code review", len(comments))
+		}
+	}
+	// customer question 1 on #151 is open; the spec's default: the doer authors and commits, the reviewers are credited
+	credited := make(container.Set[int64])
+	var trailers []string
+	for _, comment := range comments {
+		if comment.Poster.ID == doer.ID || comment.Poster.IsGhost() || !credited.Add(comment.Poster.ID) { // a deleted reviewer has no address to credit
+			continue
+		}
+		sig := comment.Poster.NewGitSig()
+		trailers = append(trailers, fmt.Sprintf("%s: %s <%s>", git.CoAuthoredByTrailer, sig.Name, sig.Email))
+	}
+	if len(trailers) == 0 {
 		return message
 	}
-	sig := comment.Poster.NewGitSig()
-	return fmt.Sprintf("%s\n\n%s: %s <%s>", strings.TrimRight(message, "\n"), git.CoAuthoredByTrailer, sig.Name, sig.Email)
+	return strings.TrimRight(message, "\n") + "\n\n" + strings.Join(trailers, "\n")
 }
 
 // applySuggestionToContent replaces line lineNum (1-based) of content with the suggestion's lines, the way
