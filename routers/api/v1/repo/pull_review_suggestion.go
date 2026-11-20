@@ -109,6 +109,8 @@ func applyPullReviewSuggestionError(ctx *context.APIContext, err error) {
 		ctx.APIError(http.StatusConflict, "the suggestion is outdated: the code changed since it was written")
 	case errors.Is(err, files_service.ErrSuggestionPullClosed):
 		ctx.APIError(http.StatusConflict, "the pull request is closed or merged, or its head branch is gone")
+	case errors.Is(err, files_service.ErrSuggestionAlreadyApplied):
+		ctx.APIError(http.StatusConflict, "the suggestion was already applied") // #157 records it; 409 as #160's first AC3 asked
 	case errors.Is(err, files_service.ErrSuggestionNotApplicable):
 		ctx.APIError(http.StatusUnprocessableEntity, "the comment has no single-line suggestion to apply")
 	case errors.Is(err, files_service.ErrSuggestionNoChange):
