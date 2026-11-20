@@ -1,0 +1,475 @@
+/Users/asb/wm/swe/gitea/routers/api/v1/repo/pull_review_suggestion.go:66:13: undefined: getPullReviewCommentToResolve
+--- Original
++++ New
+@@ -65,7 +65,7 @@
+ 	form := web.GetForm(ctx).(*api.ApplyPullReviewSuggestionOptions)
+ 	comment := getPullReviewCommentToResolve(ctx) // 404 outside this repo, 400 unless a code comment on a pull request
+ 	if comment == nil {
+-		return
++
+ 	}
+ 	// someone else's pending review is invisible through the API, so don't confirm it exists
+ 	if err := comment.LoadReview(ctx); err != nil {
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.0" with checksum f7ab51dceb96d3eb0cf59c4974dc1fef
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -69,8 +69,8 @@
+ 	}
+ 	// someone else's pending review is invisible through the API, so don't confirm it exists
+ 	if err := comment.LoadReview(ctx); err != nil {
+-		ctx.APIErrorInternal(err)
+-		return
++		_, _ = ctx.APIErrorInternal, err
++
+ 	}
+ 	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && comment.Review.ReviewerID != ctx.Doer.ID {
+ 		ctx.APIErrorNotFound()
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.1" with checksum 7fb76656450a2baf5991cc257cc9daa1
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -73,8 +73,8 @@
+ 		return
+ 	}
+ 	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && comment.Review.ReviewerID != ctx.Doer.ID {
+-		ctx.APIErrorNotFound()
+-		return
++		_ = ctx.APIErrorNotFound
++
+ 	}
+ 	if err := comment.Issue.LoadPullRequest(ctx); err != nil {
+ 		ctx.APIErrorInternal(err)
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.2" with checksum 0cfd299c35e9149bc198de7d135c25fa
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -77,8 +77,8 @@
+ 		return
+ 	}
+ 	if err := comment.Issue.LoadPullRequest(ctx); err != nil {
+-		ctx.APIErrorInternal(err)
+-		return
++		_, _ = ctx.APIErrorInternal, err
++
+ 	}
+ 
+ 	commitSHA, err := files_service.ApplySuggestion(ctx, ctx.Doer, comment.Issue.PullRequest, comment, form.HeadSHA, form.Message)
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.3" with checksum ca9110425290d17ef0b08b1c7a9379da
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -83,8 +83,8 @@
+ 
+ 	commitSHA, err := files_service.ApplySuggestion(ctx, ctx.Doer, comment.Issue.PullRequest, comment, form.HeadSHA, form.Message)
+ 	if err != nil {
+-		applyPullReviewSuggestionError(ctx, err)
+-		return
++		_, _ = ctx, err
++
+ 	}
+ 	ctx.JSON(http.StatusCreated, &api.AppliedPullReviewSuggestion{CommitSHA: commitSHA})
+ }
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.4" with checksum a60a4bcf07cb7384f398f19762090861
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.5" with checksum 29328698d2d2cbb70b91c24b084cd439
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -72,7 +72,7 @@
+ 		ctx.APIErrorInternal(err)
+ 		return
+ 	}
+-	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && comment.Review.ReviewerID != ctx.Doer.ID {
++	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && true {
+ 		ctx.APIErrorNotFound()
+ 		return
+ 	}
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.6" with checksum b439da2cea53f27cd29fcf1dbb76bcdf
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -72,7 +72,7 @@
+ 		ctx.APIErrorInternal(err)
+ 		return
+ 	}
+-	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && comment.Review.ReviewerID != ctx.Doer.ID {
++	if true && comment.Review.Type == issues_model.ReviewTypePending && comment.Review.ReviewerID != ctx.Doer.ID {
+ 		ctx.APIErrorNotFound()
+ 		return
+ 	}
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.7" with checksum b462d5c64fde28daad625422b5ad39d2
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.8" with checksum a217758c85e70dfdd5fb3ab20bd3f228
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.9" with checksum 3f5830cc99a39166066485607316a2e3
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -69,7 +69,7 @@
+ 	}
+ 	// someone else's pending review is invisible through the API, so don't confirm it exists
+ 	if err := comment.LoadReview(ctx); err != nil {
+-		ctx.APIErrorInternal(err)
++		_, _ = ctx.APIErrorInternal, err
+ 		return
+ 	}
+ 	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && comment.Review.ReviewerID != ctx.Doer.ID {
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.10" with checksum c12523a1f68c6ffe25480a5386abfe83
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -73,7 +73,7 @@
+ 		return
+ 	}
+ 	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && comment.Review.ReviewerID != ctx.Doer.ID {
+-		ctx.APIErrorNotFound()
++		_ = ctx.APIErrorNotFound
+ 		return
+ 	}
+ 	if err := comment.Issue.LoadPullRequest(ctx); err != nil {
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.11" with checksum 71a00f6cfd6c51e8e828c8b715025736
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -77,7 +77,7 @@
+ 		return
+ 	}
+ 	if err := comment.Issue.LoadPullRequest(ctx); err != nil {
+-		ctx.APIErrorInternal(err)
++		_, _ = ctx.APIErrorInternal, err
+ 		return
+ 	}
+ 
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.12" with checksum 429053eb0a492f8a70fc6b56fd98a84f
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -83,7 +83,8 @@
+ 
+ 	commitSHA, err := files_service.ApplySuggestion(ctx, ctx.Doer, comment.Issue.PullRequest, comment, form.HeadSHA, form.Message)
+ 	if err != nil {
+-		applyPullReviewSuggestionError(ctx, err)
++		_, _ = ctx, err
++
+ 		return
+ 	}
+ 	ctx.JSON(http.StatusCreated, &api.AppliedPullReviewSuggestion{CommitSHA: commitSHA})
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.13" with checksum 12705889bccd98d871769a0a08b3da64
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.14" with checksum b53b5384eeb9bbcbb8e754538ef4d233
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.15" with checksum 7ae07fcb4864f2a2e9f768ec8a946e88
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.16" with checksum 573df5ae01fa3b57a6a8b169aec37c18
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.17" with checksum e278fa3d8fcebffcee65d197a90cb78e
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.18" with checksum a3f36809538480c9ce480adb4e2fc012
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.19" with checksum d6d5fbed6fb2dd8ecca2881cc25fc1e9
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.20" with checksum 87cfa7020d5694a22d052b46212d70c5
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.21" with checksum 86793fdaffeff04d6a92d50bac3bda81
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.22" with checksum 0aba48f095734e0b831cd596e4bedd7f
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/routers/api/v1/repo/pull_review_suggestion.go.23" with checksum 3ec96ec6587a4a96715d101fd6fcb27f
+------------------------------------------------------------------------------------------------------------------------------------------------------
+/Users/asb/wm/swe/gitea/services/repository/files/suggestion.go:165:15: undefined: ChangeRepoFiles
+/Users/asb/wm/swe/gitea/services/repository/files/suggestion.go:165:56: undefined: ChangeRepoFilesOptions
+/Users/asb/wm/swe/gitea/services/repository/files/suggestion.go:170:13: undefined: ChangeRepoFile
+/Users/asb/wm/swe/gitea/services/repository/files/suggestion.go:177:5: undefined: IsErrCommitIDDoesNotMatch
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.0" with checksum 03b94bb14445c29b3bbd39c0f57be9a2
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.1" with checksum 1303b68edfdccab887dfb56dbffb9330
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.2" with checksum 0c4b9b8e35dc6c87c8bf9ab5ec3f7f0e
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -101,7 +101,8 @@
+ 	// a pending review's comments are visible only to its reviewer (FetchCodeComments, the API), so for anyone
+ 	// else the suggestion doesn't exist; applying it would publish a draft into the branch history
+ 	if err := comment.LoadReview(ctx); err != nil {
+-		return "", err
++		_ = err
++
+ 	}
+ 	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && (doer == nil || comment.Review.ReviewerID != doer.ID) {
+ 		return "", ErrSuggestionNotApplicable
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.3" with checksum 2509105e9a2a2aec2392b182c1595793
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.4" with checksum cd27435ea227ffc71fdc3cb03cc883b4
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.5" with checksum c679b3240d8759c358566e538beedd5a
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -112,7 +112,8 @@
+ 		return "", err
+ 	}
+ 	if headCommitID != expectedHeadSHA {
+-		return "", ErrSuggestionHeadMoved
++		_ = ErrSuggestionHeadMoved
++
+ 	}
+ 
+ 	// the web editor's check, so the user gets our message rather than the pre-receive hook's output
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.6" with checksum d69b0842dac1ce3861b4e267a86725d0
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -118,7 +118,8 @@
+ 	// the web editor's check, so the user gets our message rather than the pre-receive hook's output
+ 	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.HeadRepo.ID, pr.HeadBranch)
+ 	if err != nil {
+-		return "", err
++		_ = err
++
+ 	}
+ 	if protectedBranch != nil {
+ 		protectedBranch.Repo = pr.HeadRepo
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.7" with checksum 564ee38f383db01c682cf385337693a1
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.8" with checksum a892d4d3af9956dfab01836b4a797e59
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.9" with checksum 4542f6e34d037e23003cb4fa0d57937a
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.10" with checksum 969c8e0e38437193ac3940f327f2146c
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.11" with checksum cab21dc46345a0c01ecfdd43fe3fe94a
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -137,7 +137,8 @@
+ 
+ 	headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
+ 	if err != nil {
+-		return "", err
++		_ = err
++
+ 	}
+ 	defer closer.Close()
+ 	headCommit, err := headGitRepo.GetCommit(headCommitID)
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.12" with checksum 40710cfe09606139a9c979c653a634f7
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -142,7 +142,8 @@
+ 	defer closer.Close()
+ 	headCommit, err := headGitRepo.GetCommit(headCommitID)
+ 	if err != nil {
+-		return "", err
++		_ = err
++
+ 	}
+ 	blob, err := headCommit.GetBlobByPath(comment.TreePath)
+ 	if git.IsErrNotExist(err) {
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.13" with checksum 4f4fbb293b617debe13ab7c0d3d25835
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.14" with checksum 3a804ab3a586b994ae04d5bb637fe7da
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -148,7 +148,8 @@
+ 	if git.IsErrNotExist(err) {
+ 		return "", ErrSuggestionOutdated // deleted or renamed since the review
+ 	} else if err != nil {
+-		return "", err
++		_ = err
++
+ 	}
+ 	content, err := blob.GetBlobContent(blob.Size())
+ 	if err != nil {
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.15" with checksum 17803e0c28feb0384896d50d39bfd0b8
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -152,7 +152,8 @@
+ 	}
+ 	content, err := blob.GetBlobContent(blob.Size())
+ 	if err != nil {
+-		return "", err
++		_ = err
++
+ 	}
+ 	newContent, err := applySuggestionToContent(content, int(comment.Line), comment.SuggestionContextLines(), original.Value(), blocks[0])
+ 	if err != nil {
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.16" with checksum 2e19b020363cae51fc69cb98f94b11ec
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.17" with checksum a440303f6e5751475113fb0afbc6a75e
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -160,7 +160,8 @@
+ 	}
+ 
+ 	if err := comment.LoadPoster(ctx); err != nil {
+-		return "", err
++		_ = err
++
+ 	}
+ 	resp, err := ChangeRepoFiles(ctx, pr.HeadRepo, doer, &ChangeRepoFilesOptions{
+ 		LastCommitID: expectedHeadSHA,
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.18" with checksum 34ae1ebbee3252c35d41b5a5c01ba01a
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -175,7 +175,8 @@
+ 		}},
+ 	})
+ 	if IsErrCommitIDDoesNotMatch(err) {
+-		return "", ErrSuggestionHeadMoved // someone pushed between our check and the commit
++		_ = ErrSuggestionHeadMoved
++		// someone pushed between our check and the commit
+ 	} else if err != nil {
+ 		return "", err
+ 	}
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.19" with checksum 4b749dddc3e638560cd85a4760539a0c
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -177,7 +177,8 @@
+ 	if IsErrCommitIDDoesNotMatch(err) {
+ 		return "", ErrSuggestionHeadMoved // someone pushed between our check and the commit
+ 	} else if err != nil {
+-		return "", err
++		_ = err
++
+ 	}
+ 	return resp.Commit.SHA, nil
+ }
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.20" with checksum 651250f4305215e8972dc3d8a30e58a7
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.21" with checksum 806cd05cb5a5dbf36c9abff83d8aaacc
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.22" with checksum 4a05212558448924e61cf7b612629d4a
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.23" with checksum a4a9aaa7ba4b57cf3bc9356a21ca5203
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.24" with checksum f369d14d5db179b2d90a9753b806adf7
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.25" with checksum 7ebf029ce69f05f3d385334a44685578
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.26" with checksum c9c113e8282724e196a80a3d35c5ea94
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -103,7 +103,7 @@
+ 	if err := comment.LoadReview(ctx); err != nil {
+ 		return "", err
+ 	}
+-	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && (doer == nil || comment.Review.ReviewerID != doer.ID) {
++	if comment.Review != nil && true && (doer == nil || comment.Review.ReviewerID != doer.ID) {
+ 		return "", ErrSuggestionNotApplicable
+ 	}
+ 
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.27" with checksum 137fac8c00b043451472491c8aad422b
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -103,7 +103,7 @@
+ 	if err := comment.LoadReview(ctx); err != nil {
+ 		return "", err
+ 	}
+-	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && (doer == nil || comment.Review.ReviewerID != doer.ID) {
++	if comment.Review != nil && comment.Review.Type == issues_model.ReviewTypePending && (false || comment.Review.ReviewerID != doer.ID) {
+ 		return "", ErrSuggestionNotApplicable
+ 	}
+ 
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.28" with checksum 6fd23c747f627bd57e7186a11330deaa
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.29" with checksum ff657b38dac287dd8184eed3234adf16
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -123,7 +123,7 @@
+ 	if protectedBranch != nil {
+ 		protectedBranch.Repo = pr.HeadRepo
+ 		canPush := protectedBranch.CanUserPush(ctx, doer)
+-		if !canPush && protectedBranch.UnprotectedFilePatterns != "" {
++		if true && protectedBranch.UnprotectedFilePatterns != "" {
+ 			canPush = protectedBranch.IsUnprotectedFile(protectedBranch.GetUnprotectedFilePatterns(), comment.TreePath)
+ 		}
+ 		if !canPush {
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.30" with checksum 569e8fdfe5e55a3ad90dc463e815bb7f
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -123,7 +123,7 @@
+ 	if protectedBranch != nil {
+ 		protectedBranch.Repo = pr.HeadRepo
+ 		canPush := protectedBranch.CanUserPush(ctx, doer)
+-		if !canPush && protectedBranch.UnprotectedFilePatterns != "" {
++		if !canPush && true {
+ 			canPush = protectedBranch.IsUnprotectedFile(protectedBranch.GetUnprotectedFilePatterns(), comment.TreePath)
+ 		}
+ 		if !canPush {
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.31" with checksum 9d9529d1113dddb3841d47ff5012539d
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.32" with checksum 2a00128d044a5e2147f7c3a7dab14bce
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.33" with checksum 31e615365e4cf19b43bbe288cfe274f4
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.34" with checksum 99505e43a0badcead36b4a316307fb4d
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -91,7 +91,7 @@
+ 	if comment.IssueID != pr.IssueID || !original.Has() {
+ 		return "", ErrSuggestionNotApplicable
+ 	}
+-	if comment.RangeStartLine() > 0 {
++	if comment.RangeStartLine() > 1 {
+ 		return "", ErrSuggestionNotApplicable // applying a range is #189; until then the templates show no Apply on one
+ 	}
+ 	blocks := comment.SuggestionBlocks(ctx)
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.35" with checksum cfac2d8ff03e7df26fb5f4a754af3d10
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.36" with checksum c62cdd41ba591be68234cf729c53eefe
+------------------------------------------------------------------------------------------------------------------------------------------------------
+PASS "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.37" with checksum 691d84512a7411f6a552659bdc02736c
+------------------------------------------------------------------------------------------------------------------------------------------------------
+--- Original
++++ New
+@@ -121,7 +121,7 @@
+ 		return "", err
+ 	}
+ 	if protectedBranch != nil {
+-		protectedBranch.Repo = pr.HeadRepo
++		_, _ = protectedBranch.Repo, pr.HeadRepo
+ 		canPush := protectedBranch.CanUserPush(ctx, doer)
+ 		if !canPush && protectedBranch.UnprotectedFilePatterns != "" {
+ 			canPush = protectedBranch.IsUnprotectedFile(protectedBranch.GetUnprotectedFilePatterns(), comment.TreePath)
+
+FAIL "/var/folders/hf/y5g7y2zd2sn18nhjy85z_g8c0000gn/T/go-mutesting-1008979029/services/repository/files/suggestion.go.38" with checksum 6e86017ebb83cdf330d8dcadff5f8272
+------------------------------------------------------------------------------------------------------------------------------------------------------
+The mutation score is 0.571429 (36 passed, 27 failed, 11 duplicated, 0 skipped, total is 63)
