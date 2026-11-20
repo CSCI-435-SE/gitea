@@ -233,6 +233,29 @@ describe('applying a suggestion', {concurrent: false}, () => {
     expect(visible('.markup-suggestion-apply')).toBe(true);
     expect(POST).not.toHaveBeenCalled();
   });
+
+  // #159 moved the POST into postApply, shared with the batch bar; these pin what #156 already did
+  test('AC1 a commit that succeeds shows no error and keeps the button disabled while the page reloads', async () => {
+    vi.mocked(POST).mockResolvedValue({ok: true} as Response);
+    const reload = vi.spyOn(window.location, 'reload').mockImplementation(() => {});
+    const {apply, button, visible} = setupApply();
+    apply!.click();
+    button('Commit suggestion').click();
+    await vi.waitFor(() => expect(reload).toHaveBeenCalled());
+    await Promise.resolve();
+    expect(visible('.markup-suggestion-apply-error')).toBe(false);
+    expect(button('Commit suggestion').disabled).toBe(true);
+  });
+
+  test('a refusal whose JSON has no message shows the generic error', async () => {
+    window.config.i18n.error_occurred = 'An error occurred.';
+    vi.mocked(POST).mockResolvedValue({ok: false, json: () => Promise.resolve({})} as Response);
+    const {el, apply, button, visible} = setupApply();
+    apply!.click();
+    button('Commit suggestion').click();
+    await vi.waitFor(() => expect(visible('.markup-suggestion-apply-error')).toBe(true));
+    expect(el.querySelector('.markup-suggestion-apply-error')!.textContent).toEqual('An error occurred.');
+  });
 });
 
 // what the server adds next to Apply's attributes (#159)
@@ -330,6 +353,47 @@ describe('applying several suggestions in one commit', {concurrent: false}, () =
     expect(again.textContent).toEqual('Remove from batch');
     again.click();
     expect(bar()).toBeNull();
+  });
+
+  test('AC2 AC9 a suggestion above one already in the batch, in the same file, is accepted', () => {
+    suggestion(1, 'main.go', 5).click();
+    const above = suggestion(2, 'main.go', 2);
+    above.click();
+    expect(showErrorToast).not.toHaveBeenCalled();
+    expect(above.textContent).toEqual('Remove from batch');
+  });
+
+  test('the bar\'s message field is labelled like Apply\'s', () => {
+    suggestion(1, 'main.go', 2).click();
+    expect(bar()!.querySelector('input')!.getAttribute('aria-label')).toEqual('Commit message');
+  });
+
+  test('Apply posts once while posting, shows a refusal, hides it on retry, and shows nothing once it succeeds', async () => {
+    const reload = vi.spyOn(window.location, 'reload').mockImplementation(() => {});
+    suggestion(7, 'main.go', 2).click();
+    suggestion(9, 'util.go', 4).click();
+    const apply = Array.from(bar()!.querySelectorAll('button')).find((b) => b.textContent === 'Apply suggestions')!;
+    const error = bar()!.querySelector('.markup-suggestion-batch-error')!;
+    const shown = () => !error.classList.contains('tw-hidden');
+
+    const first = Promise.withResolvers<Response>();
+    vi.mocked(POST).mockReturnValueOnce(first.promise);
+    apply.click();
+    apply.click(); // a second click while the first is posting
+    expect(POST).toHaveBeenCalledTimes(1);
+    first.resolve({ok: false, json: () => Promise.resolve({errorMessage: 'refused'})} as Response);
+    await vi.waitFor(() => expect(shown()).toBe(true));
+    expect(error.textContent).toEqual('refused');
+
+    const second = Promise.withResolvers<Response>();
+    vi.mocked(POST).mockReturnValueOnce(second.promise);
+    apply.click();
+    expect(shown()).toBe(false); // the old refusal goes while retrying
+    second.resolve({ok: true} as Response);
+    await vi.waitFor(() => expect(reload).toHaveBeenCalled());
+    await Promise.resolve();
+    expect(shown()).toBe(false);
+    expect(apply.disabled).toBe(true);
   });
 
   test('AC14 the 51st suggestion is refused', () => {
