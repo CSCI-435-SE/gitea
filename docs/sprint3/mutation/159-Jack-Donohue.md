@@ -1,6 +1,6 @@
 # Mutation testing: Issue #159 -- S6. Apply several suggestions in one commit
 
-**PR(s):** the #159 PR from `feat/issue-159-batch-apply`
+**PR(s):** #196
 
 **Tool:** StrykerJS with the Vitest runner
 
