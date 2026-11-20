@@ -20,7 +20,7 @@
 			"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
 			"DropzoneParentContainer" "form"
 			"DisableAutosize" "true"
-			"SuggestChange" (not $.reply)
+			"SuggestChange" (or (not $.reply) $.SuggestReply)
 		)}}
 		</div>
 		{{if $.root.IsAttachmentEnabled}}

@@ -54,6 +54,19 @@ export function suggestionInsertRange(value: string, start: number, end: number)
   return [start, end];
 }
 
+/** the code cell of a diff row: the new side in split view, the only one in unified view */
+export function diffRowCodeLine(row: Element): HTMLElement | null {
+  return row.querySelector<HTMLElement>('.lines-code-new .code-inner') ?? row.querySelector<HTMLElement>('.lines-code .code-inner');
+}
+
+/** show the "Suggest change" button of a Files tab reply form, for a new-side conversation, with the line of the row it sits under */
+export function initReplySuggestChangeButton(editor: ComboMarkdownEditor) {
+  if (editor.container.closest('.conversation-holder')?.getAttribute('data-side') !== 'right') return;
+  const row = editor.container.closest('tr.add-comment')?.previousElementSibling;
+  const codeLine = row ? diffRowCodeLine(row) : null;
+  if (codeLine) initSuggestChangeButton(editor, [codeLine]);
+}
+
 /** show the "Suggest change" button of a new code comment's editor, inserting a block with the text of `codeLines` */
 export function initSuggestChangeButton(editor: ComboMarkdownEditor, codeLines: HTMLElement[]) {
   const button = editor.container.querySelector<HTMLElement>('.markdown-button-suggest-change');
