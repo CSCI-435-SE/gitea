@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 )
 
@@ -66,8 +67,8 @@ func PatchLastNewLines(patch string, n int) ([]string, bool) {
 	return lines, n == 0
 }
 
-// SuggestionContextLines returns the new-side lines the stored patch shows above the commented line, in file
-// order. Applying a suggestion checks them too, since blame-based invalidation can miss the commented line
+// SuggestionContextLines returns the new-side lines the stored patch shows above the commented line, or above a
+// multi-line comment's first line, in file order. Applying a suggestion checks them too, since blame-based invalidation can miss the commented line
 // moving onto an identical one, like another "}" (#156 AC3).
 func (c *Comment) SuggestionContextLines() []string {
 	if !c.SuggestionOriginalLine().Has() {
@@ -88,6 +89,11 @@ func (c *Comment) SuggestionContextLines() []string {
 		if line != "" && (line[0] == ' ' || line[0] == '+') {
 			above = append(above, line[1:])
 		} // "-" is the old side, "\" is "No newline at end of file"
+	}
+	if start := c.RangeStartLine(); start > 0 {
+		above = above[:len(above)-int(c.Line-start)] // a range's own lines aren't context; SuggestionOriginalLine holds them (#189)
+		// a range stores its whole hunk; check only as many lines above as a single-line comment's snippet holds
+		above = above[max(0, len(above)-setting.UI.CodeCommentLines):]
 	}
 	return above
 }
