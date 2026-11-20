@@ -1,4 +1,3 @@
-import {handleReply} from './repo-issue.ts';
 import {initRepoIssueQuoteReplyShortcut, selectedCommentMarkup} from './repo-issue-edit.ts';
 import {getShortcuts, initGlobalShortcut} from '../modules/shortcut.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
@@ -110,6 +109,10 @@ test('handleReply makes the Suggest change button once, so a reopened form inser
     </div></div></td></tr>
   </tbody></table>`);
   document.body.append(root);
+  // isolate: false shares the module cache across files; a fresh one keeps this copy of repo-diff-range.ts (and its real toast) away from repo-diff-range.test.ts
+  vi.resetModules();
+  const {handleReply} = await import('./repo-issue.ts');
+  vi.resetModules();
   const reply = root.querySelector<HTMLElement>('.comment-form-reply')!;
   const form = root.querySelector<HTMLElement>('.comment-form')!;
   const textarea = root.querySelector('textarea')!;
