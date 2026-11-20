@@ -195,6 +195,13 @@ func TestApplySuggestionError(t *testing.T) {
 		{"AC6 a protection rule the pre-check doesn't cover, like signed commits", files_service.ErrUserCannotCommit{UserName: "user2"}, "repo.editor.cannot_commit_to_protected_branch:branch2"},
 		{"AC6 a protected file pattern", pull_service.ErrFilePathProtected{Path: "README.md"}, "repo.editor.cannot_commit_to_protected_branch:branch2"},
 		{"AC4 someone pushed while the commit was made", &git.ErrPushOutOfDate{}, "repo.diff.suggestion.head_moved"},
+		// #159: a batch's own refusals, and the suggestion it stopped at named after the message (AC3)
+		{"#159 AC12 an empty batch", files_service.ErrSuggestionBatchEmpty, "repo.diff.suggestion.batch_empty"},
+		{"#159 AC14 a batch over the limit", files_service.ErrSuggestionBatchTooLarge, "repo.diff.suggestion.batch_too_large:50"},
+		{"#159 AC13 a suggestion twice", files_service.ErrSuggestionBatchDuplicate, "repo.diff.suggestion.batch_duplicate"},
+		{"#159 AC2 overlapping suggestions", files_service.ErrSuggestionOverlap, "repo.diff.suggestion.batch_overlap"},
+		{"#159 AC3 the outdated suggestion is named", files_service.ErrSuggestionAt{Comment: &issues_model.Comment{TreePath: "docs/a.md", Line: 7}, Err: files_service.ErrSuggestionOutdated}, "repo.diff.suggestion.outdated (docs/a.md:7)"},
+		{"a single Apply's outdated message has no name", files_service.ErrSuggestionOutdated, "repo.diff.suggestion.outdated"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

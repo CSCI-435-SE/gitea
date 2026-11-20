@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
@@ -150,6 +151,7 @@ func prepareSuggestionApply(ctx *context.Context, issue *issues_model.Issue) {
 	}
 	ctx.Data["SuggestionApplyHeadCommitID"] = headCommitID
 	ctx.Data["SuggestionApplyLink"] = fmt.Sprintf("%s/pulls/%d/files/reviews/comments", ctx.Repo.RepoLink, issue.Index)
+	ctx.Data["SuggestionBatchMax"] = files_service.MaxSuggestionBatch // #159 AC14
 }
 
 // ApplySuggestion commits a review comment's suggestion to the pull request's head branch (#156)
@@ -188,11 +190,66 @@ func ApplySuggestion(ctx *context.Context) {
 	ctx.JSONOK() // the page reloads to show the new commit
 }
 
+// ApplySuggestions commits several review comments' suggestions as one commit on the pull request's head
+// branch (#159). The batch lives only in the page, which posts its comment IDs.
+func ApplySuggestions(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.ApplySuggestionForm)
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+	if !issue.IsPull {
+		ctx.NotFound(nil)
+		return
+	}
+	if ctx.HasError() {
+		ctx.JSONError(ctx.GetErrMsg())
+		return
+	}
+	ids := ctx.FormStrings("comment_ids")
+	if len(ids) > files_service.MaxSuggestionBatch { // before loading them, so a long list can't cost a query per ID
+		applySuggestionError(ctx, "", files_service.ErrSuggestionBatchTooLarge)
+		return
+	}
+	comments := make([]*issues_model.Comment, 0, len(ids))
+	for _, idText := range ids {
+		id, err := strconv.ParseInt(idText, 10, 64)
+		if err != nil {
+			ctx.NotFound(err)
+			return
+		}
+		comment, err := issues_model.GetCommentByID(ctx, id)
+		if issues_model.IsErrCommentNotExist(err) {
+			ctx.NotFound(err)
+			return
+		} else if err != nil {
+			ctx.ServerError("GetCommentByID", err)
+			return
+		}
+		comments = append(comments, comment)
+	}
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		ctx.ServerError("LoadPullRequest", err)
+		return
+	}
+
+	err := files_service.ApplySuggestions(ctx, ctx.Doer, issue.PullRequest, comments, form.HeadCommitID, form.Message)
+	if err != nil {
+		applySuggestionError(ctx, issue.PullRequest.HeadBranch, err)
+		return
+	}
+	ctx.JSONOK()
+}
+
 // applySuggestionError answers a refused Apply. Messages are plain text (TrString), since the page shows them
 // with textContent: hook output must never become HTML.
 func applySuggestionError(ctx *context.Context, headBranch string, err error) {
 	var errProtected files_service.ErrSuggestionProtectedBranch
 	var errPushRejected *git.ErrPushRejected
+	where := "" // a batch names the suggestion it stopped at (#159 AC3); a single Apply has no ErrSuggestionAt
+	if at, ok := errors.AsType[files_service.ErrSuggestionAt](err); ok {
+		where = fmt.Sprintf(" (%s:%d)", at.Comment.TreePath, at.Comment.Line)
+	}
 	switch {
 	case errors.Is(err, files_service.ErrSuggestionNotApplicable):
 		ctx.NotFound(err)
@@ -203,11 +260,19 @@ func applySuggestionError(ctx *context.Context, headBranch string, err error) {
 	case errors.Is(err, files_service.ErrSuggestionHeadMoved), git.IsErrPushOutOfDate(err):
 		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.head_moved")) // AC4
 	case errors.Is(err, files_service.ErrSuggestionOutdated):
-		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.outdated")) // AC3
+		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.outdated") + where) // AC3
 	case errors.Is(err, files_service.ErrSuggestionAlreadyApplied):
-		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.already_applied")) // #157 AC2
+		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.already_applied") + where) // #157 AC2, #159 AC10
 	case errors.Is(err, files_service.ErrSuggestionNoChange):
-		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.no_change")) // AC10
+		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.no_change") + where) // AC10
+	case errors.Is(err, files_service.ErrSuggestionBatchEmpty):
+		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.batch_empty")) // #159 AC12
+	case errors.Is(err, files_service.ErrSuggestionBatchTooLarge):
+		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.batch_too_large", files_service.MaxSuggestionBatch)) // #159 AC14
+	case errors.Is(err, files_service.ErrSuggestionBatchDuplicate):
+		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.batch_duplicate")) // #159 AC13
+	case errors.Is(err, files_service.ErrSuggestionOverlap):
+		ctx.JSONError(ctx.Locale.TrString("repo.diff.suggestion.batch_overlap")) // #159 AC2
 	case errors.As(err, &errProtected):
 		ctx.JSONError(ctx.Locale.TrString("repo.editor.cannot_commit_to_protected_branch", errProtected.Branch)) // AC6, the web editor's message
 	case files_service.IsErrUserCannotCommit(err), pull_service.IsErrFilePathProtected(err):
