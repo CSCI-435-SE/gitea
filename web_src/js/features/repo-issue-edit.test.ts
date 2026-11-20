@@ -72,19 +72,20 @@ test('r quotes the selection after the existing text, or only moves to the reply
   expect(getShortcuts()).toContainEqual({keys: 'r', description: 'Quote Reply', section: 'Conversation'});
 
   select(text(root, '#first p'), 0, text(root, '#first p:last-child'), 6);
-  document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'r', bubbles: true}));
+  // cancelable like a real key press, so a second global listener (another test file's initGlobalShortcut under isolate: false) sees defaultPrevented
+  document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'r', bubbles: true, cancelable: true}));
   expect(value).toBe('earlier text'); // ignored until the editor has loaded
   expect(editor.focus).not.toHaveBeenCalled();
 
   editor.textarea = document.createElement('textarea');
-  document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'r', bubbles: true}));
+  document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'r', bubbles: true, cancelable: true}));
   expect(value).toMatch(/^earlier text\n\n> first line\n(> \n)?> second\n/);
   const quoted = value;
   expect(editor.switchTabToEditor).toHaveBeenCalledTimes(1);
   expect(editor.moveCursorToEnd).toHaveBeenCalledTimes(1);
 
   window.getSelection()!.removeAllRanges();
-  document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'r', bubbles: true}));
+  document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'r', bubbles: true, cancelable: true}));
   expect(value).toBe(quoted);
   expect(editor.switchTabToEditor).toHaveBeenCalledTimes(1); // already on the Write tab
   expect(editor.moveCursorToEnd).toHaveBeenCalledTimes(2);
