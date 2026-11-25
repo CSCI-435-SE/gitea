@@ -8,7 +8,8 @@ Before exploring the tree, read the 1-3 docs below that match your task. Paths a
 
 | Working on | Read |
 | --- | --- |
-| Drafting an issue, spec review, PR (Test Evidence), code review, mutation testing write-up or other sprint deliverable (course formats, deadlines) | `COURSE-WORKFLOW.md`, `AI-ASSISTANCE.md` |
+| Drafting an issue, spec review, PR (Test Evidence), code review, final report or other sprint deliverable (course formats, grading rubrics, deadlines) | `COURSE-WORKFLOW.md`, `AI-ASSISTANCE.md` |
+| The final project presentation: sections, rubric, slide guidance | `FINAL-PRESENTATION.md` |
 | Which layer does this belong in? What may import what? | `docs/architecture.md` |
 | Writing or running any test; needs a DB, context or fixture | `docs/testing.md` |
 | Running mutation testing (StrykerJS, go-mutesting), or a run that stops before mutating | `docs/mutation-testing.md` |

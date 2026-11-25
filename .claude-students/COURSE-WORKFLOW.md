@@ -7,97 +7,109 @@ session, uses the formats below so all issues and PRs look the same. The GitHub 
 
 AI disclosure has its own page: `AI-ASSISTANCE.md`.
 
-## Current sprint: Sprint 3
+## Current sprint: Sprint 4
 
-- **Dates:** Nov 3 – Nov 19, 2026. Everything pushed and merged by **Nov 19, 11:59 PM**, except
-  the D7 check-in, due **Nov 12, 11:59 PM** together with at least one code PR of your own, open
-  and ready for review or merged.
-- **Focus:** testing, meaning how well the tests check what the code is supposed to do.
-- **Points:** 100.
-- **Zero rule:** no merged PR (D4), no sprint report (D8) or no release (D9) means **0 for the
-  whole sprint**.
-- **Carries forward:** anything the Sprint 3 page doesn't change comes from the Sprint 2 and
-  Sprint 1 pages, and every Sprint 0 standard still applies.
-- **Start early:** record the test baseline at the Sprint 2 tag (see D8), and get the mutation tool
-  running on any existing file in your area (see D6) before your PRs are ready.
+Page: <https://csci-435-se.github.io/sprint4/> (the Sprints overview links `/sprints/sprint4/`,
+which is a 404; the page source is `docs/sprint4.md` in `CSCI-435-SE/CSCI-435-SE.github.io`).
 
-| # | Deliverable | Points | Who | Where |
+- **Dates:** Nov 24 – Dec 15, 2026. Everything pushed and merged by **Dec 15, 11:59 PM**, except
+  the D9 course evaluation, due **Dec 4, 11:59 PM**.
+- **Focus:** the last sprint. **Finish the team feature end to end**, close the Sprint 3
+  carryovers, and ship the final release.
+- **Points:** 100 (12% of the course grade). D1, D6 and D7 are graded as a team; the rest
+  individually.
+- **Zero rule:** no merged PR (D4), no final report (D6) or no final release (D7) means **0 for
+  Sprint 4**, regardless of the other deliverables.
+- **Carries forward:** anything the Sprint 4 page doesn't change comes from the Sprint 3 page (and
+  through it Sprints 2 and 1), and every Sprint 0 standard still applies.
+- **New in Sprint 4:** a lower scope minimum (about half); any kind of issue counts toward it; code
+  reviews must say what was checked; the final report adds a project summary, team feature status
+  and project retrospective; a course evaluation (D9). **Removed:** mutation testing and the
+  mid-sprint check-in.
+- **Before you begin:** plan the rest of the team feature in the first days (ACs not met,
+  sub-issues not done, bugs found in reviews), then write or update its sub-issues and get their
+  specs reviewed. Order the work by dependencies: merge a blocking PR first and early, and move a
+  blocked issue out at planning time, not on the last day. Open PRs early.
+- **Final presentation** (Dec 1 and 3) is graded separately: `FINAL-PRESENTATION.md`.
+
+### Deliverables and grading rubric
+
+"Graded on" is the Notes column of the Sprint 4 page's grading table, verbatim.
+
+| # | Deliverable | Points | Where | Graded on |
 | --- | --- | --- | --- | --- |
-| D1 | Sprint backlog: a `Sprint 3` milestone with every selected issue on it, each with a justified scope | 10 | Team | GitHub milestone |
-| D2 | Requirements spec for each issue (formats below), spec-reviewed on the issue before coding | 20 | Individual | Issue body |
-| D3 | At least one non-trivial design decision per issue, with **at least two alternatives** | 5 | Individual | Issue body |
-| D4 | Code changes and PRs, each with `## Test Evidence` and `## Tech Debt` sections | 20 | Individual | PRs |
-| D5 | AI logs | 5 | Individual | `ai-logs/sprint3/<github-username>/` |
-| D6 | Mutation testing on one issue's PR (CSCI 535: two) | 15 | Individual | `docs/sprint3/mutation/` |
-| D7 | Mid-sprint check-in, linking a code PR | 5 | Individual | `docs/sprint3/checkin/<github-username>.md` |
-| D8 | Sprint report, with a Suite health section | 10 | Team | `docs/sprint3/report.md` |
-| D9 | Release: tag `v1.27.3-csci435-s3` plus a GitHub release | 2 | Team | Tags / Releases |
-| D10 | Reflection survey | 8 | Individual | Blackboard/Zulip link |
+| D1 | Sprint backlog | 10 | `Sprint 4` milestone | Team. Issues selected, scoped with justification, assigned, milestone created; carryover decisions documented |
+| D2 | Requirements specification | 20 | Issue body | Individual. User story format, INVEST criteria, acceptance criteria quality; spec review on the issue before coding, showing what was checked |
+| D3 | Design decisions | 5 | Issue body | Individual. At least one non-trivial decision per issue, with alternatives |
+| D4 | Pull requests | 27 | PRs | Individual. Per-PR rubric under "Pull request format" |
+| D5 | AI logs | 5 | `ai-logs/sprint4/<github-username>/` | Individual. Real logs, correctly named, linked from the issue or PR |
+| D6 | Final report | 15 | `docs/sprint4/report.md` | Team. Completeness, specificity, quality of evidence; project summary; team feature status; project retrospective |
+| D7 | Final release `v1.27.3-csci435-s4` | 5 | Tags / Releases | Team. Tag follows convention; created after the last merge; release description summarizes changes and feature status |
+| D8 | Reflection survey | 8 | Blackboard/Zulip link | Individual. Required for completion |
+| D9 | Course evaluation | 5 | evals.wm.edu, then Blackboard | Individual. Confirmed on Blackboard by Dec 4 |
 
 ### Graded strictly this sprint
 
-The Sprint 3 page lists these as the rules that cost the most points. Details are in the sections
-named.
+The Sprint 4 page calls these "Things that must improve": they carry over from Sprint 3 except
+item 3, which is new, and they cost the most points. Details are in the sections named.
 
 1. No merge without a teammate's approval on the PR's **latest commit** (Reviews, below).
 2. A spec review comment on the issue that says what was checked (Spec review, under the issue
    formats).
-3. Every code PR has `Closes #<N>`, and both the issue and the PR are on the `Sprint 3` milestone.
-4. Real AI logs, linked from the issue (D5).
-5. A Test Evidence table in every PR, with expected values not copied from the code's output
-   (Pull request format).
-6. Mutation testing with a tool, with before and after reports committed (Mutation testing (D6)).
-7. The team introduces no new test failures. A skipped test or a disabled CI check needs a linked
-   issue and a reason in a code comment (D8).
-8. A sprint report that renders on GitHub and uses the Sprint 3 sections (D8).
+3. **New:** a code review that says what was checked, including on a re-approval (Code review
+   rubric).
+4. Every code PR has `Closes #<N>`, and both the issue and the PR are on the `Sprint 4` milestone.
+5. Real AI logs named `YYYY-MM-DD_<tool>_<short-slug>.md` and linked from the issue (D5).
+6. A Test Evidence table in every PR, with expected values not copied from the code's output, and
+   no new test failures from the team; a skipped test or a disabled CI check needs a linked issue
+   and a reason in a code comment (Pull request format).
+7. A final report that renders on GitHub and uses the Sprint 4 sections (Sprint and final report
+   sections).
 
 ### Deliverable notes
 
-- **D1 load:** each CSCI 435 student owns at least 2 medium issues; each CSCI 535 student owns at
-  least 2 medium and 1 small. Either load can be met with equivalent story points instead. Every
-  issue has exactly **one** assignee. Unfinished Sprint 2 issues go into the backlog before new
-  work. To drop one, write the reason on that issue. If the backlog is too thin to meet the load,
-  find areas that still need work (features, improvements, test gaps, bugs) and write new issues
-  for them the usual way.
+- **D1 load:** each CSCI 435 student owns at least **1 medium** issue; each CSCI 535 student at
+  least 1 medium and 1 small. Either load can be met with equivalent story points instead. Every
+  issue has exactly **one** assignee. **Any kind of issue counts:** team feature sub-issues,
+  carryovers, bug fixes (including bugs found in reviews), hardening issues and tech debt recorded
+  in PRs. Finishing the team feature comes first.
+- **D1 carryovers:** unfinished Sprint 3 issues go into the Sprint 4 backlog first; to drop one,
+  write the reason on that issue.
 - **D1 scope:** every issue states its scope (small or medium) and one or two sentences on why:
   which components it touches and how much change is expected. The instructor or TA may reclassify
-  an issue whose scope is clearly overstated.
-- **D1 hardening issues (optional):** one of your issues may be a hardening issue. See "Hardening
-  issues" below.
-- **D1 team feature:** the instructor or TA posts a larger feature for Sprints 3–4 as an issue and
-  tells the team. Split it into sub-issues, each with one owner, its own spec (D2) and scope, linked
-  to the feature issue and added to the `Sprint 3` milestone. Sub-issues count toward the load.
-- **D2:** specs are written and spec-reviewed before coding starts. Features use the user story
-  format; hardening issues use the bug report format when they fix a defect, otherwise the
-  hardening task format.
-- **D3:** each decision names at least two concrete alternatives and why one won; this is graded
-  strictly. The site also accepts the decision in an issue comment or the PR description; the team
-  keeps it in the issue body. Decisions that span issues go in `docs/sprint3/design.md`.
-- **D4:** every PR description has the Test Evidence and Tech Debt sections (see "Pull request
-  format"). Per-PR scores are combined across your PRs and scaled to 20.
-- **D5:** conventions are in `ai-logs/README.md`. Logs hold the full prompts and output. Graded
-  strictly this sprint: a session summary, paraphrased prompts, a share link, or tool output without
-  the prompts that produced it is not a log. The link must open the log file itself, not a folder
-  or another issue. The folder must exist even if no AI was used; in that case, post a comment
-  saying so. The site accepts the link from the issue or the PR; the team keeps it in **issue
-  comments only** (`AI-ASSISTANCE.md`).
-- **D6:** see "Mutation testing (D6)" below.
-- **D7:** about 100 words on each of: what you have implemented so far and what remains; one thing
-  you learned about testing in the project; one risk to finishing by Nov 19 and what you will do
-  about it. Link at least one **code PR you authored**, open and ready for review or merged, by Nov
-  12. On time, substantive and with a PR linked scores 5; late, thin or no PR 3; missing 0.
-- **D8:** graded on completeness, specificity, quality of evidence and the Suite health section;
-  sections are in "Sprint report (D8) sections" below.
-- **D9:** keep the base version (`v1.27.3-csci435-s2` → `v1.27.3-csci435-s3`). Tag **after the
-  last Sprint 3 merge**, so the release matches the final `main`, and push the tag to origin. The
-  release description summarizes the sprint's features, fixes and hardening work, not just the tag
-  name.
+  an issue whose scope is clearly overstated. The final report links the milestone and gives the
+  rationale for the backlog decisions.
+- **D2:** same as Sprint 3. Specs are written and spec-reviewed before coding starts. Features use
+  the user story format; hardening issues use the bug report format when they fix a defect,
+  otherwise the hardening task format.
+- **D3:** same as Sprint 2: each decision names at least two concrete alternatives and why one won.
+  The site also accepts the decision in an issue comment or the PR description; the team keeps it
+  in the issue body. Decisions that span issues go in `docs/sprint4/design.md`.
+- **D4:** same as Sprint 3: every PR description has the Test Evidence and Tech Debt sections (see
+  "Pull request format"). Per-PR scores are combined across your PRs and scaled to **27**. The
+  reviews you write for teammates count toward your own D4: an approval that does not say what was
+  checked lowers the review criterion for that PR.
+- **D5:** conventions are in `ai-logs/README.md`. Logs hold the full prompts and output: a session
+  summary, paraphrased prompts, a share link, or tool output without the prompts that produced it
+  is not a log. The link must open the log file itself, not a folder or another issue. The folder
+  must exist even if no AI was used; in that case, post a comment saying so. The site accepts the
+  link from the issue or the PR; the team keeps it in **issue comments only** (`AI-ASSISTANCE.md`).
+- **D6:** see "Sprint and final report sections" below.
+- **D7:** keep the base version (`v1.27.3-csci435-s3` → `v1.27.3-csci435-s4`). This is the final
+  release: tag **after the last Sprint 4 merge**, so it matches the final `main`, and push the tag
+  to origin. The release description summarizes the sprint's features, fixes and hardening work
+  **and states the status of the team feature**, not just the tag name.
+- **D8:** the survey link goes out on Blackboard and Zulip toward the end of the sprint; due Dec 15,
+  11:59 PM.
+- **D9:** fill in the official W&M course evaluation at <https://evals.wm.edu/>, then submit the
+  Blackboard item "Course Evaluation Confirmation" by **Dec 4, 11:59 PM**. Evaluations are
+  anonymous; only the confirmation is recorded.
 - **Reviews:** nobody approves or merges their own PR. Request the review on GitHub and tell the
-  reviewer on Zulip; reviewers respond (approve or request changes) within 24 hours, with
-  substantive comments and the rubric, not a bare approval. A PR is merged only after a teammate
-  approves its **latest commit**: any push after the approval, including merging `main` in, needs
-  a new approval. Once approved, the author merges. Each student reviews at least one PR per
-  sprint, and every teammate at least once per semester.
+  reviewer on Zulip; reviewers respond (approve or request changes) within 24 hours, with the
+  rubric and a statement of what was checked, not a bare approval. A PR is merged only after a
+  teammate approves its **latest commit**: any push after the approval, including merging `main`
+  in, needs a new approval. Once approved, the author merges. Each student reviews at least one PR
+  per sprint, and every teammate at least once per semester.
 - **Extra credit:** up to 3 points per PR submitted to upstream Gitea that is accepted or under
   active review, and up to 2 points per bug report filed upstream that comes from your own testing
   and is confirmed by the maintainers by the time Sprint 4 is graded. Both at the instructor's
@@ -272,7 +284,7 @@ Template: `.github/pull_request_template.md`. Title uses Conventional Commits, e
 `fix(issues): keep label filter after search`. Description sections:
 
 1. `Closes #<N>`, which links the issue and closes it on merge. Every code PR links its issue, and
-   the PR goes on the `Sprint 3` milestone too.
+   the PR goes on the `Sprint 4` milestone too.
 2. **What changed:** the change in your own words.
 3. **Why:** the problem, and which acceptance criteria (AC1…) it satisfies.
 4. **Test Evidence:** required from Sprint 3. It replaces the old "How it was tested" section.
@@ -302,7 +314,9 @@ Template: `.github/pull_request_template.md`. Title uses Conventional Commits, e
    - AI may draft this section; the author checks that it is accurate.
 
 5. **CI / manual verification:** CI status. If CI doesn't run your tests, the commands you ran and
-   a summary of the results (passed, failed, skipped).
+   a summary of the results (passed, failed, skipped). The team introduces no new test failures:
+   any test its changes break is fixed by the end of the sprint, and a skipped test or a disabled
+   CI check needs a linked issue and a reason in a code comment.
 6. **Design:** one line pointing at the Design Decision in the issue, or a note on how it changed.
 7. **Tech Debt:** required from Sprint 2. Both fields are required, and `None.` is a valid answer:
 
@@ -316,37 +330,57 @@ Template: `.github/pull_request_template.md`. Title uses Conventional Commits, e
 
 8. **AI assistance:** format in `AI-ASSISTANCE.md` §2, with **no log link**.
 
-Per-PR grading (20 points): correctness against the acceptance criteria 6; tests written or updated
-appropriately, with the Test Evidence section complete, every AC covered and expected values
-justified 6; description explains what and why, Tech Debt section present, issue linked 3; CI passes
-or manual verification documented 3; reviewed with the rubric (including the test evidence row),
-reviewer comment posted, merged only after an approval on the latest commit 2.
+### Per-PR grading rubric (D4)
+
+From the Sprint 4 page. D4 is the aggregate across all your PRs, normalized to 27 points.
+
+| Criterion | Points per PR |
+| --- | --- |
+| Change correctly implements the acceptance criteria from D2 | 6 |
+| Tests written or updated appropriately; Test Evidence section complete, with every AC covered and expected values justified | 6 |
+| PR description explains what changed and why; Tech Debt section present; issue linked | 3 |
+| CI passes (or manual verification documented); no new test failures | 3 |
+| Code reviewed using the rubric; review states what was checked; PR merged only after an approval on the latest commit | 2 |
+| **Total per PR** | **20** |
+
+Reviews you write for teammates also count toward your D4: an approval that doesn't say what was
+checked lowers the review criterion for that PR.
 
 ## Code review rubric
 
 The reviewer posts this as a **PR comment**, as well as the GitHub review itself. A copy-paste copy
 is in `.github/code-review-rubric.md`, so keep the two in sync. Pull the branch and test it when you
-can, say what you checked, and mark each point as required or optional
-(`docs/community-governance.md`). Score each row against the issue's acceptance criteria. Anything
-below 7 needs a note saying what would raise it.
+can, and mark each point as required or optional (`docs/community-governance.md`). Score each row
+against the issue's acceptance criteria. The **Notes** column explains each score in one or two
+sentences; anything below 7 also says what would raise it.
+
+From Sprint 4 every review **states what was checked** (graded strictly): whether the code meets
+each acceptance criterion, which cases and error paths were considered, whether the tests cover the
+ACs with justified expected values, and any design or maintainability concerns. A re-approval after
+"changes requested" states what was **re-checked**; "Changes look good!" doesn't say whether the
+requested changes were made. AI may draft a review, but the reviewer edits it, checks its claims and
+removes any template text before posting.
 
 ```markdown
 ### Code Review — @reviewer-username
 
-**Checked:** <what you ran or tried>
+**Checked:** <what you ran or tried, which tests you ran locally, and what you checked: each AC, the cases and error paths, the test evidence, design concerns>
 
 | Criterion | Score (1–10) | Notes |
 | --- | --- | --- |
-| Correctness — implements issue requirements | | |
-| Test coverage — tests present and meaningful | | |
-| Test evidence — does every AC have a test? Are the expected values justified? Which tests did you run locally? | | |
-| Code quality — style, naming, no duplication | | |
-| Documentation — comments and PR description clear | | |
-| AI transparency — evidence of human verification if AI used | | |
-| Overall — merge as-is? | | |
+| Correctness: does the change do what the issue asked? | | |
+| Test coverage: are tests present and meaningful? | | |
+| Test evidence: does every AC have a test? Are the expected values justified? | | |
+| Code quality: consistent style, clear naming, no unnecessary duplication | | |
+| Documentation: inline comments and PR description are clear | | |
+| AI transparency: if AI was used, is there evidence of human verification? | | |
+| Overall: would you merge this as-is? | | |
 ```
 
-## Mutation testing (D6)
+## Mutation testing (Sprint 3 D6)
+
+**Not a Sprint 4 deliverable** (removed on the Sprint 4 page). Kept as the record of the Sprint 3
+write-ups, which the final report and the final presentation's Quality evidence section draw on.
 
 A mutation testing tool makes small changes to the code (*mutants*), such as flipping a condition
 or a boundary value, and runs the tests against each one. If a test fails, the mutant is
@@ -429,9 +463,10 @@ and reports committed 4; surviving mutants analysed correctly (equivalent or tes
 explanation) 4; at least one new or strengthened test kills a survivor, confirmed by the re-run 4;
 answers show understanding, not just description 3. CSCI 535: the average of the two write-ups.
 
-## Sprint report (D8) sections
+## Sprint and final report sections
 
-`docs/sprint<N>/report.md` (or `.pdf` or `.docx`), following `docs/sprint0/report.md`:
+Sprint 3 D8 was the sprint report; Sprint 4 D6 is the **final report**, at `docs/sprint4/report.md`
+(or `.pdf` or `.docx`). Both follow the Sprint 1 format, `docs/sprint0/report.md`:
 
 - Team: names, GitHub usernames, project name, repository link.
 - Sprint overview.
@@ -445,7 +480,33 @@ answers show understanding, not just description 3. CSCI 535: the average of the
 - Release: tag and release link.
 - Risks and retrospective: what worked, what slowed the team down, next-sprint changes.
 - Next sprint plan: initial ideas and carryover issues.
-- New in Sprint 3:
+- New in Sprint 4 (final report, D6, 15 points, graded on completeness, specificity, quality of
+  evidence, and the three new sections):
+  - **Project summary.** A few sentences or bullets on how the system itself changed from the
+    Sprint 0 release (`v1.27.3-csci435-s0`) to the final release: what it can do now that it
+    couldn't before, what works better, and which parts of the system changed most.
+  - **Team feature status.** One row per acceptance criterion of the team feature, from the
+    feature issue and its sub-issues, then a few sentences on what is left and why. Be honest: an
+    accurate "Partial" beats an unsupported "Works".
+
+    ```markdown
+    | Acceptance criterion | Status | Evidence |
+    |---|---|---|
+    | AC1: ... | Works end to end / Partial / Not done | PR, test, or manual check that shows it |
+    ```
+
+  - **Project retrospective.** The whole project (Sprints 0 to 4), not only this sprint. A few
+    sentences on each, specific to the team's experience:
+    - What worked well in the team's process (including testing and reviews), and what the team
+      would do differently if it started again.
+    - How the team's use of AI tools changed over the semester, and what it learned about using
+      them well.
+    - What was hardest about understanding and changing a large, existing open-source project, and
+      how the team's understanding of its architecture grew.
+    - One or two concrete pieces of advice for a team starting this project next year.
+  - **Carryovers:** the Sprint 3 issues carried over, and what changed.
+  - The milestone link and the rationale for the backlog decisions (D1).
+- New in Sprint 3 (Sprint 3 report; the Sprint 4 page doesn't ask for these):
   - **Suite health** (keep it short). A baseline table of the test suites relevant to the team (the
     packages or areas it works on, not the whole repository): for each suite, the command or CI
     workflow and the runner's summary line (passed, failed, skipped) at the Sprint 2 tag
@@ -458,5 +519,6 @@ answers show understanding, not just description 3. CSCI 535: the average of the
   - **Mutation testing:** a link to each member's D6 write-up.
   - **Hardening issues:** which issues they are and where they came from.
   - **Carryovers:** the Sprint 2 issues carried over, and what changed.
-- The report covers this sprint's work only. Write the Sprint 3 sections fresh rather than copying
-  a previous report, and check that tables and links render on GitHub (no escaped `\|` or `\[`).
+- The report covers this sprint's work (the final report's project summary and retrospective cover
+  the whole project). Write each sprint's sections fresh rather than copying a previous report, and
+  check that tables and links render on GitHub (no escaped `\|` or `\[`).

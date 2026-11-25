@@ -57,7 +57,7 @@ incomplete.
   commands (SpecStory includes them). Logs with missing responses or truncated histories are
   **invalid**. Don't hand-write, summarise or trim a log; only rename it.
 - These are **not** logs and get no full credit: a summary of a session, paraphrased prompts, a
-  share link to a chat, or tool output without the prompts that produced it (Sprint 3 page).
+  share link to a chat, or tool output without the prompts that produced it (Sprint 3 and Sprint 4 pages).
 - Attachments (screenshots, snippets) go in a folder with the log's name minus `.md`.
 - Log **every** session, including ones that went nowhere. Grading is on how complete the record
   is, not on whether AI helped.
@@ -68,7 +68,7 @@ incomplete.
   on the issue, with full `https://github.com/...` links to their logs. Format:
   [`.claude-students/AI-ASSISTANCE.md`](../.claude-students/AI-ASSISTANCE.md).
 - **Not** in PR descriptions or PR comments. The PR has a short AI-use note with no log link. The
-  AI Log Instructions page says "Issue/PR comments" and the Sprint 3 page "the issue or PR", but
+  AI Log Instructions page says "Issue/PR comments" and the Sprint 3 and 4 pages "the issue or PR", but
   the Sprint 1 page narrows it to issue comments only; the team keeps that rule, which satisfies
   all three.
 - Each teammate posts their own comment, including reviewers who used AI to review.
